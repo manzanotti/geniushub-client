@@ -1,0 +1,5 @@
+.vscode/*
+build/*
+dist/*
+genius.egg-info/*
+*.pyc
