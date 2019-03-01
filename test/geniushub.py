@@ -9,38 +9,44 @@ import logging
 _LOGGER = logging.getLogger(__name__)
 
 
-class GeniusUtility:
+class GeniusHub:
 
-    def __init__(self, ip_address, username, password, update=5):
+    _auth = ''
+    _ip_address = ''
+    _results = None
+    _STATUS = 200
+    _t = None
+    _UPDATE_INTERVAL = 30
+
+    def __init__(self, ip_address, username, password, update=30):
         sha = hash()
         sha.update((username + password).encode('utf-8'))
-        GeniusUtility._auth = aiohttp.BasicAuth(
+        GeniusHub._auth = aiohttp.BasicAuth(
             login=username, password=sha.hexdigest())
-        GeniusUtility._UPDATE_INTERVAL = update
-        GeniusUtility._STATUS = 200
-        GeniusUtility._ip_address = "http://" + ip_address + ":1223/v3"
-        GeniusUtility._t = threading.Thread(
+        GeniusHub._UPDATE_INTERVAL = update
+        GeniusHub._STATUS = 200
+        GeniusHub._ip_address = "http://" + ip_address + ":1223/v3"
+        GeniusHub._t = threading.Thread(
             target=self.StartPolling, name="GeniusInitLink")
-        GeniusUtility._t.daemon = True
-        GeniusUtility._t.start()
+        GeniusHub._t.daemon = True
+        GeniusHub._t.start()
 
     async def fetch(self, session, url):
         async with aiohttp.ClientSession() as session:
-            async with session.get(url,
-                                   auth=GeniusUtility._auth) as response:
+            async with session.get(url, auth=GeniusHub._auth) as response:
                 text = await response.text()
                 return text, response.status
 
     async def getjson(self, identifier):
         ''' gets the json from the supplied zone identifier '''
-        url = GeniusUtility._ip_address + identifier
+        url = GeniusHub._ip_address + identifier
         try:
             async with aiohttp.ClientSession() as session:
                 text, status = await self.fetch(session, url)
-                GeniusUtility._STATUS = status
+                GeniusHub._STATUS = status
 
                 if status == 200:
-                    GeniusUtility._results = json.loads(text)
+                    GeniusHub._results = json.loads(text)
 
         except Exception as ex:
             _LOGGER.error("Failed requests in getjson")
@@ -55,19 +61,19 @@ class GeniusUtility:
         while True:
             await self.getjson('/zones')
 
-            if not GeniusUtility._STATUS == 200:
+            if not GeniusHub._STATUS == 200:
                 _LOGGER.error(
-                    self.LookupStatusError(GeniusUtility._STATUS))
-                if GeniusUtility._STATUS == 501:
+                    self.LookupStatusError(GeniusHub._STATUS))
+                if GeniusHub._STATUS == 501:
                     break
 
-            await asyncio.sleep(GeniusUtility._UPDATE_INTERVAL)
+            await asyncio.sleep(GeniusHub._UPDATE_INTERVAL)
 
     def getAllZones(self):
-        return GeniusUtility._results['data']
+        return GeniusHub._results['data']
 
     def getZone(self, zoneId):
-        for zone in GeniusUtility.getAllZones(self):
+        for zone in GeniusHub.getAllZones(self):
             if zone['iID'] == zoneId:
                 return zone
 
@@ -124,14 +130,14 @@ class GeniusUtility:
         async with aiohttp.ClientSession() as session:
             async with session.patch(
                     url,
-                    auth=GeniusUtility._auth,
+                    auth=GeniusHub._auth,
                     data=json.dumps(data)) as response:
                 assert response.status == 200
                 return response.status
 
     async def putjson(self, device_id, data):
         ''' puts the json data to the supplied zone identifier '''
-        url = GeniusUtility._ip_address + '/zone/' + str(device_id)
+        url = GeniusHub._ip_address + '/zone/' + str(device_id)
         try:
             async with aiohttp.ClientSession() as session:
                 status = await self.place(session, url, data)
@@ -141,7 +147,7 @@ class GeniusUtility:
             return status == 200
 
         except Exception as ex:
-            _LOGGER.error(self.LookupStatusError(GeniusUtility._STATUS))
+            _LOGGER.error(self.LookupStatusError(GeniusHub._STATUS))
             _LOGGER.error("Failed requests in putjson")
             _LOGGER.error(ex)
             return False
@@ -151,12 +157,12 @@ class GeniusUtility:
         return {
             'current_temperature': zone['fPV'],
             'target_temperature': zone['fSP'],
-            'mode': GeniusUtility.GET_MODE(zone),
+            'mode': GeniusHub.GET_MODE(zone),
             'is_active': zone['bIsActive']}
 
     @staticmethod
     def GET_SWITCH(zone):
-        return {'mode': GeniusUtility.GET_MODE(zone)}
+        return {'mode': GeniusHub.GET_MODE(zone)}
 
     @staticmethod
     def getSensor(cv):

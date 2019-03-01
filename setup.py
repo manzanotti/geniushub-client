@@ -4,10 +4,10 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name='genius',
+    name='geniushub',
     version='0.1',
     description='Python library to provide connect to Genius Hub on a local network.',
-    url='https://github.com/GeoffAtHome/genus',
+    url='https://github.com/GeoffAtHome/geniushub',
     author='Geoff Soord',
     author_email='geoff@soord.org.uk',
     long_description=long_description,

@@ -1,5 +1,5 @@
 import asyncio
-from genius import GeniusUtility
+from geniushub import GeniusHub
 
 IP_ADDRESS = 'Your local ip address'
 USERNAME = 'Your user name'
@@ -8,29 +8,29 @@ INTERVAL = 60
 
 
 async def main():
-    genius_utility = GeniusUtility(IP_ADDRESS, USERNAME, PASSWORD, INTERVAL)
-    await genius_utility.getjson('/zones')
+    genius_hub = GeniusHub(IP_ADDRESS, USERNAME, PASSWORD, INTERVAL)
+    await genius_hub.getjson('/zones')
 
     # Get the zones with a temperature
-    climate_list = genius_utility.getClimateList()
+    climate_list = genius_hub.getClimateList()
 
     print("Climate -------------------------------------------------------------")
     for zone in climate_list:
         print(zone)
 
-    trvs = genius_utility.getTRVList()
+    trvs = genius_hub.getTRVList()
 
     print("TRV -----------------------------------------------------------------")
     for trv in trvs:
         print(trv)
 
-    switches = genius_utility.getSwitchList()
+    switches = genius_hub.getSwitchList()
 
     print("Switches ------------------------------------------------------------")
     for switch in switches:
         print(switch)
 
-    sensors = genius_utility.getSensorList()
+    sensors = genius_hub.getSensorList()
 
     print("Sensors -------------------------------------------------------------")
     for sensor in sensors:

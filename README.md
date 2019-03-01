@@ -1,4 +1,4 @@
-# Genius
+# GeniusHub
 Python library to provide connect to Genius Hub on a local network.
 
 # Installation
@@ -31,7 +31,7 @@ Initialise a link to the hub by passing in the local IP address, username and pa
 What is read from the getters is self explanatory. The putjson POST the data to the Genius Hub. The format of the json can be discovered by exploring the Genius application and view the requests posted to the hub.
 ```
 import asyncio
-from genius import GeniusUtility
+from geniushub import GeniusHub
 
 IP_ADDRESS = 'Your local ip address'
 USERNAME = 'Your user name'
@@ -40,29 +40,29 @@ INTERVAL = 60
 
 
 async def main():
-    genius_utility = GeniusUtility(IP_ADDRESS, USERNAME, PASSWORD, INTERVAL)
-    await genius_utility.getjson('/zones')
+    genius_hub = GeniusHub(IP_ADDRESS, USERNAME, PASSWORD, INTERVAL)
+    await genius_hub.getjson('/zones')
 
     # Get the zones with a temperature
-    climate_list = genius_utility.getClimateList()
+    climate_list = genius_hub.getClimateList()
 
     print("Climate -------------------------------------------------------------")
     for zone in climate_list:
         print(zone)
 
-    trvs = genius_utility.getTRVList()
+    trvs = genius_hub.getTRVList()
 
     print("TRV -----------------------------------------------------------------")
     for trv in trvs:
         print(trv)
 
-    switches = genius_utility.getSwitchList()
+    switches = genius_hub.getSwitchList()
 
     print("Switches ------------------------------------------------------------")
     for switch in switches:
         print(switch)
 
-    sensors = genius_utility.getSensorList()
+    sensors = genius_hub.getSensorList()
 
     print("Sensors -------------------------------------------------------------")
     for sensor in sensors:
