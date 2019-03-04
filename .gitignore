@@ -1,5 +1,5 @@
 .vscode/*
 build/*
 dist/*
-genius.egg-info/*
+geniushub.egg-info/*
 *.pyc
