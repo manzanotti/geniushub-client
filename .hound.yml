@@ -1,0 +1,5 @@
+# .hound.yml file for evohome
+
+python:
+  enabled: true
+  config_file: .flake8
