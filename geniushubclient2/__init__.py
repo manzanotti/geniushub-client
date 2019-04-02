@@ -91,6 +91,35 @@ IMODE_TO_MODE = {
     zone_modes.Other: 'other'
 }  # or: 16: 'boost'?
 
+LEVEL_TO_TEXT = {
+    0: 'error',
+    1: 'warning',
+    2: 'information'
+}
+DESCRIPTION_TO_TEXT = {
+    "node:no_comms":
+        "The device has lost communication with the Hub",
+    "node:not_seen":
+        "The device has not been found by the Hub",
+    "node:low_battery":
+        "The battery is dead and needs to be replaced",
+    "node:warn_battery":
+        "the battery is low",
+    "manager:no_boiler_controller":
+        "The hub does not have a boiler controller assigned",
+    "manager:no_boiler_comms":
+        "The hub has lost communication with the boiler controller",
+    "manager:no_temp":
+        "The hub does not have a valid temperature",
+    "manager:weather_data":
+        "Weather data -",
+    "zone:using_weather_temp":
+        "The {} zone is currently using the outside temperature",
+    "zone:using_assumed_temp":
+        "The {} zone is currently using the assumed temperature",
+    "zone:tpi_no_temp":
+        "The {} zone has no valid temperature sensor",
+}
 _LOGGER = logging.getLogger(__name__)
 _LOGGER.setLevel(logging.WARNING)
 
@@ -314,21 +343,10 @@ class GeniusHub(GeniusObject):
         """
         def _convert_to_v1(input) -> list:
             """Convert v3 output to v1 schema."""
-            LEVEL_TO_TEXT = {
-                0: 'error',
-                1: 'warning',
-                2: 'information'
-            }
-            DESCRIPTION_TO_TEXT = {
-                'using_weather_temp':
-                    "{} is currently using the outside temperature",
-                'unknown':
-                    "The {} in {} can not been found by the Hub"
-            }  # needs fleshing out
             output = []
             for zone in input['data']:
                 for issue in zone['lstIssues']:
-                    message = DESCRIPTION_TO_TEXT[issue['id'].split(':')[1]]
+                    message = DESCRIPTION_TO_TEXT[issue['id']]
 
                     tmp = {}
                     tmp['description'] = message.format(zone['strName'])
