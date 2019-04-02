@@ -5,13 +5,14 @@ see: https://my.geniushub.co.uk/docs
 import asyncio
 from hashlib import sha256
 import logging
+from types import SimpleNamespace
 
 import aiohttp
 
 HTTP_OK = 200  # cheaper than: from http import HTTPStatus.OK
 
-DEFAULT_TIMEOUT_V1 = 10
-DEFAULT_TIMEOUT_V3 = 60
+DEFAULT_TIMEOUT_V1 = 30
+DEFAULT_TIMEOUT_V3 = 10
 
 DEFAULT_INTERVAL_V1 = 300
 DEFAULT_INTERVAL_V3 = 30
@@ -24,23 +25,70 @@ API_STATUS_ERROR = {
     502: "The hub is offline.",
     503: "The authorization information is invalid.",
 }
+zone_types = SimpleNamespace(
+    Manager = 1,
+    OnOffTimer = 2,
+    ControlSP = 3,
+    ControlOnOffPID = 4,
+    TPI = 5,
+    Surrogate = 6
+)
+zone_modes = SimpleNamespace(
+    Off = 1,
+    Timer = 2,
+    Footprint = 4,
+    Away = 8,
+    Boost = 16,
+    Early = 32,
+    Test = 64,
+    Linked = 128,
+    Other = 256
+)
+kit_types = SimpleNamespace(
+    Temp = 1,
+    Valve = 2,
+    PIR = 4,
+    Power = 8,
+    Switch = 16,
+    Dimmer = 32,
+    Alarm = 64,
+    GlobalTemp = 128,
+    Humidity = 256,
+    Luminance = 512
+)
+zone_flags = SimpleNamespace(
+    Frost = 1,
+    Timer = 2,
+    Footprint = 4,
+    Boost = 8,
+    Away = 16,
+    WarmupAuto = 32,
+    WarmupManual = 64,
+    Reactive = 128,
+    Linked = 256,
+    WeatherComp = 512,
+    Temps = 1024,
+    TPI = 2048
+)
+
 ITYPE_TO_TYPE = {
-    1: 'manager',
-    2: 'on / off',
-    3: 'radiator',
-    4: 'type 4',
-    5: 'hot water temperature',
+    zone_types.Manager: 'manager',
+    zone_types.OnOffTimer: 'on / off',
+    zone_types.ControlSP: 'radiator',
+    zone_types.ControlOnOffPID: 'type 4',
+    zone_types.TPI: 'hot water temperature',
+    zone_types.Surrogate: 'type 6',
 }  # also: 'group', 'wet underfloor'
 IMODE_TO_MODE = {
-    1: 'off',
-    2: 'timer',
-    4: 'footprint',
-    8: 'away',
-    16: 'override',
-    32: 'early',
-    64: 'test',
-    128: 'linked',
-    256: 'other'
+    zone_modes.Off: 'off',
+    zone_modes.Timer: 'timer',
+    zone_modes.Footprint: 'footprint',
+    zone_modes.Away: 'away',
+    zone_modes.Boost: 'override',
+    zone_modes.Early: 'early',
+    zone_modes.Test: 'test',
+    zone_modes.Linked: 'linked',
+    zone_modes.Other: 'other'
 }  # or: 16: 'boost'?
 
 _LOGGER = logging.getLogger(__name__)
@@ -62,7 +110,7 @@ class GeniusObject(object):
         _LOGGER.debug("_handle_assetion(type=%s, url=%s)", type, url)
 
     async def _request(self, type, url):
-        _LOGGER.debug("_test2(type=%s, url=%s)", type, url)
+        _LOGGER.debug("_request(type=%s, url=%s)", type, url)
 
         async with self._session as session:
             if type == "GET":
@@ -101,15 +149,16 @@ class GeniusHub(GeniusObject):
         self._loop = eventloop if eventloop else asyncio.new_event_loop()
 
         # if no credentials, then hub_id is a token for v1 API
-        if username is None and password is None:
+        self._api_v1 = not (username or password)
+
+        if self._api_v1:
             self._auth = None
             self._url_base = 'https://my.geniushub.co.uk/v1'
             self._headers = {'authorization': "Bearer " + hub_id}
             self._timeout = aiohttp.ClientTimeout(total=DEFAULT_TIMEOUT_V1)
             self._poll_interval = DEFAULT_INTERVAL_V1
 
-        # if credentials, then hub_id is name/address for v3 API
-        else:
+        else:  # using API ver3
             hash = sha256()
             hash.update((username + password).encode('utf-8'))
             self._auth = aiohttp.BasicAuth(
@@ -119,34 +168,26 @@ class GeniusHub(GeniusObject):
             self._timeout = aiohttp.ClientTimeout(total=DEFAULT_TIMEOUT_V3)
             self._poll_interval = DEFAULT_INTERVAL_V3
 
+        self._zones = self._devices = None
+
     @property
     async def detail(self) -> dict:
         """Return information for the hub.
 
-          This is not a v1 API."""
+          This is not a v1 API.
+        """
+        def _convert_to_v1(input) -> dict:
+            """Convert v3 output to v1 schema."""
+            output = dict(input)
+            output['schedule'] = {}
+            output['schedule']['timer'] = {}
+            output['schedule']['footprint'] = {}
+            return output
+
         self._detail = {}
 
-        async with self._session as session:
-
-            url = '{}/zones' if self._verbose else '{}/zones/summary'
-            async with session.get(url.format(self._url_base)) as response:
-                assert response.status == HTTP_OK, response.status
-                self._zones =  await response.json(content_type=None)
-
-            self._detail = self._zones[0]
-            if self._verbose:
-                del self._detail['mode']
-                del self._detail['schedule']
-
-            url = '{}/version'.format(self._url_base)
-            async with session.get(url) as response:
-                assert response.status == HTTP_OK, response.status
-                self._version =  await response.json(content_type=None)
-
-        if self._verbose:
-            self._detail.update(self._version)
-        else:
-            self._detail['version'] = self._version['hubSoftwareVersion']
+        tmp = await self.zones if not self._zones else self._zones
+        self._detail = tmp[0] if self._api_v1 else _convert_to_v1(tmp[0])
 
         _LOGGER.debug("self._detail = %s", self._detail)
         return self._detail
@@ -157,13 +198,13 @@ class GeniusHub(GeniusObject):
 
           This is a v1 API only.
         """
-        if 'v3' in self._url_base:
+        if self._api_v1:
+            url = '{}/version'.format(self._url_base)
+            self._version = await self._request("GET", url)
+        else:
             self._version = {
                 'hubSoftwareVersion': 'unable to determine via v3 API'
             }
-        else:
-            url = '{}/version'.format(self._url_base)
-            self._version = await self._request("GET", url)
 
         _LOGGER.debug("self._version = %s", self._version)
         return self._version
@@ -174,7 +215,7 @@ class GeniusHub(GeniusObject):
 
           This is a v1 API: GET /zones
         """
-        def _convert_to_v1_response(input) -> list:
+        def _convert_to_v1(input) -> list:
             """Convert v3 output to v1 schema."""
             output = []
             for zone in input['data']:
@@ -184,32 +225,36 @@ class GeniusHub(GeniusObject):
                 tmp['type'] = ITYPE_TO_TYPE[zone['iType']]
                 tmp['mode'] = IMODE_TO_MODE[zone['iMode']]
 
-                if zone['iType'] in [3, 5]:
+                if zone['iType'] in [zone_types.ControlSP,
+                                     zone_types.TPI]:
                     tmp['temperature'] = zone['fPV']
                     tmp['setpoint'] = zone['fSP']
 
-                if zone['iType'] == 2:  # ITYPE_ON_OFF
+                if zone['iType'] == zone_types.OnOffTimer:
                     tmp['setpoint'] = zone['fSP'] != 0
 
-                if zone['iMode'] == 4:  # IMODE_FOOTPRINT
-                    # tmp['occupied'] = zone['bIsActive'] - No!
-                    # bTriggerOn, bTriggerOff -> Occupied
-                    # False,      False       -> False
-                    # False,      True        -> False
-                    # True,       False       -> False
-                    #
-                    tmp['occupied'] = \
-                        zone['objFootprint']['objReactive']['bTriggerOn']
+                # l = parseInt(i.iFlagExpectedKit) & e.equipmentTypes.Kit_PIR
+                if zone['iFlagExpectedKit'] & kit_types.PIR:
+                    # = parseInt(i.iMode) === e.zoneModes.Mode_Footprint
+                    u = zone['iMode'] == zone_modes.Footprint
+                    # = null != (s = i.zoneReactive) ? s.bTriggerOn : void 0,
+                    d = zone['objFootprint']['objReactive']['bTriggerOn']
+                    # = parseInt(i.iActivity) || 0,
+                    c = zone['iActivity'] | 0
+                    # o = t.isInFootprintNightMode(i)
+                    o = zone['objFootprint']['bIsNight']
+                    # u && l && d && !o ? True : False
+                    tmp['occupied'] = u and d and not o
 
-                if zone['iType'] in [2, 3, 5]:
+                if zone['iType'] in [zone_types.OnOffTimer,
+                                     zone_types.ControlSP,
+                                     zone_types.TPI]:
                     tmp['override'] = {}
                     tmp['override']['duration'] = zone['iBoostTimeRemaining']
-                    tmp['override']['setpoint'] = zone['fBoostSP'] \
-                        if zone['iType'] != 2 else (zone['fBoostSP'] != 0)
-
-                if 'objFootprint' in zone:
-                    tmp['objFootprint'] = zone['objFootprint']
-                    del tmp['objFootprint']['lstSP']
+                    if zone['iType'] == zone_types.OnOffTimer:
+                        tmp['override']['setpoint'] = (zone['fBoostSP'] != 0)
+                    else:
+                        tmp['override']['setpoint'] = zone['fBoostSP']
 
                     tmp['schedule'] = {}
 
@@ -220,10 +265,8 @@ class GeniusHub(GeniusObject):
         url = '{}/zones'
         raw_json = await self._request("GET", url.format(self._url_base))
 
-        if 'v3' in self._url_base:
-            self._zones = _convert_to_v1_response(raw_json)
-        else:
-            self._zones = raw_json
+        self._zones = raw_json if self._api_v1 else _convert_to_v1(raw_json)
+        # self._zones = raw_json if self._api_v1 else raw_json
 
         _LOGGER.debug("GeniusHub.zones = %s", self._zones)
         return self._zones
@@ -234,7 +277,7 @@ class GeniusHub(GeniusObject):
 
           This is a v1 API: GET /devices
         """
-        def _convert_to_v1_response(input) -> list:
+        def _convert_to_v1(input) -> list:
             """Convert v3 output to v1 schema."""
 
             this_list = []
@@ -255,25 +298,50 @@ class GeniusHub(GeniusObject):
             this_list.sort(key=lambda s: int(s['id']))
             return this_list
 
-        url = '{}/zones' if 'v3' in self._url_base else '{}/devices'
+        url = '{}/devices' if self._api_v1 else '{}/zones'
         raw_json = await self._request("GET", url.format(self._url_base))
 
-        if 'v3' in self._url_base:
-            self._devices = _convert_to_v1_response(raw_json)
-        else:
-            self._devices = raw_json
+        self._devices = raw_json if self._api_v1 else _convert_to_v1(raw_json)
 
         _LOGGER.debug("GeniusHub.devices = %s", self._devices)
         return self._devices
 
     @property
     async def issues(self) -> list:
-        """Return a list of currently identified issues.
+        """Return a list of currently identified issues with the system.
 
           This is a v1 API: GET /issues
         """
-        url = '{}/issues'.format(self._url_base)
-        self._issues = await self._request("GET", url)
+        def _convert_to_v1(input) -> list:
+            """Convert v3 output to v1 schema."""
+            LEVEL_TO_TEXT = {
+                0: 'error',
+                1: 'warning',
+                2: 'information'
+            }
+            DESCRIPTION_TO_TEXT = {
+                'using_weather_temp':
+                    "{} is currently using the outside temperature",
+                'unknown':
+                    "The {} in {} can not been found by the Hub"
+            }  # needs fleshing out
+            output = []
+            for zone in input['data']:
+                for issue in zone['lstIssues']:
+                    message = DESCRIPTION_TO_TEXT[issue['id'].split(':')[1]]
+
+                    tmp = {}
+                    tmp['description'] = message.format(zone['strName'])
+                    tmp['level'] = LEVEL_TO_TEXT[issue['level']]
+
+                    output.append(tmp)
+
+            return output
+
+        url = '{}/issues' if self._api_v1 else '{}/zones'
+        raw_json = await self._request("GET", url.format(self._url_base))
+
+        self._issues = raw_json if self._api_v1 else _convert_to_v1(raw_json)
 
         _LOGGER.debug("GeniusHub.issues = %s", self._issues)
         return self._issues
@@ -334,23 +402,23 @@ class GeniusZone(GeniusObject):
         _LOGGER.debug("set_override_temp(Zone): done.")
 
     @property
-    async def id(self):
+    async def id(self) -> int:
         raise NotImplementedError()
 
     @property
-    async def name(self):
+    async def name(self) -> str:
         raise NotImplementedError()
 
     @property
-    async def type(self):
+    async def type(self) -> str:
         raise NotImplementedError()
 
     @property
-    async def mode(self) -> bool:
+    async def mode(self) -> str:
         raise NotImplementedError()
 
     @property
-    async def temperature(self):
+    async def temperature(self) -> float:
         raise NotImplementedError()
 
     @property
@@ -362,11 +430,11 @@ class GeniusZone(GeniusObject):
         raise NotImplementedError()
 
     @property
-    async def override(self) -> bool:
+    async def override(self) -> dict:
         raise NotImplementedError()
 
     @property
-    async def schedule(self) -> bool:
+    async def schedule(self) -> dict:
         raise NotImplementedError()
 
 
@@ -391,17 +459,17 @@ class GeniusDevice(GeniusObject):
         return temp
 
     @property
-    async def id(self):
+    async def id(self) -> str:
         raise NotImplementedError()
 
     @property
-    async def type(self):
+    async def type(self) -> str:
         raise NotImplementedError()
 
     @property
-    async def location(self):  ## aka assignedZones?
+    async def location(self) -> dict:  ## aka assignedZones
         raise NotImplementedError()
 
     @property
-    async def state(self):
+    async def state(self) -> dict:
         raise NotImplementedError()

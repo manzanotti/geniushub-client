@@ -110,8 +110,6 @@ async def main(loop):
 
     else:
         if not args.command or args.command == "detail":
-            print("Sorry: not implemented yet.")
-            return False
             print(await hub.detail)
 
         elif args.command == "version":
@@ -120,8 +118,6 @@ async def main(loop):
             print(await hub.version)
 
         elif args.command == "issues":
-            print("Sorry: not implemented yet.")
-            return False
             print(await hub.issues)
 
         elif args.command == "zones":
