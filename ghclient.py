@@ -69,68 +69,93 @@ async def main(loop):
         help="-v add some detail, use -vv for more detail, -vvv raw data"
     )
 
-    # args = vars(parser.parse_args())
     args = parser.parse_args()
 
-    # hub.verbose = args.verbose
+    hub = GeniusHub(hub_id=args.hub_id,
+                    username=args.username, password=args.password,
+                    eventloop=loop, session=None)
+    hub.verbose = 0 if args.verbose is None else args.verbose
     # hub.timeout = args.timeout
+    # hub.interval = args.interval
 
     if args.zone:
-        if args.username or args.password:
-            zone = GeniusZone(hub_id=args.hub_id,
-                              username=args.username,
-                              password=args.password,
-                              id=args.zone)
-        else:
-            zone = GeniusZone(hub_id=args.hub_id, id=args.zone)
+        print("Sorry: not implemented yet.")
+        return False
 
+        zone = hub.zone(id=args.zone)
         zone.verbose = args.verbose if args.verbose else 0
 
         if args.command == "detail":
             print(await zone.detail)
         elif args.command == "devices":
-            print(await zone.devices)
+           print(await zone.devices)
         elif args.command == "mode":
             print(await zone.mode)
         elif args.command == "override":
             print(await zone.override)
         else:
-            print("Unknown command")
+            print("Error: unknown command: {}".format(args.command))
 
     elif args.device:
-        if args.username or args.password:
-            device = GeniusDevice(hub_id=args.hub_id,
-                                  username=args.username,
-                                  password=args.password,
-                                  id=args.device)
-        else:
-            device = GeniusDevice(hub_id=args.hub_id, id=args.device)
+        print("Sorry: not implemented yet.")
+        return False
 
+        device = hub.device(id=args.device)
         device.verbose = 0 if args.verbose is None else args.verbose
 
         if args.command == "detail":
             print(await device.detail)
         else:
-            print("Unknown command")
+            print("Error: unknown command: {}".format(args.command))
 
     else:
-        hub = GeniusHub(hub_id=args.hub_id, username=args.username,
-                        password=args.password, eventloop=loop)
-
-        hub.verbose = 0 if args.verbose is None else args.verbose
-
-        if args.command == "detail":
+        if not args.command or args.command == "detail":
+            print("Sorry: not implemented yet.")
+            return False
             print(await hub.detail)
+
         elif args.command == "version":
+            print("Sorry: not implemented yet.")
+            return False
             print(await hub.version)
+
         elif args.command == "issues":
+            print("Sorry: not implemented yet.")
+            return False
             print(await hub.issues)
+
         elif args.command == "zones":
-            print(await hub.zones)
+            keys = ['id', 'type', 'name']
+            if args.verbose:
+                keys += ['temperature', 'setpoint', 'mode', 'occupied', 'override']
+                if args.verbose > 1:
+                    keys += ['schedule']
+
+            if not args.username:
+                zones = []
+                for zone in await hub.zones:
+                    zones.append({k: zone[k] for k in keys if k in zone})
+                print(zones)
+            else:
+                print(await hub.zones)
+
         elif args.command == "devices":
-            print(await hub.devices)
+            keys = ['id', 'name', 'type', 'mode']
+            if args.verbose:
+                keys += ['assignedZones']
+                if args.verbose > 1:
+                    keys += ['state']
+
+            if not args.username:
+                devices = []
+                for device in await hub.devices:
+                    devices.append({k: device[k] for k in keys if k in device})
+                print(devices)
+            else:
+                print(await hub.devices)
+
         else:
-            print(await hub.detail)
+            print("Error: unknown command: {}".format(args.command))
 
 
 if __name__ == '__main__':
