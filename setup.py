@@ -1,6 +1,6 @@
 import setuptools
 
-VERSION = "0.2.2"
+VERSION = "0.2.3"
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
@@ -21,6 +21,6 @@ setuptools.setup(
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
-        'Development Status :: "4 - Beta",
+        "Development Status :: 4 - Beta",
     ],
 )
