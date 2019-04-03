@@ -1,22 +1,25 @@
 import setuptools
 
-VERSION = "0.2.0"
+VERSION = "0.2.1"
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name='geniushubclient',
+    name="geniushub-client",
     version=VERSION,
-    description='Python client for connecting to a Genius Hub.',
-    url='https://github.com/GeoffAtHome/geniushub-client',
-    author='Geoff Soord',
-    author_email='geoff@soord.org.uk',
+    author="David Bonnes",
+    author_email="zxdavb@gmail.com",
+    description="A client for Genius Hub systems",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    license='MIT',
+    url="https://github.com/zxdavb/geniushub-client",
     packages=setuptools.find_packages(),
-    keywords=['Genius', 'Genius Hub', 'Heat Genius', 'Heat Genius Hub'],
-    install_requires=['aiohttp'],
-    zip_safe=False
+    keywords = ['genius', 'geniushub', 'heatgenius'],
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: OS Independent",
+        'Development Status :: "4 - Beta",
+    ],
 )

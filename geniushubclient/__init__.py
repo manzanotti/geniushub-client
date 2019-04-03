@@ -5,11 +5,8 @@ see: https://my.geniushub.co.uk/docs
 import asyncio
 from hashlib import sha256
 import logging
-from types import SimpleNamespace
 
 import aiohttp
-
-HTTP_OK = 200  # cheaper than: from http import HTTPStatus.OK
 
 from .const import (
     API_STATUS_ERROR,
@@ -17,10 +14,13 @@ from .const import (
     DEFAULT_TIMEOUT_V1, DEFAULT_TIMEOUT_V3,
     ITYPE_TO_TYPE, IMODE_TO_MODE,
     LEVEL_TO_TEXT, DESCRIPTION_TO_TEXT,
-    zone_types, zone_modes, kit_types, zone_flags)
+    zone_types, zone_modes, kit_types)
+
+HTTP_OK = 200  # cheaper than: from http import HTTPStatus.OK
 
 _LOGGER = logging.getLogger(__name__)
 _LOGGER.setLevel(logging.WARNING)
+
 
 class GeniusObject(object):
     def __init__(self, id):
@@ -35,7 +35,7 @@ class GeniusObject(object):
         self._verbose = 0 if value is None else value
 
     async def _handle_assetion(self, error):
-        _LOGGER.debug("_handle_assetion(type=%s, url=%s)", type, url)
+        _LOGGER.debug("_handle_assetion(error=%s)", error)
 
     async def _request(self, type, url):
         _LOGGER.debug("_request(type=%s, url=%s)", type, url)
@@ -169,7 +169,7 @@ class GeniusHub(GeniusObject):
                     # = null != (s = i.zoneReactive) ? s.bTriggerOn : void 0,
                     d = zone['objFootprint']['objReactive']['bTriggerOn']
                     # = parseInt(i.iActivity) || 0,
-                    c = zone['iActivity'] | 0
+                    # c = zone['iActivity'] | 0
                     # o = t.isInFootprintNightMode(i)
                     o = zone['objFootprint']['bIsNight']
                     # u && l && d && !o ? True : False
@@ -384,7 +384,7 @@ class GeniusDevice(GeniusObject):
         raise NotImplementedError()
 
     @property
-    async def location(self) -> dict:  ## aka assignedZones
+    async def location(self) -> dict:  # aka assignedZones
         raise NotImplementedError()
 
     @property
