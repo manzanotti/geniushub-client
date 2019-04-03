@@ -7,6 +7,8 @@ In either case, the library will return v1-compatible results wherever possible.
 
 It uses **asyncio**.
 
+It is a WIP, and is currently read-only.
+
 # Installation
 Either clone this repository and run `python setup.py install`, or install from pip using `pip install geniushub-client`.
 
