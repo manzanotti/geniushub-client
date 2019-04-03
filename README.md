@@ -1,13 +1,13 @@
 # GeniusHub
-This is a Python library to provide access to the [Genius Hub RESTful API](https://my.geniushub.co.uk/docs).
+This is a Python library to provide access to the [Genius Hub RESTful API](https://my.geniushub.co.uk/docs). It uses **asyncio**.
 
 This library can use either the _offical_ v1 API via a [hub token](https://my.geniushub.co.uk/tokens), or the _latest_ v3 API direct to the hub (using your own [username and password](https://www.geniushub.co.uk/app)).
 
 In either case, the library will return v1-compatible results wherever possible.
 
-It uses **asyncio**.
-
 It is a WIP, and is currently read-only.
+
+It is based upon work by @GeoffAtHome - thanks!
 
 # Installation
 Either clone this repository and run `python setup.py install`, or install from pip using `pip install geniushub-client`.
