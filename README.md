@@ -19,7 +19,7 @@ python ghclient.py -?
 ```
 You can use either hub tokens (for v1 API, via HeatGenius' servers) or username and password (directly from the hub).
 ```bash
-HUB_TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsInZlciI6IjEuM..."
+HUB_TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsInZlciI6IjEuM..."  # from: https://my.geniushub.co.uk/tokens
 HUB_ADDRESS="my-hub.dyndns.com"  # hostname, or IP address
 USERNAME=my_username
 PASSWORD=my_password
