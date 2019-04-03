@@ -1,9 +1,7 @@
 ### local .gitignore file
 
+raw.json
 .vscode/*
-build/*
-dist/*
-geniushub.egg-info/*
 *.pyc
 
 

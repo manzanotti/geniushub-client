@@ -3,8 +3,7 @@
 import asyncio
 import logging
 
-from geniushubclient2 import GeniusHub, GeniusZone, GeniusDevice
-# import geniushubclient
+from geniushubclient import GeniusHub
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -25,7 +24,6 @@ async def main(loop):
         "command",
         help="the command (version, detail, zones, devices)"
         )
-
     parser.add_argument(
         "--username", "-u", action='store', type=str,
         help="set the timeout in secs (default = 30 sec)"
@@ -110,6 +108,8 @@ async def main(loop):
 
     else:
         if not args.command or args.command == "detail":
+            print("Sorry: not implemented yet.")
+            return False
             print(await hub.detail)
 
         elif args.command == "version":
@@ -123,17 +123,15 @@ async def main(loop):
         elif args.command == "zones":
             keys = ['id', 'type', 'name']
             if args.verbose:
-                keys += ['temperature', 'setpoint', 'mode', 'occupied', 'override']
+                keys += ['temperature', 'setpoint', 'mode', 'occupied',
+                         'override']
                 if args.verbose > 1:
                     keys += ['schedule']
 
-            if not args.username:
-                zones = []
-                for zone in await hub.zones:
-                    zones.append({k: zone[k] for k in keys if k in zone})
-                print(zones)
-            else:
-                print(await hub.zones)
+            zones = []
+            for zone in await hub.zones:
+                zones.append({k: zone[k] for k in keys if k in zone})
+            print(zones)
 
         elif args.command == "devices":
             keys = ['id', 'name', 'type', 'mode']
@@ -142,13 +140,10 @@ async def main(loop):
                 if args.verbose > 1:
                     keys += ['state']
 
-            if not args.username:
-                devices = []
-                for device in await hub.devices:
-                    devices.append({k: device[k] for k in keys if k in device})
-                print(devices)
-            else:
-                print(await hub.devices)
+            devices = []
+            for device in await hub.devices:
+                devices.append({k: device[k] for k in keys if k in device})
+            print(devices)
 
         else:
             print("Error: unknown command: {}".format(args.command))

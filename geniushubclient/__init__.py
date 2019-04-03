@@ -11,115 +11,14 @@ import aiohttp
 
 HTTP_OK = 200  # cheaper than: from http import HTTPStatus.OK
 
-DEFAULT_TIMEOUT_V1 = 30
-DEFAULT_TIMEOUT_V3 = 10
+from .const import (
+    API_STATUS_ERROR,
+    DEFAULT_INTERVAL_V1, DEFAULT_INTERVAL_V3,
+    DEFAULT_TIMEOUT_V1, DEFAULT_TIMEOUT_V3,
+    ITYPE_TO_TYPE, IMODE_TO_MODE,
+    LEVEL_TO_TEXT, DESCRIPTION_TO_TEXT,
+    zone_types, zone_modes, kit_types, zone_flags)
 
-DEFAULT_INTERVAL_V1 = 300
-DEFAULT_INTERVAL_V3 = 30
-
-API_STATUS_ERROR = {
-    400: "The request body or request parameters are invalid.",
-    401: "The authorization information is missing or invalid.",
-    404: "No zone/device with the specified ID was found "
-         "(or the state property does not exist on the specified device).",
-    502: "The hub is offline.",
-    503: "The authorization information is invalid.",
-}
-zone_types = SimpleNamespace(
-    Manager = 1,
-    OnOffTimer = 2,
-    ControlSP = 3,
-    ControlOnOffPID = 4,
-    TPI = 5,
-    Surrogate = 6
-)
-zone_modes = SimpleNamespace(
-    Off = 1,
-    Timer = 2,
-    Footprint = 4,
-    Away = 8,
-    Boost = 16,
-    Early = 32,
-    Test = 64,
-    Linked = 128,
-    Other = 256
-)
-kit_types = SimpleNamespace(
-    Temp = 1,
-    Valve = 2,
-    PIR = 4,
-    Power = 8,
-    Switch = 16,
-    Dimmer = 32,
-    Alarm = 64,
-    GlobalTemp = 128,
-    Humidity = 256,
-    Luminance = 512
-)
-zone_flags = SimpleNamespace(
-    Frost = 1,
-    Timer = 2,
-    Footprint = 4,
-    Boost = 8,
-    Away = 16,
-    WarmupAuto = 32,
-    WarmupManual = 64,
-    Reactive = 128,
-    Linked = 256,
-    WeatherComp = 512,
-    Temps = 1024,
-    TPI = 2048
-)
-
-ITYPE_TO_TYPE = {
-    zone_types.Manager: 'manager',
-    zone_types.OnOffTimer: 'on / off',
-    zone_types.ControlSP: 'radiator',
-    zone_types.ControlOnOffPID: 'type 4',
-    zone_types.TPI: 'hot water temperature',
-    zone_types.Surrogate: 'type 6',
-}  # also: 'group', 'wet underfloor'
-IMODE_TO_MODE = {
-    zone_modes.Off: 'off',
-    zone_modes.Timer: 'timer',
-    zone_modes.Footprint: 'footprint',
-    zone_modes.Away: 'away',
-    zone_modes.Boost: 'override',
-    zone_modes.Early: 'early',
-    zone_modes.Test: 'test',
-    zone_modes.Linked: 'linked',
-    zone_modes.Other: 'other'
-}  # or: 16: 'boost'?
-
-LEVEL_TO_TEXT = {
-    0: 'error',
-    1: 'warning',
-    2: 'information'
-}
-DESCRIPTION_TO_TEXT = {
-    "node:no_comms":
-        "The device has lost communication with the Hub",
-    "node:not_seen":
-        "The device has not been found by the Hub",
-    "node:low_battery":
-        "The battery is dead and needs to be replaced",
-    "node:warn_battery":
-        "the battery is low",
-    "manager:no_boiler_controller":
-        "The hub does not have a boiler controller assigned",
-    "manager:no_boiler_comms":
-        "The hub has lost communication with the boiler controller",
-    "manager:no_temp":
-        "The hub does not have a valid temperature",
-    "manager:weather_data":
-        "Weather data -",
-    "zone:using_weather_temp":
-        "The {} zone is currently using the outside temperature",
-    "zone:using_assumed_temp":
-        "The {} zone is currently using the assumed temperature",
-    "zone:tpi_no_temp":
-        "The {} zone has no valid temperature sensor",
-}
 _LOGGER = logging.getLogger(__name__)
 _LOGGER.setLevel(logging.WARNING)
 
@@ -250,9 +149,8 @@ class GeniusHub(GeniusObject):
             for zone in input['data']:
                 tmp = {}
                 tmp['id'] = zone['iID']
-                tmp['name'] = zone['strName']
                 tmp['type'] = ITYPE_TO_TYPE[zone['iType']]
-                tmp['mode'] = IMODE_TO_MODE[zone['iMode']]
+                tmp['name'] = zone['strName']
 
                 if zone['iType'] in [zone_types.ControlSP,
                                      zone_types.TPI]:
@@ -261,6 +159,8 @@ class GeniusHub(GeniusObject):
 
                 if zone['iType'] == zone_types.OnOffTimer:
                     tmp['setpoint'] = zone['fSP'] != 0
+
+                tmp['mode'] = IMODE_TO_MODE[zone['iMode']]
 
                 # l = parseInt(i.iFlagExpectedKit) & e.equipmentTypes.Kit_PIR
                 if zone['iFlagExpectedKit'] & kit_types.PIR:
@@ -295,7 +195,6 @@ class GeniusHub(GeniusObject):
         raw_json = await self._request("GET", url.format(self._url_base))
 
         self._zones = raw_json if self._api_v1 else _convert_to_v1(raw_json)
-        # self._zones = raw_json if self._api_v1 else raw_json
 
         _LOGGER.debug("GeniusHub.zones = %s", self._zones)
         return self._zones
