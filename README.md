@@ -13,7 +13,10 @@ See `ghclient.py` for example code. You can also use `ghclient.py` for ad-hoc qu
 ```bash
 python ghclient.py -?
 ```
-You require either a `hub_token` (to query HeatGenius' servers) or a hostname, `username` and `password` (to directly query the hub).
+You require either
+ - a hub token to query HeatGenius' servers via the v1 API or 
+ - a hub hostname/address, `username` and `password` to directly query the hub via the v3 API
+ 
 ```bash
 HUB_TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsInZlciI6IjEuM..."  # from: https://my.geniushub.co.uk/tokens
 HUB_ADDRESS="my-hub.dyndns.com"                                   # either hostname, or IP address
