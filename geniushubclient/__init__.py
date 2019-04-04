@@ -23,16 +23,59 @@ _LOGGER.setLevel(logging.WARNING)
 
 
 class GeniusObject(object):
-    def __init__(self, id):
-        self._verbose = False
+    def __init__(self, client, hub=None, zone=None, device=None, data={}):
+        self._client = client
+        self._api_v1 = client._api_v1
+        self.__dict__.update(data)
 
-    @property
-    def verbose(self) -> int:
-        return self._verbose
+        if isinstance(self, GeniusHub):
+            self.zone_objs = []
+            self.zone_by_id = {}
+            self.zone_by_name = {}
 
-    @verbose.setter
-    def verbose(self, value):
-        self._verbose = 0 if value is None else value
+        if isinstance(self, GeniusHub) or isinstance(self, GeniusZone):
+            self.device_objs = []
+            self.device_by_id = {}
+            self.device_by_name = {}
+
+    async def _populate_zones(self, zone_list):
+        for zone_dict in zone_list:
+            try:  # does the hub already know about this device?
+                zone = self.zone_by_id[zone_dict['id']]
+            except ConnectionError:                                              # TODO: this is the wrong Exception
+                zone = GeniusZone(self, zone_dict)
+                self.zone_objs.append(zone)
+                self.zone_by_id[zone.id] = zone
+                self.zone_by_name[zone.name] = zone
+            else:
+                zone.__dict__.update(zone_dict)
+
+    async def _populate_devices(self, device_list):
+        if isinstance(self, GeniusHub):
+            hub = self
+            zone = None
+        else:
+            hub = self._hub
+            zone = self
+
+        for device_dict in device_list:
+            try:  # does the hub already know about this device?
+                device = hub.device_by_id[device_dict['id']]
+            except ConnectionError:                                              # TODO: this is the wrong Exception
+                device = GeniusDevice(hub, zone, device_dict)
+                hub.device_objs.append(device)
+                hub.device_by_id[device.id] = device
+                hub.device_by_name[device.name] = device
+            else:
+                device.__dict__.update(device_dict)
+
+            if isinstance(self, GeniusHub):
+                try:  # does the zone already know about this device?
+                    device = self.device_by_id[device_dict['id']]
+                except ConnectionError:                                              # TODO: this is the wrong Exception
+                    self.device_objs.append(device)
+                    self.device_by_id[device.id] = device
+                    self.device_by_name[device.name] = device
 
     async def _handle_assetion(self, error):
         _LOGGER.debug("_handle_assetion(error=%s)", error)
@@ -40,11 +83,13 @@ class GeniusObject(object):
     async def _request(self, type, url):
         _LOGGER.debug("_request(type=%s, url=%s)", type, url)
 
-        session = self._session
+        session = self._client._session
         if type == "GET":
             async with session.get(
-                url, headers=self._headers,
-                auth=self._auth, timeout=self._timeout
+                url.format(self._client._url_base),
+                headers=self._client._headers,
+                auth=self._client._auth,
+                timeout=self._client._timeout
             ) as response:
                 assert response.status == HTTP_OK, response.text
                 return await response.json(content_type=None)
@@ -66,24 +111,21 @@ class GeniusObject(object):
         return API_STATUS_ERROR.get(status, str(status) + " Unknown status")
 
 
-class GeniusHub(GeniusObject):
+class GeniusHubClient(object):
     def __init__(self, hub_id, username=None, password=None, session=None):
-        _LOGGER.debug("GeniusHub(hub_id=%s)", hub_id)
-        super().__init__(hub_id)
+        _LOGGER.debug("GeniusHubClient(hub_id=%s)", hub_id)
 
         # use existing session if provided
         self._session = session if session else aiohttp.ClientSession()
 
         # if no credentials, then hub_id is a token for v1 API
         self._api_v1 = not (username or password)
-
         if self._api_v1:
             self._auth = None
             self._url_base = 'https://my.geniushub.co.uk/v1'
             self._headers = {'authorization': "Bearer " + hub_id}
             self._timeout = aiohttp.ClientTimeout(total=DEFAULT_TIMEOUT_V1)
             self._poll_interval = DEFAULT_INTERVAL_V1
-
         else:  # using API ver3
             hash = sha256()
             hash.update((username + password).encode('utf-8'))
@@ -94,7 +136,23 @@ class GeniusHub(GeniusObject):
             self._timeout = aiohttp.ClientTimeout(total=DEFAULT_TIMEOUT_V3)
             self._poll_interval = DEFAULT_INTERVAL_V3
 
-        self._zones = self._devices = None
+        self._verbose = False
+
+        self.hub = GeniusHub(self, hub_id)
+
+    @property
+    def verbose(self) -> int:
+        return self._verbose
+
+    @verbose.setter
+    def verbose(self, value):
+        self._verbose = 0 if value is None else value
+
+
+class GeniusHub(GeniusObject):
+    def __init__(self, client, hub_id):
+        _LOGGER.debug("GeniusHub(hub=%s)", hub_id)
+        super().__init__(client, data={'id': hub_id})
 
     @property
     async def detail(self) -> dict:
@@ -190,7 +248,7 @@ class GeniusHub(GeniusObject):
             return output
 
         url = '{}/zones'
-        raw_json = await self._request("GET", url.format(self._url_base))
+        raw_json = await self._request("GET", url)
 
         self._zones = raw_json if self._api_v1 else _convert_to_v1(raw_json)
 
@@ -263,11 +321,11 @@ class GeniusHub(GeniusObject):
 
 
 class GeniusZone(GeniusObject):
-    def __init__(self, id):
-        _LOGGER.debug("__init__(id=%s)", id)
-        super().__init__()
+    def __init__(self, client, hub, zone_dict):
+        _LOGGER.debug("GeniusZone(hub=%s, zone=%s)", hub.id, zone_dict['id'])
+        super().__init__(client, data=zone_dict)
 
-        self._id = id
+        self._hub = hub
 
     @property
     async def detail(self) -> dict:
@@ -316,49 +374,15 @@ class GeniusZone(GeniusObject):
 
         _LOGGER.debug("set_override_temp(Zone): done.")
 
-    @property
-    async def id(self) -> int:
-        raise NotImplementedError()
-
-    @property
-    async def name(self) -> str:
-        raise NotImplementedError()
-
-    @property
-    async def type(self) -> str:
-        raise NotImplementedError()
-
-    @property
-    async def mode(self) -> str:
-        raise NotImplementedError()
-
-    @property
-    async def temperature(self) -> float:
-        raise NotImplementedError()
-
-    @property
-    async def setpoint(self):
-        raise NotImplementedError()
-
-    @property
-    async def occupied(self) -> bool:
-        raise NotImplementedError()
-
-    @property
-    async def override(self) -> dict:
-        raise NotImplementedError()
-
-    @property
-    async def schedule(self) -> dict:
-        raise NotImplementedError()
-
 
 class GeniusDevice(GeniusObject):
-    def __init__(self, id):
-        _LOGGER.debug("__init__(id=%s)", id)
-        super().__init__(id)
+    def __init__(self, client, hub, zone, device_dict):
+        _LOGGER.debug("GeniusDevice(hub=%s, zone=%s, device=%s)",
+                      hub.id, zone.id, device_dict['id'])
+        super().__init__(client, data=device_dict)
 
-        self._id = id
+        self._hub = hub
+        self._zone = zone
 
     @property
     async def detail(self) -> dict:

@@ -3,7 +3,7 @@
 import asyncio
 import logging
 
-from geniushubclient import GeniusHub
+from geniushubclient import GeniusHubClient, GeniusHub
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -69,12 +69,14 @@ async def main(loop):
 
     args = parser.parse_args()
 
-    hub = GeniusHub(hub_id=args.hub_id,
-                    username=args.username, password=args.password,
-                    eventloop=loop, session=None)
-    hub.verbose = 0 if args.verbose is None else args.verbose
+    client = GeniusHubClient(hub_id=args.hub_id,
+                             username=args.username, password=args.password,
+                             session=None)
+    client.verbose = 0 if args.verbose is None else args.verbose
     # hub.timeout = args.timeout
     # hub.interval = args.interval
+
+    hub = client.hub
 
     if args.zone:
         print("Sorry: not implemented yet.")
