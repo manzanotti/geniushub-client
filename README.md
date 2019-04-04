@@ -31,7 +31,7 @@ curl -X GET https://my.geniushub.co.uk/v1/zones/summary -H "authorization: Beare
 ```
 
 # Advanced Features
- It uses **aiohttp** and is therefore async-friendly.
+ It uses **aiohttp** and is therefore asyncio-friendly.
  
  It can utilize your own `aiohttp.ClientSession()` rather than creating another:
  ```python
