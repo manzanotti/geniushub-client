@@ -62,7 +62,7 @@ class GeniusObject(object):
         for device_dict in device_list:
             try:  # does the hub already know about this device?
                 device = hub.device_by_id[device_dict['id']]
-            except KeyError:                                              # TODO: this is the wrong Exception
+            except KeyError:
                 device = GeniusDevice(self._client, hub, zone, device_dict)
                 hub.device_objs.append(device)
                 hub.device_by_id[device.id] = device
@@ -73,7 +73,7 @@ class GeniusObject(object):
             if isinstance(self, GeniusHub):
                 try:  # does the zone already know about this device?
                     device = self.device_by_id[device_dict['id']]
-                except ConnectionError:                                              # TODO: this is the wrong Exception
+                except KeyError:
                     self.device_objs.append(device)
                     self.device_by_id[device.id] = device
                     self.device_by_name[device.name] = device
