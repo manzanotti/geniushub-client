@@ -1,5 +1,5 @@
 # GeniusHub
-This is a Python library to provide access to the [Genius Hub RESTful API](https://my.geniushub.co.uk/docs). It uses **asyncio**.
+This is a Python library to provide access to the [Genius Hub RESTful API](https://my.geniushub.co.uk/docs).
 
 This library can use either the _offical_ v1 API via a [hub token](https://my.geniushub.co.uk/tokens), or the _latest_ v3 API direct to the hub (using your own [username and password](https://www.geniushub.co.uk/app)).
 
@@ -33,3 +33,12 @@ You can compare any output to the official API:
 python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} zones
 curl -X GET https://my.geniushub.co.uk/v1/zones/summary -H "authorization: Bearer ${HUB_TOKEN}"
 ```
+
+# Advanced Features
+ It uses **aiohttp** and is therefore async-friendly.
+ 
+ It can utilize your own `aiohttp.ClientSession()` rather than creating another:
+ ```python
+client = geniushub_data['client'] = GeniusHub(hub_address, username, password, session=my_session)
+```
+ 
