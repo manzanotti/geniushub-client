@@ -35,6 +35,6 @@ curl -X GET https://my.geniushub.co.uk/v1/zones/summary -H "authorization: Beare
  
  It can utilize your own `aiohttp.ClientSession()` rather than creating another:
  ```python
-client = geniushub_data['client'] = GeniusHub(hub_id=ip_address, username, password, session=my_session)
+client = GeniusHub(hub_id=ip_address, username, password, session=my_session)
 ```
  
