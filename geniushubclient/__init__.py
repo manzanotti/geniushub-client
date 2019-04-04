@@ -40,26 +40,26 @@ class GeniusObject(object):
     async def _request(self, type, url):
         _LOGGER.debug("_request(type=%s, url=%s)", type, url)
 
-        async with self._session as session:
-            if type == "GET":
-                async with session.get(
-                    url, headers=self._headers,
-                    auth=self._auth, timeout=self._timeout
-                ) as response:
-                    assert response.status == HTTP_OK, response.text
-                    return await response.json(content_type=None)
-            elif type == "PATCH":
-                async with session.patch(url) as response:
-                    assert response.status == HTTP_OK, response.text
-                    return await response.json(content_type=None)
-            elif type == "POST":
-                async with session.post(url) as response:
-                    assert response.status == HTTP_OK, response.text
-                    return await response.json(content_type=None)
-            elif type == "PUT":
-                async with session.put(url) as response:
-                    assert response.status == HTTP_OK, response.text
-                    return await response.json(content_type=None)
+        session = self._session
+        if type == "GET":
+            async with session.get(
+                url, headers=self._headers,
+                auth=self._auth, timeout=self._timeout
+            ) as response:
+                assert response.status == HTTP_OK, response.text
+                return await response.json(content_type=None)
+        elif type == "PATCH":
+            async with session.patch(url) as response:
+                assert response.status == HTTP_OK, response.text
+                return await response.json(content_type=None)
+        elif type == "POST":
+            async with session.post(url) as response:
+                assert response.status == HTTP_OK, response.text
+                return await response.json(content_type=None)
+        elif type == "PUT":
+            async with session.put(url) as response:
+                assert response.status == HTTP_OK, response.text
+                return await response.json(content_type=None)
 
     @staticmethod
     def LookupStatusError(status):
@@ -67,14 +67,12 @@ class GeniusObject(object):
 
 
 class GeniusHub(GeniusObject):
-    def __init__(self, hub_id, username=None, password=None,
-                 session=None, eventloop=None):
+    def __init__(self, hub_id, username=None, password=None, session=None):
         _LOGGER.debug("GeniusHub(hub_id=%s)", hub_id)
         super().__init__(hub_id)
 
-        # use existing session/loop if provided
-        self._session = eventloop if session else aiohttp.ClientSession()
-        self._loop = eventloop if eventloop else asyncio.new_event_loop()
+        # use existing session if provided
+        self._session = session if session else aiohttp.ClientSession()
 
         # if no credentials, then hub_id is a token for v1 API
         self._api_v1 = not (username or password)

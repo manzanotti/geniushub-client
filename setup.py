@@ -1,6 +1,6 @@
 import setuptools
 
-VERSION = "0.2.3"
+VERSION = "0.2.4"
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
@@ -8,9 +8,9 @@ with open("README.md", "r") as fh:
 setuptools.setup(
     name="geniushub-client",
     version=VERSION,
-    author="David Bonnes",
+    author="David Bonnes & Geoff Soord",
     author_email="zxdavb@gmail.com",
-    description="A client for Genius Hub systems",
+    description="A aiohttp-based client for Genius Hub systems",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/zxdavb/geniushub-client",
