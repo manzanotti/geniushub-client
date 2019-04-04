@@ -1,11 +1,7 @@
 # GeniusHub
-This is a Python library to provide access to the [Genius Hub RESTful API](https://my.geniushub.co.uk/docs).
+This is a Python library to provide access to the [Genius Hub RESTful API](https://my.geniushub.co.uk/docs). It is a WIP, and is currently read-only (e.g. you can't change the mode of a zone).
 
-This library can use either the _offical_ v1 API via a [hub token](https://my.geniushub.co.uk/tokens), or the _latest_ v3 API direct to the hub (using your own [username and password](https://www.geniushub.co.uk/app)).
-
-In either case, the library will return v1-compatible results wherever possible.
-
-It is a WIP, and is currently read-only.
+This library can use either the _offical_ v1 API via a [hub token](https://my.geniushub.co.uk/tokens), or the _latest_ v3 API direct to the hub (using your own [username and password](https://www.geniushub.co.uk/app)). In either case, the library will return v1-compatible results wherever possible.
 
 It is based upon work by @GeoffAtHome - thanks!
 
@@ -17,7 +13,7 @@ See `ghclient.py` for example code. You can also use `ghclient.py` for ad-hoc qu
 ```bash
 python ghclient.py -?
 ```
-You can use either hub tokens (for v1 API, via HeatGenius' servers) or username and password (directly from the hub).
+You require either a `hub_token` (to query HeatGenius' servers) or a hostname, `username` and `password` (to directly query the hub).
 ```bash
 HUB_TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsInZlciI6IjEuM..."  # from: https://my.geniushub.co.uk/tokens
 HUB_ADDRESS="my-hub.dyndns.com"                                   # either hostname, or IP address
