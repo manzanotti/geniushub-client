@@ -40,10 +40,11 @@ class GeniusObject(object):
 
     async def _populate_zones(self, zone_list):
         for zone_dict in zone_list:
+            _LOGGER.debug("Adding a Zone=%s", zone_dict['id'])
             try:  # does the hub already know about this device?
                 zone = self.zone_by_id[zone_dict['id']]
-            except ConnectionError:                                              # TODO: this is the wrong Exception
-                zone = GeniusZone(self, zone_dict)
+            except KeyError:                                              # TODO: this is the wrong Exception
+                zone = GeniusZone(self._client, self, zone_dict)
                 self.zone_objs.append(zone)
                 self.zone_by_id[zone.id] = zone
                 self.zone_by_name[zone.name] = zone
@@ -61,8 +62,8 @@ class GeniusObject(object):
         for device_dict in device_list:
             try:  # does the hub already know about this device?
                 device = hub.device_by_id[device_dict['id']]
-            except ConnectionError:                                              # TODO: this is the wrong Exception
-                device = GeniusDevice(hub, zone, device_dict)
+            except KeyError:                                              # TODO: this is the wrong Exception
+                device = GeniusDevice(self._client, hub, zone, device_dict)
                 hub.device_objs.append(device)
                 hub.device_by_id[device.id] = device
                 hub.device_by_name[device.name] = device
@@ -252,6 +253,8 @@ class GeniusHub(GeniusObject):
 
         self._zones = raw_json if self._api_v1 else _convert_to_v1(raw_json)
 
+        await self._populate_zones(self._zones)
+
         _LOGGER.debug("GeniusHub.zones = %s", self._zones)
         return self._zones
 
@@ -286,6 +289,8 @@ class GeniusHub(GeniusObject):
         raw_json = await self._request("GET", url.format(self._url_base))
 
         self._devices = raw_json if self._api_v1 else _convert_to_v1(raw_json)
+
+        await self._populate_devices(self._devices)
 
         _LOGGER.debug("GeniusHub.devices = %s", self._devices)
         return self._devices
@@ -347,6 +352,8 @@ class GeniusZone(GeniusObject):
         """
         url = '{}/zones/{}/devices' if self._verbose else '{}/zones/{}/devices/summary'
         self._devices = await self._request("GET", url.format(self._url_base, self._id))
+
+        await self._populate_devices(self._devices)
 
         _LOGGER.debug("self.devices = %s", self._devices)
         return self._devices

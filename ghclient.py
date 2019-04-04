@@ -135,6 +135,10 @@ async def main(loop):
                 zones.append({k: zone[k] for k in keys if k in zone})
             print(zones)
 
+            # print(len(hub.zone_objs))
+            # print(hub.zone_objs[1].name)
+            # print(hub.zone_by_id[1].name)
+
         elif args.command == "devices":
             keys = ['id', 'name', 'type', 'mode']
             if args.verbose:
