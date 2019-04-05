@@ -24,6 +24,13 @@ zone_types = SimpleNamespace(
     TPI=5,
     Surrogate=6
 )
+# 1 "Manager"
+# 2 "On / Off"
+# 3 "Radiator"
+# 4
+# 5 "Hot Water Temperature" OR "Wet Underfloor"
+# 6 "Group"
+
 zone_modes = SimpleNamespace(
     Off=1,
     Timer=2,

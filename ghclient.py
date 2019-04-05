@@ -58,13 +58,13 @@ async def main(loop):
         "--device", "-d", action='store', type=int, default=0,
         help="the identifier of the device"
     )
-    parser.add_argument(
-        "--timeout", "-x", action='store', type=int, default=30,
-        help="set the timeout in secs (default = 30 sec)"
-    )
+    #parser.add_argument(
+    #    "--timeout", "-x", action='store', type=int, default=30,
+    #    help="set the timeout in secs (default = 30 sec)"
+    #)
     parser.add_argument(
         "--verbose", "-v", action='count', required=False,
-        help="-v add some detail, use -vv for more detail, -vvv raw data"
+        help="-v add some detail, -vv raw data"
     )
 
     args = parser.parse_args()
@@ -72,7 +72,7 @@ async def main(loop):
     client = GeniusHubClient(hub_id=args.hub_id,
                              username=args.username, password=args.password,
                              session=None)
-    client.verbose = 0 if args.verbose is None else args.verbose
+    client.verbose = False if args.verbose is None else args.verbose > 3
     # hub.timeout = args.timeout
     # hub.interval = args.interval
 
@@ -123,13 +123,27 @@ async def main(loop):
             print(await hub.issues)
 
         elif args.command == "zones":
-            keys = ['id', 'type', 'name']
+            """Verbosity:
+              v0 = id, name (/zones/summary)
+              v1 = v0 + type, mode, temperature, setpoint, occupied, override
+              v2 = v1 + schedule (/zones)
+              v3 = v2 + ???
+              v4 = raw JSON
+            """
+
+            # which keys to keep?
+            keys = ['id', 'name']
             if args.verbose:
-                keys += ['temperature', 'setpoint', 'mode', 'occupied',
-                         'override']
+                if args.verbose > 3:
+                    print(await hub.zones)
+                    return
+                if args.verbose > 0:
+                    keys += ['type', 'temperature', 'setpoint', 'mode',
+                            'occupied', 'override']
                 if args.verbose > 1:
                     keys += ['schedule']
 
+            # keep only the wanted keys
             zones = []
             for zone in await hub.zones:
                 zones.append({k: zone[k] for k in keys if k in zone})
@@ -140,12 +154,26 @@ async def main(loop):
             # print(hub.zone_by_id[1].name)
 
         elif args.command == "devices":
-            keys = ['id', 'name', 'type', 'mode']
+            """Verbosity:
+              v0 = id, type (/devices/summary)
+              v1 = v0 + ???
+              v2 = v1 + "assignedZones", state (/devices)
+              v3 = v2 + ???
+              v4 = raw JSON
+            """
+
+            # which keys to keep?
+            keys = ['id', 'type']
             if args.verbose:
-                keys += ['assignedZones']
-                if args.verbose > 1:
+                if args.verbose > 3:
+                    print(await hub.devices)
+                    return
+                if args.verbose > 0:
+                    keys += ['assignedZones']
+                if args.verbose > 1:  # v2 - as /devices
                     keys += ['state']
 
+            # keep only the wanted keys
             devices = []
             for device in await hub.devices:
                 devices.append({k: device[k] for k in keys if k in device})
