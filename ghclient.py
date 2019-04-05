@@ -3,6 +3,8 @@
 import asyncio
 import logging
 
+import aiohttp
+
 from geniushubclient import GeniusHubClient, GeniusHub
 
 _LOGGER = logging.getLogger(__name__)
@@ -69,14 +71,30 @@ async def main(loop):
 
     args = parser.parse_args()
 
+    session = aiohttp.ClientSession()
+
     client = GeniusHubClient(hub_id=args.hub_id,
                              username=args.username, password=args.password,
-                             session=None)
+                             session=session)
     client.verbose = False if args.verbose is None else args.verbose > 3
-    # hub.timeout = args.timeout
-    # hub.interval = args.interval
+    # client.timeout = args.timeout
+    # client.interval = args.interval
 
-    hub = client.hub
+#   await client.populate()
+#   hub = client.hub
+
+    hub = GeniusHub(client, hub_id=args.hub_id[:20])
+
+    # print(len(hub.zone_objs))
+    # print(dir(hub.zone_objs[1]))
+    # print(hub.zone_objs[1].name)
+    # print(hub.zone_by_id[1].name)
+
+    # for z in hub.zone_objs:
+    #     print(z.id, z.name)
+    # for d in hub.device_objs:
+    #     print(d.id, d.type)
+    # return
 
     if args.zone:
         print("Sorry: not implemented yet.")
@@ -136,6 +154,7 @@ async def main(loop):
             if args.verbose:
                 if args.verbose > 3:
                     print(await hub.zones)
+                    await session.close()
                     return
                 if args.verbose > 0:
                     keys += ['type', 'temperature', 'setpoint', 'mode',
@@ -167,6 +186,7 @@ async def main(loop):
             if args.verbose:
                 if args.verbose > 3:
                     print(await hub.devices)
+                    await session.close()
                     return
                 if args.verbose > 0:
                     keys += ['assignedZones']
@@ -181,6 +201,8 @@ async def main(loop):
 
         else:
             print("Error: unknown command: {}".format(args.command))
+
+    await session.close()
 
 
 if __name__ == '__main__':
