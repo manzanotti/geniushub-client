@@ -24,16 +24,16 @@ Option 1: **hub token** only:
   - uses the v1 API - which is well-documented
   - interrogates Heat Genius' own servers (so is slower)
  
-Option 2: **hub address** with **user credentials**:
+Option 2: **hub hostname/address** with **user credentials**:
   - requires your `username` & `password`, as used with https://www.geniushub.co.uk/app
   - uses the v3 API - results are WIP and may not be what you expect
   - interrogates the hub directly (so is faster)
 
 ```bash
-HUB_TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsInZlc..."  # from: https://my.geniushub.co.uk/tokens
-HUB_ADDRESS="my-hub.dyndns.com"                           # either hostname, or IP address
-USERNAME="my_username"                                    # used for: https://www.geniushub.co.uk/app
-PASSWORD="my_password"
+HUB_TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsInZlc..."
+HUB_ADDRESS="my-geniushub.dyndns.com"
+USERNAME="my-username"
+PASSWORD="my-password"
 
 python ghclient.py ${HUB_TOKEN} zones -vv
 
