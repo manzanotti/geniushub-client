@@ -3,9 +3,9 @@ This is a Python library to provide access to a **Genius Hub** via its [RESTful 
 
 It is a WIP, and is currently read-only (e.g. you can't change the mode of a zone).
 
-This library can use either the **_offical_ v1 API** with a [hub token](https://my.geniushub.co.uk/tokens), or the **_latest_ v3 API** (using your own [username and password](https://www.geniushub.co.uk/app)). In either case, the library will return v1-compatible results wherever possible.
+This library can use either the **_offical_ v1 API** with a [hub token](https://my.geniushub.co.uk/tokens), or the **_latest_ v3 API** (using your own [username and password](https://www.geniushub.co.uk/app)). In either case, the library will return v1-compatible results wherever possible (this is not a trivial task).
 
-If you use the v3 API, you can interrogate the hub directly, rather than via Heat Genius' servers.
+If you use the v3 API, you can interrogate the hub directly, rather than via Heat Genius' servers. Note that the v3 API is undocumented, and this functionality may break at any time.
 
 It is based upon work by @GeoffAtHome - thanks!
 
