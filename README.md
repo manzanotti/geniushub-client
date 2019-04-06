@@ -21,12 +21,12 @@ There are two distinct options for accessing a Genius Hub:
 
 Option 1: **hub token** only:
   - requires a hub token obtained from https://my.geniushub.co.uk/tokens
-  - uses the v1 API (which is well-documented)
+  - uses the v1 API - which is well-documented
   - interrogates Heat Genius' own servers (so is slower)
  
 Option 2: **hub address** with **user credentials**:
   - requires your `username` & `password`, as used with https://www.geniushub.co.uk/app
-  - uses the v3 API (results may not be what you expect)
+  - uses the v3 API - results are WIP and may not be what you expect
   - interrogates the hub directly (so is faster)
 
 ```bash
