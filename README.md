@@ -60,14 +60,14 @@ python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} devices -vvvv
  ```python
 import asyncio
 import aiohttp
-from geniushubclient import GeniusHubClient
+from geniushubclient import GeniusHubClient, GeniusHub
 
 session = aiohttp.ClientSession()
 
 if not (username or password):
     client = GeniusHubClient(hub_id=hub_address, username, password, session=session)
 else:
-    client_v1 = GeniusHubClient(hub_id=hub_token, session=my_session)
+    client = GeniusHubClient(hub_id=hub_token, session=my_session)
     
 hub = GeniusHub(client, hub_id=args.hub_id[:20])
 
