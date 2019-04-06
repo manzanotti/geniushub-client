@@ -40,7 +40,7 @@ class GeniusObject(object):
     async def _handle_assetion(self, error):
         _LOGGER.debug("_handle_assetion(error=%s)", error)
 
-    async def _request(self, type, url, payload=None):
+    async def _request(self, type, url, data=None):
         _LOGGER.warn("_request(type=%s, url='%s')", type, url)
 
         http_method = {
@@ -53,7 +53,7 @@ class GeniusObject(object):
         try:
             async with http_method(
                 self._client._url_base + url,
-                data=payload,
+                data=data,
                 headers=self._client._headers,
                 auth=self._client._auth,
                 timeout=self._client._timeout
@@ -435,8 +435,8 @@ class GeniusZone(GeniusObject):
         _LOGGER.debug("set_override_temp(%s): duration=%s, setpoint=%s", self.id, duration, setpoint)
 
         url = 'zones/{}/override'
-        payload = {'duration': duration, 'setpoint': setpoint}
-        self._detail = await self._request("POST", url.format(self.id), data=payload)
+        data = {'duration': duration, 'setpoint': setpoint}
+        self._detail = await self._request("POST", url.format(self.id), data=data)
 
         _LOGGER.debug("set_override_temp(%s): done.", self.id)
 
