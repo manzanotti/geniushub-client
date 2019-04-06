@@ -1,8 +1,8 @@
 ### local .gitignore file
+# zxdavb
 
-raw.json
+*.json
 .vscode/*
-*.pyc
 
 
 ### github's default .gitignore file
