@@ -436,7 +436,7 @@ class GeniusZone(GeniusObject):
 
         url = 'zones/{}/override'
         payload = {'duration': duration, 'setpoint': setpoint}
-        self._detail = await self._request("POST", url.format(self.id), payload=payload)
+        self._detail = await self._request("POST", url.format(self.id), data=payload)
 
         _LOGGER.debug("set_override_temp(%s): done.", self.id)
 
