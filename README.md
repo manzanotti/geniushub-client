@@ -1,7 +1,9 @@
 # GeniusHub
-This is a Python library to provide access to the [Genius Hub RESTful API](https://my.geniushub.co.uk/docs). It is a WIP, and is currently read-only (e.g. you can't change the mode of a zone).
+This is a Python library to provide access to a **Genius HUb** via its [RESTful API](https://my.geniushub.co.uk/docs). It is a WIP, and is currently read-only (e.g. you can't change the mode of a zone).
 
-This library can use either the _offical_ v1 API via a [hub token](https://my.geniushub.co.uk/tokens), or the _latest_ v3 API direct to the hub (using your own [username and password](https://www.geniushub.co.uk/app)). In either case, the library will return v1-compatible results wherever possible.
+This library can use either the _offical_ v1 API with a [hub token](https://my.geniushub.co.uk/tokens), or the _latest_ v3 API (using your own [username and password](https://www.geniushub.co.uk/app)). In either case, the library will return v1-compatible results wherever possible.
+
+If you use the v3 API, you can interrogate the hub directly, rather than via Heat Genius' servers.
 
 It is based upon work by @GeoffAtHome - thanks!
 
@@ -13,17 +15,17 @@ See `ghclient.py` for example code. You can also use `ghclient.py` for ad-hoc qu
 ```bash
 python ghclient.py -?
 ```
-There are two dictinct options for accessing a Genius Hub:
+There are two distinct options for accessing a Genius Hub:
 
 Option 1: **hub token** only:
-  - uses v1 API (which is well-documented)
-  - interrorgates Heat Genius' own servers (so is slower)
   - requires a hub token from [https://my.geniushub.co.uk/tokens]
+  - uses the v1 API (which is well-documented)
+  - interrogates Heat Genius' own servers (so is slower)
  
-Option 2: **hub address**:
-  - uses v3 API (results may not be what you expect)
-  - interrorgates the hub directly (so is faster)
+Option 2: **hub address** with user credentials:
   - requires your `username` & `password`, as used for [https://www.geniushub.co.uk/app]
+  - uses the v3 API (results may not be what you expect)
+  - interrogates the hub directly (so is faster)
 
 ```bash
 HUB_TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsInZlc..."  # from: https://my.geniushub.co.uk/tokens
