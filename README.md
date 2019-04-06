@@ -24,7 +24,7 @@ Option 1: **hub token** only:
   - uses the v1 API - which is well-documented
   - interrogates Heat Genius' own servers (so is slower)
  
-Option 2: **hub hostname/address** with **user credentials**:
+Option 2: hub **hostname/address** with **user credentials**:
   - requires your `username` & `password`, as used with https://www.geniushub.co.uk/app
   - uses the v3 API - results are WIP and may not be what you expect
   - interrogates the hub directly (so is faster)
@@ -63,6 +63,8 @@ import aiohttp
 from geniushubclient import GeniusHubClient, GeniusHub
 
 session = aiohttp.ClientSession()
+
+...
 
 if not (username or password):
     client = GeniusHubClient(hub_id=hub_address, username, password, session=session)
