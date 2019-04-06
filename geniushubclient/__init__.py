@@ -50,19 +50,15 @@ class GeniusObject(object):
             "PUT": self._client._session.put,
         }.get(type)
 
-        try:
-            async with http_method(
-                self._client._url_base + url,
-                json=data,
-                headers=self._client._headers,
-                auth=self._client._auth,
-                timeout=self._client._timeout
-            ) as response:
-                assert response.status == HTTP_OK, response.text
-                return await response.json(content_type=None)
-
-        except aiohttp.ServerDisconnectedError as e:
-            _LOGGER.exception(e)
+        async with http_method(
+            self._client._url_base + url,
+            json=data,
+            headers=self._client._headers,
+            auth=self._client._auth,
+            timeout=self._client._timeout
+        ) as response:
+            assert response.status == HTTP_OK, response.text
+            return await response.json(content_type=None)
 
     @staticmethod
     def LookupStatusError(status):
