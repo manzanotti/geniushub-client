@@ -53,7 +53,7 @@ class GeniusObject(object):
         try:
             async with http_method(
                 self._client._url_base + url,
-                data=data,
+                json=data,
                 headers=self._client._headers,
                 auth=self._client._auth,
                 timeout=self._client._timeout
