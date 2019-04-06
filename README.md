@@ -72,6 +72,7 @@ else:
 hub = GeniusHub(client, hub_id=args.hub_id[:20])
 
 print(await hub.zones)
+print(hub.zone_by_id[3].temperature)
 
 await session.close()
 ```
