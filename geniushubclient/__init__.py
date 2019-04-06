@@ -390,6 +390,16 @@ class GeniusZone(GeniusObject):
         self._hub = hub
 
     @property
+    async def update(self) -> dict:
+        """Update information for a zone."""
+        url = 'zones/{}'
+        data = await self._request("GET", url.format(self.id))
+        self.__dict__.update(data)
+
+        _LOGGER.error("self.detail = %s", data)
+        return self._detail
+
+    @property
     async def info(self) -> dict:
         """Return information for a zone.
 
@@ -421,8 +431,9 @@ class GeniusZone(GeniusObject):
           mode is in {'off', 'timer', footprint', 'override'}
         """
         _LOGGER.debug("set_mode(Zone): mode=%s")
+
         url = 'zones/{}/mode'
-        self._detail = await self._request("PUT", url.format(self.id))
+        self._detail = await self._request("PUT", url.format(self.id), data=mode)
 
         _LOGGER.debug("set_mode(Zone): done")
 
@@ -442,8 +453,7 @@ class GeniusZone(GeniusObject):
 
     async def update(self):
         """Update the zone with the latest state data."""
-        _LOGGER.debug("Zone(%s).update()", self.id)
-        print("Zone(%s).update()", self.id)
+        _LOGGER.error("Zone(%s).update()", self.id)
 
 
 class GeniusDevice(GeniusObject):
