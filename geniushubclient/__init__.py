@@ -40,13 +40,17 @@ class GeniusObject(object):
     async def _handle_assetion(self, error):
         _LOGGER.debug("_handle_assetion(error=%s)", error)
 
-    async def _request(self, type, url):
+    async def _request(self, type, url, payload=None):
         _LOGGER.debug("_request(type=%s, url=%s)", type, url)
 
-        session = self._client._session
+        method = {
+            "GET": self._client._session.get,
+            "PATCH": self._client._session.patch,
+            "POST": self._client._session.post,
+            "PUT": self._client._session.put,
+        }.get(type)
 
-        if type == "GET":
-            async with session.get(
+        async with method(
                 self._client._url_base + url,
                 headers=self._client._headers,
                 auth=self._client._auth,
@@ -54,18 +58,7 @@ class GeniusObject(object):
             ) as response:
                 assert response.status == HTTP_OK, response.text
                 return await response.json(content_type=None)
-        elif type == "PATCH":
-            async with session.patch(url) as response:
-                assert response.status == HTTP_OK, response.text
-                return await response.json(content_type=None)
-        elif type == "POST":
-            async with session.post(url) as response:
-                assert response.status == HTTP_OK, response.text
-                return await response.json(content_type=None)
-        elif type == "PUT":
-            async with session.put(url) as response:
-                assert response.status == HTTP_OK, response.text
-                return await response.json(content_type=None)
+                # data=payload,
 
     @staticmethod
     def LookupStatusError(status):
@@ -93,7 +86,7 @@ class GeniusHubClient(object):
             self._auth = aiohttp.BasicAuth(
                 login=username, password=hash.hexdigest())
             self._url_base = 'http://{}:1223/v3/'.format(hub_id)
-            self._headers = {"Connection": "close"}
+            self._headers = None  # {"Connection": "close"}
             self._timeout = aiohttp.ClientTimeout(total=DEFAULT_TIMEOUT_V3)
             self._poll_interval = DEFAULT_INTERVAL_V3
 
@@ -155,11 +148,15 @@ class GeniusHub(GeniusObject):
     # connection.get("/v3/auth/test", { username: e, password: t, timeout: n })
 
     def __init__(self, client, hub_id):
-        _LOGGER.debug("GeniusHub(hub=%s)", hub_id)
-        super().__init__(client, data={'id': hub_id})
+        _LOGGER.debug("GeniusHub(hub=%s)", hub_id[:20])
+        super().__init__(client, data={'id': hub_id[:20]})
+
+        self._zones = []
+        self._devices = []
+        self._issues = []
 
     @property
-    async def detail(self) -> dict:
+    async def info(self) -> dict:
         """Return information for the hub.
 
           This is not a v1 API.
@@ -187,7 +184,7 @@ class GeniusHub(GeniusObject):
           This is a v1 API only.
         """
         if self._api_v1:
-            url = '{}/version'
+            url = 'version'
             self._version = await self._request("GET", url)
         else:
             self._version = {
@@ -198,7 +195,7 @@ class GeniusHub(GeniusObject):
         return self._version
 
     @property
-    async def zones(self) -> list:
+    async def _get_zones(self) -> list:
         """Return a list of zones included in the system.
 
           This is a v1 API: GET /zones
@@ -262,7 +259,15 @@ class GeniusHub(GeniusObject):
         return raw_json if self._client._verbose else self._zones
 
     @property
-    async def devices(self) -> list:
+    async def zones(self) -> list:
+        """Return a list of Zones known to the Hub."""
+
+        if not self._zones:
+            await self._get_zones
+        return self._zones
+
+    @property
+    async def _get_devices(self) -> list:
         """Return a list of devices included in the system.
 
           This is a v1 API: GET /devices
@@ -270,7 +275,7 @@ class GeniusHub(GeniusObject):
         def _convert_to_v1_via_zones(input) -> list:
             """Convert v3 output to v1 schema."""
 
-            this_outputlist = []
+            output = []
             for zone in input['data']:
                 for node in zone['nodes']:
                     if not node['addr'] == 'WeatherData':
@@ -306,9 +311,9 @@ class GeniusHub(GeniusObject):
 
                             tmp = device['childValues']['location']['val']
                             if tmp:
-                                result['assignedZones'] = [{'name': tmp }]
+                                result['assignedZones'] = [{'name': tmp}]
                             else:
-                                result['assignedZones'] = [{'name': None }]
+                                result['assignedZones'] = [{'name': None}]
 
                             result['status'] = {}
 
@@ -328,7 +333,15 @@ class GeniusHub(GeniusObject):
         return raw_json if self._client._verbose else self._devices
 
     @property
-    async def issues(self) -> list:
+    async def devices(self) -> list:
+        """Return a list of Devices known to the Hub."""
+
+        if not self._devices:
+            await self._get_devices
+        return self._devices
+
+    @property
+    async def _get_issues(self) -> list:
         """Return a list of currently identified issues with the system.
 
           This is a v1 API: GET /issues
@@ -356,6 +369,14 @@ class GeniusHub(GeniusObject):
         _LOGGER.debug("GeniusHub.issues = %s", self._issues)
         return raw_json if self._client._verbose else self._issues
 
+    @property
+    async def issues(self) -> list:
+        """Return a list of Issues known to the Hub."""
+
+        if not self._issues:
+            await self._get_issues
+        return self._issues
+
 
 class GeniusZone(GeniusObject):
     def __init__(self, client, hub, zone_dict):
@@ -365,13 +386,13 @@ class GeniusZone(GeniusObject):
         self._hub = hub
 
     @property
-    async def detail(self) -> dict:
+    async def info(self) -> dict:
         """Return information for a zone.
 
           This is a v1 API: GET /zones/{zoneId}
         """
-        url = '{}/zones/{}' if self._verbose else '{}/zones/{}/summary'
-        self._detail = await self._request("GET", url.format(self._url_base, self._id))
+        url = 'zones/{}'
+        self._detail = await self._request("GET", url.format(self.id))
 
         _LOGGER.debug("self.detail = %s", self._detail)
         return self._detail
@@ -382,8 +403,8 @@ class GeniusZone(GeniusObject):
 
           This is a v1 API: GET /zones/{zoneId}devices
         """
-        url = '{}/zones/{}/devices' if self._verbose else '{}/zones/{}/devices/summary'
-        self._devices = await self._request("GET", url.format(self._url_base, self._id))
+        url = 'zones/{}/devices'
+        self._devices = await self._request("GET", url.format(self.id))
 
         await self._populate_devices(self._devices)
 
@@ -396,8 +417,8 @@ class GeniusZone(GeniusObject):
           mode is in {'off', 'timer', footprint', 'override'}
         """
         _LOGGER.debug("set_mode(Zone): mode=%s")
-        url = '{}zones/{}/mode'
-        self._detail = await self._request("PUT", url.format(self._url_base, self._id))
+        url = 'zones/{}/mode'
+        self._detail = await self._request("PUT", url.format(self.id))
 
         _LOGGER.debug("set_mode(Zone): done")
 
@@ -407,11 +428,18 @@ class GeniusZone(GeniusObject):
           duration is in seconds
           setpoint is in degrees Celsius
         """
-        _LOGGER.debug("set_override_temp(Zone): duration=%s, setpoint=%s", duration, setpoint)
-        url = '{}zones/{}/override'
-        self._detail = await self._request("POST", url.format(self._url_base, self._id))
+        _LOGGER.debug("set_override_temp(%s): duration=%s, setpoint=%s", self.id, duration, setpoint)
 
-        _LOGGER.debug("set_override_temp(Zone): done.")
+        url = 'zones/{}/override'
+        payload = {'duration': duration, 'setpoint': setpoint}
+        self._detail = await self._request("POST", url.format(self.id), payload=payload)
+
+        _LOGGER.debug("set_override_temp(%s): done.", self.id)
+
+    async def update(self):
+        """Update the zone with the latest state data."""
+        _LOGGER.debug("Zone(%s).update()", self.id)
+        print("Zone(%s).update()", self.id)
 
 
 class GeniusDevice(GeniusObject):
@@ -423,10 +451,10 @@ class GeniusDevice(GeniusObject):
         self._zone = zone
 
     @property
-    async def detail(self) -> dict:
+    async def info(self) -> dict:
         """Return all information for a device."""
-        url = '{}/devices/{}'
-        self._detail = await self._request("GET", url.format(self._url_base, self._id))
+        url = 'devices/{}'
+        self._detail = await self._request("GET", url.format(self.id))
 
         temp = dict(self._detail)
         if not self._verbose:

@@ -95,13 +95,24 @@ async def main(loop):
     # return
 
     if args.zone:
-        print("Sorry: not implemented yet.")
-        return False
+        # print("Sorry: not implemented yet.")
+        # return False
 
-        zone = hub.zone(id=args.zone)
-        zone.verbose = args.verbose if args.verbose else 0
+        await client.populate()
+        hub = client.hub
 
-        if args.command == "detail":
+        zone = hub.zone_by_id[args.zone]
+        # zone.verbose = args.verbose if args.verbose else 0
+
+        print(await zone.info)
+        print(zone.temperature)
+        print(zone.setpoint)
+        await zone.set_override(3600, 8.5)
+        print(zone.setpoint)
+        await session.close()
+        return
+
+        if args.command == "info":
             print(await zone.detail)
         elif args.command == "devices":
            print(await zone.devices)
@@ -116,6 +127,8 @@ async def main(loop):
         print("Sorry: not implemented yet.")
         return False
 
+        hub = GeniusHub(client, hub_id=args.hub_id[:20])
+
         device = hub.device(id=args.device)
         device.verbose = 0 if args.verbose is None else args.verbose
 
@@ -125,7 +138,8 @@ async def main(loop):
             print("Error: unknown command: {}".format(args.command))
 
     else:
-        hub = GeniusHub(client, hub_id=args.hub_id[:20])
+        await client.populate()
+        hub = client.hub
 
         if not args.command or args.command == "detail":
             print("Sorry: not implemented yet.")
