@@ -83,8 +83,6 @@ async def main(loop):
 #   await client.populate()
 #   hub = client.hub
 
-    hub = GeniusHub(client, hub_id=args.hub_id[:20])
-
     # print(len(hub.zone_objs))
     # print(dir(hub.zone_objs[1]))
     # print(hub.zone_objs[1].name)
@@ -127,6 +125,8 @@ async def main(loop):
             print("Error: unknown command: {}".format(args.command))
 
     else:
+        hub = GeniusHub(client, hub_id=args.hub_id[:20])
+
         if not args.command or args.command == "detail":
             print("Sorry: not implemented yet.")
             return False
@@ -184,23 +184,18 @@ async def main(loop):
             # which keys to keep?
             keys = ['id', 'type']
             if args.verbose:
-                if args.verbose > 3:
+                if args.verbose > 2:
                     print(await hub.devices)
-                    await session.close()
-                    return
-                if args.verbose > 0:
+                elif args.verbose > 0:
                     keys += ['assignedZones']
-                if args.verbose > 1:  # v2 - as /devices
-                    keys += ['state']
+                    if args.verbose > 1:  # v2 - as /devices
+                        keys += ['state']
 
             # keep only the wanted keys
             devices = []
             for device in await hub.devices:
                 devices.append({k: device[k] for k in keys if k in device})
             print(devices)
-
-        else:
-            print("Error: unknown command: {}".format(args.command))
 
     await session.close()
 

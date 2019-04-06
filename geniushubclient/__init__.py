@@ -136,9 +136,8 @@ class GeniusHubClient(object):
                     self.device_by_id[device.id] = device
 
         hub = self.hub = GeniusHub(self, self._hub_id)
-
-#       for zone in await hub.zones:
-#           _populate_zone(hub, zone)
+        for zone in await hub.zones:
+            _populate_zone(hub, zone)
         for device in await hub.devices:
             _populate_device(hub, device)
 
@@ -300,14 +299,17 @@ class GeniusHub(GeniusObject):
                             result['id'] = device['addr']
                             node = device['childNodes']['_cfg']['childValues']
                             if node:
-                                result['sku'] = node['sku']['val']
-
                                 result['type'] = node['name']['val']
+                                result['sku'] = node['sku']['val']
+                            else:
+                                result['type'] = None
 
-                            node = device['childValues']
-                            result['location'] = node['location']['val']
+                            tmp = device['childValues']['location']['val']
+                            if tmp:
+                                result['assignedZones'] = [{'name': tmp }]
+                            else:
+                                result['assignedZones'] = [{'name': None }]
 
-                            result['assignedZones'] = [{'name': None}]
                             result['status'] = {}
 
                             output.append(result)
