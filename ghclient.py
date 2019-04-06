@@ -125,7 +125,9 @@ async def main(loop):
             print("Error: unknown command: {}".format(args.command))
 
     else:
-        hub = GeniusHub(client, hub_id=args.hub_id[:20])
+        # hub = GeniusHub(client, hub_id=args.hub_id)
+        await client.populate()
+        hub = client.hub
 
         if not args.command or args.command == "detail":
             print("Sorry: not implemented yet.")

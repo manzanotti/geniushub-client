@@ -41,24 +41,28 @@ class GeniusObject(object):
         _LOGGER.debug("_handle_assetion(error=%s)", error)
 
     async def _request(self, type, url, payload=None):
-        _LOGGER.debug("_request(type=%s, url=%s)", type, url)
+        _LOGGER.warn("_request(type=%s, url='%s')", type, url)
 
-        method = {
+        http_method = {
             "GET": self._client._session.get,
             "PATCH": self._client._session.patch,
             "POST": self._client._session.post,
             "PUT": self._client._session.put,
         }.get(type)
 
-        async with method(
+        try:
+            async with http_method(
                 self._client._url_base + url,
+                data=payload,
                 headers=self._client._headers,
                 auth=self._client._auth,
                 timeout=self._client._timeout
             ) as response:
                 assert response.status == HTTP_OK, response.text
                 return await response.json(content_type=None)
-                # data=payload,
+
+        except aiohttp.ServerDisconnectedError as e:
+            _LOGGER.exception(e)
 
     @staticmethod
     def LookupStatusError(status):
@@ -86,7 +90,7 @@ class GeniusHubClient(object):
             self._auth = aiohttp.BasicAuth(
                 login=username, password=hash.hexdigest())
             self._url_base = 'http://{}:1223/v3/'.format(hub_id)
-            self._headers = None  # {"Connection": "close"}
+            self._headers = {"Connection": "close"}
             self._timeout = aiohttp.ClientTimeout(total=DEFAULT_TIMEOUT_V3)
             self._poll_interval = DEFAULT_INTERVAL_V3
 
@@ -131,8 +135,8 @@ class GeniusHubClient(object):
         hub = self.hub = GeniusHub(self, self._hub_id)
         for zone in await hub.zones:
             _populate_zone(hub, zone)
-        for device in await hub.devices:
-            _populate_device(hub, device)
+        # for device in await hub.devices:
+        #     _populate_device(hub, device)
 
     @property
     def verbose(self) -> int:
@@ -256,7 +260,7 @@ class GeniusHub(GeniusObject):
         self._zones.sort(key=lambda s: int(s['id']))
 
         _LOGGER.debug("GeniusHub.zones = %s", self._zones)
-        return raw_json if self._client._verbose else self._zones
+        return raw_json
 
     @property
     async def zones(self) -> list:
@@ -330,7 +334,7 @@ class GeniusHub(GeniusObject):
         self._devices.sort(key=lambda s: s['id'])
 
         _LOGGER.debug("GeniusHub.devices = %s", self._devices)
-        return raw_json if self._client._verbose else self._devices
+        return raw_json
 
     @property
     async def devices(self) -> list:
