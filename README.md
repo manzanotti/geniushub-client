@@ -1,5 +1,5 @@
 # GeniusHub
-This is a Python library to provide access to a **Genius HUb** via its [RESTful API](https://my.geniushub.co.uk/docs). It is a WIP, and is currently read-only (e.g. you can't change the mode of a zone).
+This is a Python library to provide access to a **Genius Hub** via its [RESTful API](https://my.geniushub.co.uk/docs). It is a WIP, and is currently read-only (e.g. you can't change the mode of a zone).
 
 This library can use either the _offical_ v1 API with a [hub token](https://my.geniushub.co.uk/tokens), or the _latest_ v3 API (using your own [username and password](https://www.geniushub.co.uk/app)). In either case, the library will return v1-compatible results wherever possible.
 
@@ -47,7 +47,7 @@ curl -X GET https://my.geniushub.co.uk/v1/devices/summary -H "authorization: Bea
 python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} devices
 ```
 
-You can obtain the v3 API responses (raw JSON):
+You can obtain the actual v3 API responses (i.e. the JSON is not converted to the v1 schema):
 ```bash
 python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} zones -vvvv
 python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} devices -vvvv
