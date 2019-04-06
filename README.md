@@ -35,9 +35,9 @@ HUB_ADDRESS="my-geniushub.dyndns.com"
 USERNAME="my-username"
 PASSWORD="my-password"
 
-python ghclient.py ${HUB_TOKEN} zones -vv
+python ghclient.py ${HUB_TOKEN} issues
 
-python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} devices -vv
+python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} zones -v
 ```
 
 You can compare any output to the official API (v1 response):
