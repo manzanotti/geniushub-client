@@ -1,4 +1,4 @@
-# GeniusHub
+# geniushub-client
 This is a Python library to provide access to a **Genius Hub** via its [RESTful API](https://my.geniushub.co.uk/docs). It is a WIP, and is currently read-only (e.g. you can't change the mode of a zone).
 
 This library can use either the **_offical_ v1 API** with a [hub token](https://my.geniushub.co.uk/tokens), or the **_latest_ v3 API** (using your own [username and password](https://www.geniushub.co.uk/app)). In either case, the library will return v1-compatible results wherever possible.
@@ -9,10 +9,10 @@ It uses **aiohttp** and is therefore asyncio-friendly.
  
 It is based upon work by @GeoffAtHome - thanks!
 
-# Installation
+## Installation
 Either clone this repository and run `python setup.py install`, or install from pip using `pip install geniushub-client`.
 
-# Using the Library
+## Using the Library
 See `ghclient.py` for example code. You can also use `ghclient.py` for ad-hoc queries:
 ```bash
 python ghclient.py -?
@@ -55,7 +55,7 @@ python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} zones -vvvv
 python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} devices -vvvv
 ```
 
-# Advanced Features
+## Advanced Features
  When used as a library, there is the option to utilize the rerencing module's own `aiohttp.ClientSession()` (recommended):
  ```python
 import asyncio
