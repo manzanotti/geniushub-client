@@ -126,10 +126,11 @@ async def main(loop):
 
     else:
         hub = client.hub
-        print(await hub.devices)
-        await session.close()
-        return
-        # await hub.update()
+        await hub.update()
+
+        # print(hub._devices)
+        # await session.close()
+        # return
 
         if not args.command or args.command == "detail":
             print("Sorry: not implemented yet.")

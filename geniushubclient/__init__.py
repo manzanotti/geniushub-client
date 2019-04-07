@@ -84,7 +84,7 @@ def _convert_device(input) -> dict:
     else:
         result['assignedZones'] = [{'name': None}]
 
-    result['status'] = {}
+    result['state'] = {}
 
     return result
 
@@ -213,6 +213,8 @@ class GeniusHub(GeniusObject):
         self._devices = []
         self._issues = []
 
+        self._zones_raw = self._devices_raw = None
+
     async def update(self, force_refresh=False):
         """Update the Hub with its latest state data."""
 
@@ -230,13 +232,15 @@ class GeniusHub(GeniusObject):
                             hub.id, zone_dict['id'])
 
         def _populate_device(hub, device_dict):
-            zone_name = device_dict['assignedZones'][0]['name']
-            if zone_name and zone_name in hub.zone_by_name:
-                zone = hub.zone_by_name[zone_name]
-            else:
-                zone = None
+            # zone_name = device_dict['assignedZones'][0]['name']
+            # if zone_name and zone_name in hub.zone_by_name:
+            #     zone = hub.zone_by_name[zone_name]
+            # else:
+            #     zone = None
+            print(device_dict)
+            idx = device_dict['id']
             try:  # does the hub already know about this device?
-                device = hub.device_by_id[device_dict['id']]
+                device = hub.device_by_id[idx]
             except KeyError:
                 device = GeniusDevice(self, hub, zone, device_dict)
                 # _LOGGER.warn("Creating a Device(hub=%s, device=%s)", hub.id, device_dict['id'])
@@ -255,20 +259,10 @@ class GeniusHub(GeniusObject):
 
         _LOGGER.debug("Hub(%s).update()", self.id)
 
-        if self._api_v1:
-            for zone in await self.zones:  # same as self._zones
-                _populate_zone(self, zone)
-            for device in await self.devices:  # same as self._devices
-                _populate_device(self, device)
-        else:
-            # WORKAROUND: I get a aiohttp.ServerDisconnectedError on 2nd
-            # HTTP method (Hub.devices) if I do it the v1 way for v3
-            raw_json = await self._get_zones  # creates self._zones
-
-            for zone in self._zones:
-                _populate_zone(self, zone)
-            for device in _extract_devices_from_zones(raw_json):
-                _populate_device(self, device)
+        for zone in await self.zones:
+            _populate_zone(self, zone)
+        for device in await self.devices:
+            _populate_device(self, device)
 
     @property
     async def info(self) -> dict:
@@ -327,10 +321,11 @@ class GeniusHub(GeniusObject):
             for zone in _extract_zones_from_zones(raw_json):
                  self._zones.append(_convert_zone(zone))
 
+        self._zones_raw = raw_json
         self._zones.sort(key=lambda s: int(s['id']))
 
         _LOGGER.debug("GeniusHub.zones = %s", self._zones)
-        return raw_json
+        return self._zones_raw
 
     @property
     async def zones(self) -> list:
@@ -347,21 +342,30 @@ class GeniusHub(GeniusObject):
           This is a v1 API: GET /devices
         """
         # getDeviceList = x.get("/v3/data_manager", {username: e, password: t})
-        url = 'devices' if self._api_v1 else 'zones'  # data_manager'
-        raw_json = await self._request("GET", url)
-        raw_json = raw_json if self._api_v1 else raw_json['data']
+
+        if self._api_v1:
+            url = 'devices' if self._api_v1 else 'zones'  # or: 'data_manager'
+            raw_json = await self._request("GET", url)
+            raw_json = raw_json if self._api_v1 else raw_json['data']
+        else:
+            # WORKAROUND: There's a aiohttp.ServerDisconnectedError on 2nd HTTP
+            # method (get v3/zones x2 or get v3/zones & get /data_manager) if
+            # it is done the v1 way (above) for v3
+            raw_json = self._zones_raw if self._zones_raw else await self._get_zones
 
         if self._api_v1:
             self._devices = raw_json
         else:
             self._devices = []
+            # r device in _extract_devices_from_data_manager(raw_json):
             for device in _extract_devices_from_zones(raw_json):
                 self._devices.append(_convert_device(device))
 
+        self._devices_raw = raw_json
         self._devices.sort(key=lambda s: s['id'])
 
         _LOGGER.debug("GeniusHub.devices = %s", self._devices)
-        return raw_json
+        return self._devices_raw
 
     @property
     async def devices(self) -> list:
