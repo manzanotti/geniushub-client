@@ -102,7 +102,7 @@ def _extract_devices_from_data_manager(input) -> list:
     _LOGGER.error("input = %s", input)
     result = []
     for k1, v1 in input['childNodes'].items():
-        if k1 != 'WeatherData':
+        if k1 != 'WeatherData':  # or: k1 not in ['1', 'WeatherData']
             for k2, device in v1['childNodes'].items():
                 if device['addr'] != '1':
                     result.append(_convert_device(device))
@@ -117,7 +117,7 @@ def _extract_devices_from_zones(input) -> list:
     for zone in input:
         if 'nodes' in zone:
             for node in zone['nodes']:
-                if node['addr'] not in ['WeatherData']:
+                if node['addr'] not in ['1', 'WeatherData']:
                     result.append(node)
 
     return result
@@ -142,7 +142,7 @@ class GeniusObject(object):
         _LOGGER.debug("_handle_assetion(error=%s)", error)
 
     async def _request(self, type, url, data=None):
-        _LOGGER.warn("_request(type=%s, url='%s')", type, url)
+        _LOGGER.debug("_request(type=%s, url='%s')", type, url)
 
         http_method = {
             "GET": self._client._session.get,
@@ -213,6 +213,8 @@ class GeniusHub(GeniusObject):
         _LOGGER.debug("GeniusHub(hub=%s)", hub_id[:8] + "...")
         super().__init__(client, data={'id': hub_id[:8] + "..."})
 
+        self._parent = None
+
         self._zones = []
         self._devices = []
         self._issues = []
@@ -222,41 +224,44 @@ class GeniusHub(GeniusObject):
     async def update(self, force_refresh=False):
         """Update the Hub with its latest state data."""
 
-        def _populate_zone(hub, zone_dict):
+        def _populate_zone(zone_dict):
+            hub = self  # for now, only Hubs invoke this method
+
+            idx = zone_dict['id']
             try:  # does the hub already know about this device?
-                zone = hub.zone_by_id[zone_dict['id']]
+                zone = hub.zone_by_id[idx]
             except KeyError:
-                zone = GeniusZone(self, hub, zone_dict)
-                # _LOGGER.warn("Creating a Zone(hub=%s, zone=%s)", hub.id, zone_dict['id'])
+                _LOGGER.debug("Creating a Zone (hub=%s, zone=%s)", hub.id, zone_dict['id'])
+                zone = GeniusZone(self._client, hub, zone_dict)
                 hub.zone_objs.append(zone)
                 hub.zone_by_id[zone.id] = zone
                 hub.zone_by_name[zone.name] = zone
             else:
-                _LOGGER.warn("Found a Zone(hub=%s, zone=%s)",
-                             hub.id, zone_dict['id'])
+                _LOGGER.debug("Found a Zone (hub=%s, zone=%s)", hub.id, zone_dict['id'])
 
-        def _populate_device(hub, device_dict):
-            # zone_name = device_dict['assignedZones'][0]['name']
-            # if zone_name and zone_name in hub.zone_by_name:
-            #     zone = hub.zone_by_name[zone_name]
-            # else:
-            #     zone = None
-            print(device_dict)
+        def _populate_device(device_dict, parent=None):
+            if isinstance(self, GeniusHub):
+                hub = self
+                zone = None
+            else:
+                hub = self._parent
+                zone = self
+
             idx = device_dict['id']
             try:  # does the hub already know about this device?
                 device = hub.device_by_id[idx]
             except KeyError:
+                _LOGGER.debug("Creating a Device (hub=%s, device=%s)", hub.id, device_dict['id'])
                 device = GeniusDevice(self, hub, zone, device_dict)
-                # _LOGGER.warn("Creating a Device(hub=%s, device=%s)", hub.id, device_dict['id'])
                 hub.device_objs.append(device)
                 hub.device_by_id[device.id] = device
             else:
-                _LOGGER.debug("Found a Device(hub=%s, device=%s)",
+                _LOGGER.debug("Found a Device (hub=%s, device=%s)",
                               hub.id, device_dict['id'])
 
-            if isinstance(self, GeniusHub):
+            if isinstance(self, GeniusHubZone):
                 try:  # does the zone already know about this device?
-                    device = self.device_by_id[device_dict['id']]
+                    device = self.device_by_id[idx]
                 except KeyError:
                     self.device_objs.append(device)
                     self.device_by_id[device.id] = device
@@ -264,9 +269,9 @@ class GeniusHub(GeniusObject):
         _LOGGER.debug("Hub(%s).update()", self.id)
 
         for zone in await self.zones:
-            _populate_zone(self, zone)
+            _populate_zone(zone)
         for device in await self.devices:
-            _populate_device(self, device)
+            _populate_device(device)
 
     @property
     async def info(self) -> dict:
@@ -423,7 +428,7 @@ class GeniusZone(GeniusObject):
                       hub.id, zone_dict['id'])
         super().__init__(client, data=zone_dict)
 
-        self._hub = hub
+        self._parent = self._hub = hub
 
     @property
     async def info(self) -> dict:
@@ -446,7 +451,8 @@ class GeniusZone(GeniusObject):
         url = 'zones/{}/devices'
         self._devices = await self._request("GET", url.format(self.id))
 
-        await self._populate_devices(self._devices)
+        for device in await self.devices:
+            _populate_device(device, parent=self)
 
         _LOGGER.debug("self.devices = %s", self._devices)
         return self._devices
@@ -493,7 +499,7 @@ class GeniusDevice(GeniusObject):
         super().__init__(client, data=device_dict)
 
         self._hub = hub
-        self._zone = zone
+        self._parent = self._zone = zone
 
     @property
     async def info(self) -> dict:

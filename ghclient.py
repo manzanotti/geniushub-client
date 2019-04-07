@@ -26,9 +26,7 @@ async def main(loop):
         help="-v add some detail, -vv raw data")
 
     args = parser.parse_args()
-
-    print(parser.parse_args())
-    return
+    # print(parser.parse_args())
 
     session = aiohttp.ClientSession()
 
@@ -53,7 +51,7 @@ async def main(loop):
     #     print(d.id, d.type)
     # return
 
-    if args.zone:
+    if False:  # args.zone:
         print("Sorry: not implemented yet.")
         return False
 
@@ -71,7 +69,7 @@ async def main(loop):
         else:
             print("Error: unknown command: {}".format(args.command))
 
-    elif args.device:
+    elif False: # args.device:
         print("Sorry: not implemented yet.")
         return False
 
@@ -114,7 +112,7 @@ async def main(loop):
             """
 
             # which keys to keep?
-            keys = ['id', 'name']
+            keys = ['id', 'name']  # v0 - as /v1/zones/summary
             if args.verbose:
                 if args.verbose > 3:
                     print(await hub.zones)
@@ -123,7 +121,7 @@ async def main(loop):
                 if args.verbose > 0:
                     keys += ['type', 'temperature', 'setpoint', 'mode',
                             'occupied', 'override']
-                if args.verbose > 1:
+                if args.verbose > 1:  # v0 - as /v1/zones
                     keys += ['schedule']
 
             # keep only the wanted keys
@@ -146,20 +144,25 @@ async def main(loop):
             """
 
             # which keys to keep?
-            keys = ['id', 'type']
-            if False and  args.verbose:
-                if args.verbose > 2:
-                    print(await hub.devices)
+            keys = ['id', 'type']  # v0 - as /v1/devices/summary
+            if args.verbose:
+                if args.verbose > 3:
+                    print(hub._devices_raw)
+                    await session.close()
+                    return
                 elif args.verbose > 0:
                     keys += ['assignedZones']
-                    if args.verbose > 1:  # v2 - as /devices
-                        keys += ['state']
+                if args.verbose > 1:  # v2 - as /v1/devices
+                    keys += ['state']
 
             # keep only the wanted keys
             devices = []
             for device in await hub.devices:
                 devices.append({k: device[k] for k in keys if k in device})
             print(devices)
+
+        else:
+            _LOGGER.error("Unknown command: '%s'", args.command)
 
     await session.close()
 
