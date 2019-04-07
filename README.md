@@ -55,6 +55,19 @@ python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} zones -vvvv
 python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} devices -vvvv
 ```
 
+To obtain the actual v3API responses takes a little work.  First, use python to obtain a `HASH`:
+```python
+>>> from hashlib import sha256
+>>> hash = sha256()
+>>> hash.update(("my_username" + "my_password").encode('utf-8'))
+>>> print(hash.hexdigest())
+001b24f45b...
+```
+Then you can use **curl**:
+```bash
+curl --user ${USERNAME}:${HASH} -X GET http://${HUB_ADDRESS}:1223/v3/zones
+```
+
 ## Advanced Features
  When used as a library, there is the option to utilize the rerencing module's own `aiohttp.ClientSession()` (recommended):
  ```python
