@@ -386,16 +386,6 @@ class GeniusZone(GeniusObject):
         self._hub = hub
 
     @property
-    async def update(self) -> dict:
-        """Update information for a zone."""
-        url = 'zones/{}'
-        data = await self._request("GET", url.format(self.id))
-        self.__dict__.update(data)
-
-        _LOGGER.error("self.detail = %s", data)
-        return self._detail
-
-    @property
     async def info(self) -> dict:
         """Return information for a zone.
 
@@ -450,6 +440,10 @@ class GeniusZone(GeniusObject):
     async def update(self):
         """Update the zone with the latest state data."""
         _LOGGER.error("Zone(%s).update()", self.id)
+
+        url = 'zones/{}'
+        data = await self._request("GET", url.format(self.id))
+        self.__dict__.update(data)
 
 
 class GeniusDevice(GeniusObject):
