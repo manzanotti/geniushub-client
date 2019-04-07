@@ -125,9 +125,11 @@ async def main(loop):
             print("Error: unknown command: {}".format(args.command))
 
     else:
-        # hub = GeniusHub(client, hub_id=args.hub_id)
-        await client.populate()
         hub = client.hub
+        print(await hub.devices)
+        await session.close()
+        return
+        # await hub.update()
 
         if not args.command or args.command == "detail":
             print("Sorry: not implemented yet.")
@@ -185,7 +187,7 @@ async def main(loop):
 
             # which keys to keep?
             keys = ['id', 'type']
-            if args.verbose:
+            if False and  args.verbose:
                 if args.verbose > 2:
                     print(await hub.devices)
                 elif args.verbose > 0:

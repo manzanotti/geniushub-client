@@ -22,6 +22,103 @@ _LOGGER = logging.getLogger(__name__)
 _LOGGER.setLevel(logging.WARNING)
 
 
+def _convert_zone(input) -> dict:
+    """Convert v3 zone dict/json to v1 schema."""
+    result = {}
+    result['id'] = input['iID']
+    result['type'] = ITYPE_TO_TYPE[input['iType']]
+    result['name'] = input['strName']
+
+    if input['iType'] in [zone_types.ControlSP, zone_types.TPI]:
+        result['temperature'] = input['fPV']
+        result['setpoint'] = input['fSP']
+
+    if input['iType'] == zone_types.OnOffTimer:
+        result['setpoint'] = input['fSP'] != 0
+
+    result['mode'] = IMODE_TO_MODE[input['iMode']]
+
+    # l = parseInt(i.iFlagExpectedKit) & e.equipmentTypes.Kit_PIR
+    if input['iFlagExpectedKit'] & kit_types.PIR:
+        # = parseInt(i.iMode) === e.zoneModes.Mode_Footprint
+        u = input['iMode'] == zone_modes.Footprint
+        # = null != (s = i.zoneReactive) ? s.bTriggerOn : void 0,
+        d = input['objFootprint']['objReactive']['bTriggerOn']
+        # = parseInt(i.iActivity) || 0,
+        # c = input['iActivity'] | 0
+        # o = t.isInFootprintNightMode(i)
+        o = input['objFootprint']['bIsNight']
+        # u && l && d && !o ? True : False
+        result['occupied'] = u and d and not o
+
+    if input['iType'] in [zone_types.OnOffTimer,
+                          zone_types.ControlSP,
+                          zone_types.TPI]:
+        result['override'] = {}
+        result['override']['duration'] = input['iBoostTimeRemaining']
+        if input['iType'] == zone_types.OnOffTimer:
+            result['override']['setpoint'] = (input['fBoostSP'] != 0)
+        else:
+            result['override']['setpoint'] = input['fBoostSP']
+
+        result['schedule'] = {}
+
+    return result
+
+def _convert_device(input) -> dict:
+    """Convert v3 device dict/json to v1 schema."""
+
+    # if device['addr'] not in ['1', 'WeatherData']:
+    result = {}
+    result['id'] = input['addr']
+    node = input['childNodes']['_cfg']['childValues']
+    if node:
+        result['type'] = node['name']['val']
+        result['sku'] = node['sku']['val']
+    else:
+        result['type'] = None
+
+    tmp = input['childValues']['location']['val']
+    if tmp:
+        result['assignedZones'] = [{'name': tmp}]
+    else:
+        result['assignedZones'] = [{'name': None}]
+
+    result['status'] = {}
+
+    return result
+
+def _extract_zones_from_zones(input) -> list:
+    """Extract zones from /v3/data_manager JSON."""
+
+    return input
+
+def _extract_devices_from_data_manager(input) -> list:
+    """Extract devices from /v3/data_manager JSON."""
+
+    _LOGGER.error("input = %s", input)
+    result = []
+    for k1, v1 in input['childNodes'].items():
+        if k1 != 'WeatherData':
+            for k2, device in v1['childNodes'].items():
+                if device['addr'] != '1':
+                    result.append(_convert_device(device))
+
+    return result
+
+def _extract_devices_from_zones(input) -> list:
+    """Extract devices from /v3/zones JSON."""
+
+    result = []
+    for zone in input:
+        if 'nodes' in zone:
+            for node in zone['nodes']:
+                if node['addr'] not in ['WeatherData']:
+                    result.append(node)
+
+    return result
+
+
 class GeniusObject(object):
     def __init__(self, client, hub=None, zone=None, device=None, data={}):
         self._client = client
@@ -93,46 +190,7 @@ class GeniusHubClient(object):
         self._verbose = False
         self._hub_id = hub_id[:20] + "..." if len(hub_id) > 20 else hub_id
 
-        self.hub = None
-
-    async def populate(self, force_refresh=False):
-
-        def _populate_zone(hub, zone_dict):
-            _LOGGER.debug("Adding a Zone=%s", zone_dict['id'])
-            try:  # does the hub already know about this device?
-                zone = hub.zone_by_id[zone_dict['id']]
-            except KeyError:
-                zone = GeniusZone(self, hub, zone_dict)
-                hub.zone_objs.append(zone)
-                hub.zone_by_id[zone.id] = zone
-                hub.zone_by_name[zone.name] = zone
-
-        def _populate_device(hub, device_dict):
-            _LOGGER.debug("Adding a Device=%s", device_dict['id'])
-            zone_name = device_dict['assignedZones'][0]['name']
-            if zone_name and zone_name in hub.zone_by_name:
-                zone = hub.zone_by_name[zone_name]
-            else:
-                zone = None
-            try:  # does the hub already know about this device?
-                device = hub.device_by_id[device_dict['id']]
-            except KeyError:
-                device = GeniusDevice(self, hub, zone, device_dict)
-                hub.device_objs.append(device)
-                hub.device_by_id[device.id] = device
-
-            if isinstance(self, GeniusHub):
-                try:  # does the zone already know about this device?
-                    device = self.device_by_id[device_dict['id']]
-                except KeyError:
-                    self.device_objs.append(device)
-                    self.device_by_id[device.id] = device
-
-        hub = self.hub = GeniusHub(self, self._hub_id)
-        for zone in await hub.zones:
-            _populate_zone(hub, zone)
-        # for device in await hub.devices:
-        #     _populate_device(hub, device)
+        self.hub = GeniusHub(self, hub_id)
 
     @property
     def verbose(self) -> int:
@@ -148,12 +206,69 @@ class GeniusHub(GeniusObject):
     # connection.get("/v3/auth/test", { username: e, password: t, timeout: n })
 
     def __init__(self, client, hub_id):
-        _LOGGER.debug("GeniusHub(hub=%s)", hub_id[:20])
-        super().__init__(client, data={'id': hub_id[:20]})
+        _LOGGER.debug("GeniusHub(hub=%s)", hub_id[:8] + "...")
+        super().__init__(client, data={'id': hub_id[:8] + "..."})
 
         self._zones = []
         self._devices = []
         self._issues = []
+
+    async def update(self, force_refresh=False):
+        """Update the Hub with its latest state data."""
+
+        def _populate_zone(hub, zone_dict):
+            try:  # does the hub already know about this device?
+                zone = hub.zone_by_id[zone_dict['id']]
+            except KeyError:
+                zone = GeniusZone(self, hub, zone_dict)
+                # _LOGGER.warn("Creating a Zone(hub=%s, zone=%s)", hub.id, zone_dict['id'])
+                hub.zone_objs.append(zone)
+                hub.zone_by_id[zone.id] = zone
+                hub.zone_by_name[zone.name] = zone
+            else:
+                _LOGGER.warn("Found a Zone(hub=%s, zone=%s)",
+                            hub.id, zone_dict['id'])
+
+        def _populate_device(hub, device_dict):
+            zone_name = device_dict['assignedZones'][0]['name']
+            if zone_name and zone_name in hub.zone_by_name:
+                zone = hub.zone_by_name[zone_name]
+            else:
+                zone = None
+            try:  # does the hub already know about this device?
+                device = hub.device_by_id[device_dict['id']]
+            except KeyError:
+                device = GeniusDevice(self, hub, zone, device_dict)
+                # _LOGGER.warn("Creating a Device(hub=%s, device=%s)", hub.id, device_dict['id'])
+                hub.device_objs.append(device)
+                hub.device_by_id[device.id] = device
+            else:
+                _LOGGER.debug("Found a Zone(hub=%s, zone=%s)",
+                            hub.id, zone_dict['id'])
+
+            if isinstance(self, GeniusHub):
+                try:  # does the zone already know about this device?
+                    device = self.device_by_id[device_dict['id']]
+                except KeyError:
+                    self.device_objs.append(device)
+                    self.device_by_id[device.id] = device
+
+        _LOGGER.debug("Hub(%s).update()", self.id)
+
+        if self._api_v1:
+            for zone in await self.zones:  # same as self._zones
+                _populate_zone(self, zone)
+            for device in await self.devices:  # same as self._devices
+                _populate_device(self, device)
+        else:
+            # WORKAROUND: I get a aiohttp.ServerDisconnectedError on 2nd
+            # HTTP method (Hub.devices) if I do it the v1 way for v3
+            raw_json = await self._get_zones  # creates self._zones
+
+            for zone in self._zones:
+                _populate_zone(self, zone)
+            for device in _extract_devices_from_zones(raw_json):
+                _populate_device(self, device)
 
     @property
     async def info(self) -> dict:
@@ -200,59 +315,18 @@ class GeniusHub(GeniusObject):
 
           This is a v1 API: GET /zones
         """
-        def _convert_to_v1(input) -> list:
-            """Convert v3 output to v1 schema."""
-            output = []
-            for zone in input:
-                tmp = {}
-                tmp['id'] = zone['iID']
-                tmp['type'] = ITYPE_TO_TYPE[zone['iType']]
-                tmp['name'] = zone['strName']
-
-                if zone['iType'] in [zone_types.ControlSP,
-                                     zone_types.TPI]:
-                    tmp['temperature'] = zone['fPV']
-                    tmp['setpoint'] = zone['fSP']
-
-                if zone['iType'] == zone_types.OnOffTimer:
-                    tmp['setpoint'] = zone['fSP'] != 0
-
-                tmp['mode'] = IMODE_TO_MODE[zone['iMode']]
-
-                # l = parseInt(i.iFlagExpectedKit) & e.equipmentTypes.Kit_PIR
-                if zone['iFlagExpectedKit'] & kit_types.PIR:
-                    # = parseInt(i.iMode) === e.zoneModes.Mode_Footprint
-                    u = zone['iMode'] == zone_modes.Footprint
-                    # = null != (s = i.zoneReactive) ? s.bTriggerOn : void 0,
-                    d = zone['objFootprint']['objReactive']['bTriggerOn']
-                    # = parseInt(i.iActivity) || 0,
-                    # c = zone['iActivity'] | 0
-                    # o = t.isInFootprintNightMode(i)
-                    o = zone['objFootprint']['bIsNight']
-                    # u && l && d && !o ? True : False
-                    tmp['occupied'] = u and d and not o
-
-                if zone['iType'] in [zone_types.OnOffTimer,
-                                     zone_types.ControlSP,
-                                     zone_types.TPI]:
-                    tmp['override'] = {}
-                    tmp['override']['duration'] = zone['iBoostTimeRemaining']
-                    if zone['iType'] == zone_types.OnOffTimer:
-                        tmp['override']['setpoint'] = (zone['fBoostSP'] != 0)
-                    else:
-                        tmp['override']['setpoint'] = zone['fBoostSP']
-
-                    tmp['schedule'] = {}
-
-                output.append(tmp)
-
-            return output
-
         # getAllZonesData = x.get("/v3/zones", {username: e, password: t})
-        raw_json = await self._request("GET", 'zones')
+        url = 'zones'
+        raw_json = await self._request("GET", url)
         raw_json = raw_json if self._api_v1 else raw_json['data']
 
-        self._zones = raw_json if self._api_v1 else _convert_to_v1(raw_json)
+        if self._api_v1:
+            self._zones = raw_json
+        else:
+            self._zones = []
+            for zone in _extract_zones_from_zones(raw_json):
+                 self._zones.append(_convert_zone(zone))
+
         self._zones.sort(key=lambda s: int(s['id']))
 
         _LOGGER.debug("GeniusHub.zones = %s", self._zones)
@@ -272,61 +346,18 @@ class GeniusHub(GeniusObject):
 
           This is a v1 API: GET /devices
         """
-        def _convert_to_v1_via_zones(input) -> list:
-            """Convert v3 output to v1 schema."""
-
-            output = []
-            for zone in input['data']:
-                for node in zone['nodes']:
-                    if not node['addr'] == 'WeatherData':
-                        # cv = node['childValues']
-                        # if typeId in cv:
-                        # result = paramsFunction(cv)
-                        result = {}
-                        result['id'] = node['addr']  # not zone['iID']
-                        # sult['type'] = node['type']
-                        # sult['name'] = zone['strName'].strip()
-                        xx = node['childNodes']['_cfg']['childValues']
-                        result['type'] = xx['name']['val'] if 'name' in xx else None
-                        output.append(result)
-
-            return output
-
-        def _convert_to_v1(input) -> list:
-            """Convert v3 output to v1 schema."""
-
-            output = []
-            for k1, v1 in input['childNodes'].items():
-                if k1 != 'WeatherData':
-                    for k2, device in v1['childNodes'].items():
-                        if device['addr'] != '1':
-                            result = {}
-                            result['id'] = device['addr']
-                            node = device['childNodes']['_cfg']['childValues']
-                            if node:
-                                result['type'] = node['name']['val']
-                                result['sku'] = node['sku']['val']
-                            else:
-                                result['type'] = None
-
-                            tmp = device['childValues']['location']['val']
-                            if tmp:
-                                result['assignedZones'] = [{'name': tmp}]
-                            else:
-                                result['assignedZones'] = [{'name': None}]
-
-                            result['status'] = {}
-
-                            output.append(result)
-
-            return output
-
         # getDeviceList = x.get("/v3/data_manager", {username: e, password: t})
-        url = 'devices' if self._api_v1 else 'data_manager'
+        url = 'devices' if self._api_v1 else 'zones'  # data_manager'
         raw_json = await self._request("GET", url)
         raw_json = raw_json if self._api_v1 else raw_json['data']
 
-        self._devices = raw_json if self._api_v1 else _convert_to_v1(raw_json)
+        if self._api_v1:
+            self._devices = raw_json
+        else:
+            self._devices = []
+            for device in _extract_devices_from_zones(raw_json):
+                self._devices.append(_convert_device(device))
+
         self._devices.sort(key=lambda s: s['id'])
 
         _LOGGER.debug("GeniusHub.devices = %s", self._devices)
@@ -380,7 +411,8 @@ class GeniusHub(GeniusObject):
 
 class GeniusZone(GeniusObject):
     def __init__(self, client, hub, zone_dict):
-        _LOGGER.debug("GeniusZone(hub=%s, zone=%s)", hub.id, zone_dict['id'])
+        _LOGGER.debug("GeniusZone(hub=%s, zone=%s)",
+                      hub.id, zone_dict['id'])
         super().__init__(client, data=zone_dict)
 
         self._hub = hub
@@ -448,7 +480,8 @@ class GeniusZone(GeniusObject):
 
 class GeniusDevice(GeniusObject):
     def __init__(self, client, hub, zone, device_dict):
-        _LOGGER.debug("GeniusDevice(hub=%s, device=%s)", hub.id, device_dict['id'])
+        _LOGGER.debug("GeniusZone(hub=%s, zone=%s,device=%s)",
+                      hub.id, zone, device_dict['id'])
         super().__init__(client, data=device_dict)
 
         self._hub = hub
