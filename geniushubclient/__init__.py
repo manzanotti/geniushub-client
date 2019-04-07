@@ -416,12 +416,12 @@ class GeniusZone(GeniusObject):
 
           mode is in {'off', 'timer', footprint', 'override'}
         """
-        _LOGGER.debug("set_mode(Zone): mode=%s")
+        _LOGGER.warn("set_mode(%s): mode=%s", self.id, mode)
 
         url = 'zones/{}/mode'
         self._detail = await self._request("PUT", url.format(self.id), data=mode)
 
-        _LOGGER.debug("set_mode(Zone): done")
+        _LOGGER.debug("set_mode(%s): done.", self.id)                            # TODO: remove this line
 
     async def set_override(self, duration, setpoint):
         """Set the zone to override to a certain temperature.
@@ -429,17 +429,17 @@ class GeniusZone(GeniusObject):
           duration is in seconds
           setpoint is in degrees Celsius
         """
-        _LOGGER.debug("set_override_temp(%s): duration=%s, setpoint=%s", self.id, duration, setpoint)
+        _LOGGER.warn("set_override_temp(%s): duration=%s, setpoint=%s", self.id, duration, setpoint)
 
         url = 'zones/{}/override'
         data = {'duration': duration, 'setpoint': setpoint}
         self._detail = await self._request("POST", url.format(self.id), data=data)
 
-        _LOGGER.debug("set_override_temp(%s): done.", self.id)
+        _LOGGER.debug("set_override_temp(%s): done.", self.id)                   # TODO: remove this line
 
     async def update(self):
-        """Update the zone with the latest state data."""
-        _LOGGER.error("Zone(%s).update()", self.id)
+        """Update the Zone with its latest state data."""
+        _LOGGER.warn("Zone(%s).update()", self.id)
 
         url = 'zones/{}'
         data = await self._request("GET", url.format(self.id))
@@ -470,3 +470,11 @@ class GeniusDevice(GeniusObject):
     @property
     async def location(self) -> dict:  # aka assignedZones
         raise NotImplementedError()
+
+    async def update(self):
+        """Update the Device with its latest state data."""
+        _LOGGER.warn("Device(%s).update()", self.id)
+
+        url = 'devices/{}'
+        data = await self._request("GET", url.format(self.id))
+        self.__dict__.update(data)
