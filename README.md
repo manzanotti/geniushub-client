@@ -9,6 +9,12 @@ If you use the v3 API, you can interrogate the hub directly, rather than via Hea
 
 It is based upon work by @GeoffAtHome - thanks!
 
+## Current limitations
+Current limitations & to-dos.
+ - `ghclient.py` is a bit flaky
+ - v3 zones have no schedule
+ - some v3 devices have a Null type
+
 ## Installation
 Either clone this repository and run `python setup.py install`, or install from pip using `pip install geniushub-client`.
 
