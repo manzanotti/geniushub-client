@@ -65,6 +65,7 @@ def _convert_zone(input) -> dict:
 
     return result
 
+
 def _convert_device(input) -> dict:
     """Convert v3 device dict/json to v1 schema."""
 
@@ -88,10 +89,12 @@ def _convert_device(input) -> dict:
 
     return result
 
+
 def _extract_zones_from_zones(input) -> list:
     """Extract zones from /v3/data_manager JSON."""
 
     return input
+
 
 def _extract_devices_from_data_manager(input) -> list:
     """Extract devices from /v3/data_manager JSON."""
@@ -105,6 +108,7 @@ def _extract_devices_from_data_manager(input) -> list:
                     result.append(_convert_device(device))
 
     return result
+
 
 def _extract_devices_from_zones(input) -> list:
     """Extract devices from /v3/zones JSON."""
@@ -229,7 +233,7 @@ class GeniusHub(GeniusObject):
                 hub.zone_by_name[zone.name] = zone
             else:
                 _LOGGER.warn("Found a Zone(hub=%s, zone=%s)",
-                            hub.id, zone_dict['id'])
+                             hub.id, zone_dict['id'])
 
         def _populate_device(hub, device_dict):
             # zone_name = device_dict['assignedZones'][0]['name']
@@ -247,8 +251,8 @@ class GeniusHub(GeniusObject):
                 hub.device_objs.append(device)
                 hub.device_by_id[device.id] = device
             else:
-                _LOGGER.debug("Found a Zone(hub=%s, zone=%s)",
-                            hub.id, zone_dict['id'])
+                _LOGGER.debug("Found a Device(hub=%s, device=%s)",
+                              hub.id, device_dict['id'])
 
             if isinstance(self, GeniusHub):
                 try:  # does the zone already know about this device?
@@ -319,7 +323,7 @@ class GeniusHub(GeniusObject):
         else:
             self._zones = []
             for zone in _extract_zones_from_zones(raw_json):
-                 self._zones.append(_convert_zone(zone))
+                self._zones.append(_convert_zone(zone))
 
         self._zones_raw = raw_json
         self._zones.sort(key=lambda s: int(s['id']))
