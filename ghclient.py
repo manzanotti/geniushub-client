@@ -1,75 +1,148 @@
-"""Python client library for Genius Hub public API."""
+"""
+Usage: ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] [(zones | devices | issues)] [-v | -vv | --raw]
+       ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] reboot
+       ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] --zone=ZONE [-v | -vv | --raw]
+       ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] --zone=ZONE --mode=MODE
+       ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] --zone=ZONE [--secs=SECS] [--temp=TEMP]
+       ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] --device=DEVICE [-v | -vv | --raw]
+
+Connect to a Genius Hub and interact with it, a Zone, or a Device.
+
+Arguments:
+  HUB-ID  either a Hub token, or a Hub hostname/address (needs user credentials)
+    If a token is provided, then v1 API calls are made, otherwise v3 API calls
+
+  COMMAND  the operation to perform: zones, devices, issues...
+    If no COMMAND is provided, the entity's properties will be displayed.
+
+Options:
+  If a USERNAME is provided, the HUB-ID must be hostname/IP address:
+    -u USERNAME --user=USERNAME    the username
+    -p PASSWORD --pass=PASSWORD    the password
+
+  Operations on a Zone:
+    -z ZONE --zone=ZONE            the identifer of a Zone
+    -m MODE --mode=MODE            one of: off, timer, footprint, override
+    -s SECS --secs=SECS            the override duration in seconds
+    -t TEMP --temp=TEMP            the override temperature in Celsius
+
+  Operations on a Device:
+    -d DEVICE --device=DEVICE      the identifer of a Device
+
+  If no COMMAND is used, the entity's properties will be displayed:
+    -v -vv                         increasing verbosity
+    -r --raw                       display the raw JSON
+
+Examples:
+  ghclient.py HUB_ID
+    Display information about the Hub.
+
+  ghclient.py HUB_ID zones -v
+    Display detailed information about all Zones.
+
+  ghclient.py HUB_ID -z 3 off
+    Turn Zone 3 off.
+
+  ghclient.py HUB_ID -z 12 -d 3600 -t 19.5
+    Set the override temperature for Zone 12 to 19.5C for 1 hour..
+
+"""
 
 import asyncio
 import logging
 
 import aiohttp
+from docopt import docopt
 
 from geniushubclient import GeniusHubClient, GeniusHub
 
 _LOGGER = logging.getLogger(__name__)
 
 
+HUB_ID = 'HUB-ID'
+ZONE_ID = '--zone'
+DEVICE_ID = '--device'
+USERNAME = '--user'
+PASSWORD = '--pass'
+MODE = '--mode'
+SECS = '--secs'
+TEMP = '--temp'
+
+ZONES = 'zones'
+DEVICES = 'devices'
+REBOOT = 'reboot'
+
+VERBOSE = '-v'
+RAW_JSON = '--raw'
+
 async def main(loop):
     """Return the JSON as requested."""
     _LOGGER.debug("main()")
 
-    import argparse
-
-    parser = argparse.ArgumentParser(description='CLI wrapper for geniushub-client library')
-
-    parser.add_argument("hub_id", help="the hostname/address or hub_token of the Hub")
-    parser.add_argument("--username", "-u", action='store', type=str)
-    parser.add_argument("--password", "-p", action='store', type=str)
-    parser.add_argument("command", default='info', help="the command (info, zones, devices)")
-    parser.add_argument("--verbose", "-v", action='count', required=False,
-        help="-v add some detail, -vv raw data")
-
-    args = parser.parse_args()
-    # print(parser.parse_args())
+    args = docopt(__doc__)
+    print(args)
 
     session = aiohttp.ClientSession()
 
-    client = GeniusHubClient(hub_id=args.hub_id,
-                             username=args.username, password=args.password,
+    client = GeniusHubClient(hub_id=args[HUB_ID],
+                             username=args[USERNAME],
+                             password=args[PASSWORD],
                              session=session)
-    client.verbose = False if args.verbose is None else args.verbose > 3
-    # client.timeout = args.timeout
-    # client.interval = args.interval
 
-    # await client.populate()
-    # hub = client.hub
+    # client.verbose = False if args.verbose is None else args.verbose > 3
 
-    # print(len(hub.zone_objs))
-    # print(dir(hub.zone_objs[1]))
-    # print(hub.zone_objs[1].name)
-    # print(hub.zone_by_id[1].name)
+    hub = client.hub
+    await hub.update()
 
-    # for z in hub.zone_objs:
-    #     print(z.id, z.name)
-    # for d in hub.device_objs:
-    #     print(d.id, d.type)
-    # return
+    if args[ZONE_ID]:
+        zone = hub.zone_by_id[args.zone]
 
-    if False:  # args.zone:
+    if args[DEVICES]:
+        if args[RAW_JSON]:
+            pass
+        else:
+            keys = ['id', 'name']  # same as /v1/zones/summary
+            if args[VERBOSE] > 0:
+                keys += ['type', 'temperature', 'setpoint', 'mode',
+                        'occupied', 'override']
+            if args[VERBOSE] > 1:
+                keys += ['schedule']  # same as /v1/zones
+
+        # display only the wanted keys
+        devices = []
+        print({k: v for k in keys for zone})
+
+    elif args[ISSUES]:
+        # print(await hub.issues)
         print("Sorry: not implemented yet.")
-        return False
 
-        zone = hub.zone(id=args.zone)
-        zone.verbose = args.verbose if args.verbose else 0
+    elif args[REBOOT]:
+        # await hub.reboot()
+        print("Sorry: not implemented yet.")
 
-        if args.command == "detail":
-            print(await zone.detail)
+    else:  # args[INFO]
+        # print(await hub.info)
+        print("Sorry: not implemented yet.")
+
+
+
+        if not args.command or args.command == "info":
+            print(await zone.info)
+
+        elif args.command == "issues":
+            print("Sorry: not implemented yet.")
+            # print(await zone.issues)
+
         elif args.command == "devices":
            print(await zone.devices)
-        elif args.command == "mode":
-            print(await zone.mode)
-        elif args.command == "override":
-            print(await zone.override)
-        else:
-            print("Error: unknown command: {}".format(args.command))
 
-    elif False: # args.device:
+        elif args.command == "mode":
+            await zone.set_mode(args.subcommand)
+
+        elif args.command == "override":
+            await zone.set_override()
+
+    elif args[DEVICE_ID]:
         print("Sorry: not implemented yet.")
         return False
 
@@ -82,87 +155,50 @@ async def main(loop):
             print("Error: unknown command: {}".format(args.command))
 
     else:
-        hub = client.hub
-        await hub.update()
-
-        # print(hub._devices)
-        # await session.close()
-        # return
-
-        if not args.command or args.command == "detail":
-            print("Sorry: not implemented yet.")
-            return False
-            print(await hub.detail)
-
-        elif args.command == "version":
-            print("Sorry: not implemented yet.")
-            return False
-            print(await hub.version)
-
-        elif args.command == "issues":
-            print(await hub.issues)
-
-        elif args.command == "zones":
-            """Verbosity:
-              v0 = id, name (/zones/summary)
-              v1 = v0 + type, mode, temperature, setpoint, occupied, override
-              v2 = v1 + schedule (/zones)
-              v3 = v2 + ???
-              v4 = raw JSON
-            """
-
-            # which keys to keep?
-            keys = ['id', 'name']  # v0 - as /v1/zones/summary
-            if args.verbose:
-                if args.verbose > 3:
-                    print(await hub.zones)
-                    await session.close()
-                    return
-                if args.verbose > 0:
+        if args[ZONES]:
+            if args[RAW_JSON]:
+                pass
+            else:
+                keys = ['id', 'name']  # same as /v1/zones/summary
+                if args[VERBOSE] > 0:
                     keys += ['type', 'temperature', 'setpoint', 'mode',
                             'occupied', 'override']
-                if args.verbose > 1:  # v0 - as /v1/zones
-                    keys += ['schedule']
+                if args[VERBOSE] > 1:
+                    keys += ['schedule']  # same as /v1/zones
 
-            # keep only the wanted keys
+            # display only the wanted keys
             zones = []
             for zone in await hub.zones:
                 zones.append({k: zone[k] for k in keys if k in zone})
             print(zones)
 
-            # print(len(hub.zone_objs))
-            # print(hub.zone_objs[1].name)
-            # print(hub.zone_by_id[1].name)
-
-        elif args.command == "devices":
-            """Verbosity:
-              v0 = id, type (/devices/summary)
-              v1 = v0 + ???
-              v2 = v1 + "assignedZones", state (/devices)
-              v3 = v2 + ???
-              v4 = raw JSON
-            """
-
-            # which keys to keep?
-            keys = ['id', 'type']  # v0 - as /v1/devices/summary
-            if args.verbose:
-                if args.verbose > 3:
-                    print(hub._devices_raw)
-                    await session.close()
-                    return
-                elif args.verbose > 0:
+        elif args[DEVICES]:
+            if args[RAW_JSON]:
+                pass
+            else:
+                keys = ['id', 'type']  # same as /v1/devices/summary
+                if args[VERBOSE] > 0:
                     keys += ['assignedZones']
-                if args.verbose > 1:  # v2 - as /v1/devices
-                    keys += ['state']
+                if args[VERBOSE] > 1:
+                    keys += ['state']  # same as /v1/devices
 
-            # keep only the wanted keys
+            # display only the wanted keys
             devices = []
             for device in await hub.devices:
                 devices.append({k: device[k] for k in keys if k in device})
             print(devices)
 
-        else:
-            _LOGGER.error("Unknown command: '%s'", args.command)
+        elif args[ISSUES]:
+            # print(await hub.issues)
+            print("Sorry: not implemented yet.")
+
+        elif args[REBOOT]:
+            # await hub.reboot()
+            print("Sorry: not implemented yet.")
+
+        else:  # args[INFO]
+            # print(await hub.info)
+            print("Sorry: not implemented yet.")
 
     await session.close()
 

@@ -242,9 +242,9 @@ class GeniusHub(GeniusObject):
         def _populate_device(device_dict, parent=None):
             if isinstance(self, GeniusHub):
                 hub = self
-                zone = None
+                zone = parent
             else:
-                hub = self._parent
+                hub = self.hub
                 zone = self
 
             idx = device_dict['id']
@@ -259,7 +259,7 @@ class GeniusHub(GeniusObject):
                 _LOGGER.debug("Found a Device (hub=%s, device=%s)",
                               hub.id, device_dict['id'])
 
-            if isinstance(self, GeniusHubZone):
+            if isinstance(self, GeniusZone):
                 try:  # does the zone already know about this device?
                     device = self.device_by_id[idx]
                 except KeyError:
@@ -338,8 +338,12 @@ class GeniusHub(GeniusObject):
 
     @property
     async def zones(self) -> list:
-        """Return a list of Zones known to the Hub."""
+        """Return a list of Zones known to the Hub.
 
+          v1/zones/summary: id, name
+          v1/zones: id, name, type, mode, temperature, setpoint, occupied,
+          override, schedule
+        """
         if not self._zones:
             await self._get_zones
         return self._zones
@@ -378,8 +382,11 @@ class GeniusHub(GeniusObject):
 
     @property
     async def devices(self) -> list:
-        """Return a list of Devices known to the Hub."""
+        """Return a list of Devices known to the Hub.
 
+          v1/devices/summary: id, type
+          v1/devices: id, type, assignedZones, state
+        """
         if not self._devices:
             await self._get_devices
         return self._devices
@@ -428,7 +435,8 @@ class GeniusZone(GeniusObject):
                       hub.id, zone_dict['id'])
         super().__init__(client, data=zone_dict)
 
-        self._parent = self._hub = hub
+        self._parent = self.hub = hub
+        self._info = zone_dict
 
     @property
     async def info(self) -> dict:
@@ -436,11 +444,13 @@ class GeniusZone(GeniusObject):
 
           This is a v1 API: GET /zones/{zoneId}
         """
-        url = 'zones/{}'
-        self._detail = await self._request("GET", url.format(self.id))
+        self._info = None
+        for zone in self.hub._zones:
+            if zone['id'] == self.id:
+                self._info = zone
 
-        _LOGGER.debug("self.detail = %s", self._detail)
-        return self._detail
+        _LOGGER.debug("self.info = %s", self._info)
+        return self._info
 
     @property
     async def devices(self) -> list:
@@ -464,8 +474,16 @@ class GeniusZone(GeniusObject):
         """
         _LOGGER.warn("set_mode(%s): mode=%s", self.id, mode)
 
-        url = 'zones/{}/mode'
-        self._detail = await self._request("PUT", url.format(self.id), data=mode)
+        if self._api_v1:
+            url = 'zones/{}/mode'
+            await self._request("PUT", url.format(self.id), data=mode)
+        else:
+            # 'off'       'data': {'iMode': 1}}
+            # 'footprint' 'data': {'iMode': 4}}
+            # 'timer'     'data': {'iMode': 2}}
+            url = 'zone/{}'
+            data = {'iMode': mode}
+            await self._request("PATCH", url.format(self.id), data=data)
 
         _LOGGER.debug("set_mode(%s): done.", self.id)                            # TODO: remove this line
 
@@ -477,9 +495,17 @@ class GeniusZone(GeniusObject):
         """
         _LOGGER.warn("set_override_temp(%s): duration=%s, setpoint=%s", self.id, duration, setpoint)
 
-        url = 'zones/{}/override'
-        data = {'duration': duration, 'setpoint': setpoint}
-        self._detail = await self._request("POST", url.format(self.id), data=data)
+        if self._api_v1:
+            url = 'zones/{}/override'
+            data = {'duration': duration, 'setpoint': setpoint}
+            await self._request("POST", url.format(self.id), data=data)
+        else:
+            # 'override'  'data': {'iMode': 16, 'iBoostTimeRemaining': 3600, 'fBoostSP': temp}}
+            url = 'zone/{}'
+            data = {'iMode': 16,
+                    'iBoostTimeRemaining': duration,
+                    'fBoostSP': setpoint}
+            await self._request("PATCH", url.format(self.id), data=data)
 
         _LOGGER.debug("set_override_temp(%s): done.", self.id)                   # TODO: remove this line
 
@@ -499,7 +525,7 @@ class GeniusDevice(GeniusObject):
         super().__init__(client, data=device_dict)
 
         self._hub = hub
-        self._parent = self._zone = zone
+        self._parent = self.zone = zone
 
     @property
     async def info(self) -> dict:
