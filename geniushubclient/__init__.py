@@ -511,7 +511,7 @@ class GeniusZone(GeniusObject):
 
     async def update(self):
         """Update the Zone with its latest state data."""
-        _LOGGER.warn("Zone(%s).update()", self.id)
+        _LOGGER.debug("Zone(%s).update()", self.id)
 
         url = 'zones/{}'
         data = await self._request("GET", url.format(self.id))
