@@ -139,7 +139,7 @@ async def main(loop):
             print("Sorry: not implemented yet.")
 
         else:  # as per args[INFO]
-            print(await zone.info)
+            print(zone.info)
 
     elif args[DEVICE_ID]:
         key = args[DEVICE_ID]  # Zone IDs are Strs, not Ints
@@ -153,7 +153,7 @@ async def main(loop):
             print(await zone.issues)
 
         else:  # as per args[INFO]
-            print(await device.info)
+            print(device.info)
 
     else:  # as per args[HUB_ID]
         if args[ISSUES]:

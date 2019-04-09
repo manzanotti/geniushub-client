@@ -327,16 +327,10 @@ class GeniusHub(GeniusObject):
                     self.device_objs.append(device)
                     self.device_by_id[device.id] = device
 
-        if self._api_v1:
-            for zone in await self._get_zones:
-                _populate_zone(zone)
-            for device in await self._get_devices:
-                _populate_device(device)
-        else:
-            for zone in await self._get_zones:
-                _populate_zone(_convert_zone(zone))
-            for device in _extract_devices_from_zones(await self._get_devices):
-                _populate_device(_convert_device(device))
+        for zone in await self._get_zones:
+            _populate_zone(zone if self._api_v1 else _convert_zone(zone))
+        for device in await self._get_devices:
+            _populate_device(device if self._api_v1 else _convert_device(device))
 
         _LOGGER.debug("Hub(%s).update(): len(hub.zone_objs)", self.id, len(self.zone_objs))
         _LOGGER.debug("Hub(%s).update(): len(hub.device_objs)", self.id, len(self.device_objs))
@@ -424,7 +418,7 @@ class GeniusHub(GeniusObject):
             # WORKAROUND: There's a aiohttp.ServerDisconnectedError on 2nd HTTP
             # method (2nd GET v3/zones or GET v3/zones & get /data_manager) if
             # it is done the v1 way (above) for v3
-            raw_json = self._zones_raw
+            raw_json = _extract_devices_from_zones(self._zones_raw)
 
         self._devices_raw = raw_json
 
@@ -451,7 +445,6 @@ class GeniusHub(GeniusObject):
         _LOGGER.debug("Hub().devices: len(self.device_objs) = %s", len(self.device_objs))
 
         if not self._devices:
-            # await self._get_devices
             self._devices = []
             for device in self.device_objs:
                 self._devices.append(device.info)
@@ -506,7 +499,7 @@ class GeniusZone(GeniusObject):
         return info
 
     @property
-    async def _get_devices(self) -> list:
+    async def _XXX_devices(self) -> list:                                        # TODO: not used, remove
         """Return information for devices assigned to a zone.
 
           This is a v1 API: GET /zones/{zoneId}devices
@@ -529,7 +522,6 @@ class GeniusZone(GeniusObject):
         _LOGGER.debug("Zone(%s).devices: len(self.device_objs) = %s", self.id, len(self.device_objs))
 
         if not self._devices:
-            # await self._get_devices
             self._devices = []
             for device in self.device_objs:
                 self._devices.append(device.info)
