@@ -4,7 +4,7 @@ Usage: ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] [(zones | devices 
        ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] --zone=ZONE [(devices | issues)] [-v | -vv | -vvv ]
        ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] --zone=ZONE --mode=MODE
        ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] --zone=ZONE --temp=TEMP [--secs=SECS]
-       ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] --device=DEVICE [-v | -vv | -vvv ]
+       ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] --device=DEVICE [issues] [-v | -vv | -vvv ]
 
 Connect to a Genius Hub and interact with it, a Zone, or a Device.
 
