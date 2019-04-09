@@ -37,6 +37,7 @@ zone_modes = SimpleNamespace(
     Footprint=4,
     Away=8,
     Boost=16,
+    Override=16,
     Early=32,
     Test=64,
     Linked=128,

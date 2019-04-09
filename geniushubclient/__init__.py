@@ -123,52 +123,16 @@ def _extract_devices_from_zones(input) -> list:
     return result
 
 
-class GeniusObject(object):
-    def __init__(self, client, hub=None, zone=None, device=None, data={}):
-        self._client = client
-        self._api_v1 = client._api_v1
-        self.__dict__.update(data)
-
-        if isinstance(self, GeniusHub):
-            self.zone_objs = []
-            self.zone_by_id = {}
-            self.zone_by_name = {}
-
-        if isinstance(self, GeniusHub) or isinstance(self, GeniusZone):
-            self.device_objs = []
-            self.device_by_id = {}
-
-    async def _handle_assetion(self, error):
-        _LOGGER.debug("_handle_assetion(error=%s)", error)
-
-    async def _request(self, type, url, data=None):
-        _LOGGER.debug("_request(type=%s, url='%s')", type, url)
-
-        http_method = {
-            "GET": self._client._session.get,
-            "PATCH": self._client._session.patch,
-            "POST": self._client._session.post,
-            "PUT": self._client._session.put,
-        }.get(type)
-
-        async with http_method(
-            self._client._url_base + url,
-            json=data,
-            headers=self._client._headers,
-            auth=self._client._auth,
-            timeout=self._client._timeout
-        ) as response:
-            assert response.status == HTTP_OK, response.text
-            return await response.json(content_type=None)
-
-    @staticmethod
-    def LookupStatusError(status):
-        return API_STATUS_ERROR.get(status, str(status) + " Unknown status")
-
-
 class GeniusHubClient(object):
     def __init__(self, hub_id, username=None, password=None, session=None):
         _LOGGER.debug("GeniusHubClient(hub_id=%s)", hub_id)
+
+        if True:  # debug is True:
+            _LOGGER.setLevel(logging.DEBUG)
+            _LOGGER.debug("Debug mode is explicitly enabled.")
+        else:
+            _LOGGER.debug("Debug mode is not explicitly enabled "
+                          "(but may be enabled elsewhere).")
 
         # use existing session if provided
         self._session = session if session else aiohttp.ClientSession()
@@ -205,6 +169,66 @@ class GeniusHubClient(object):
         self._verbose = 0 if value is None else value
 
 
+class GeniusObject(object):
+    def __init__(self, client, hub=None, zone=None, device=None, data={}):
+        self.__dict__.update(data)
+
+        self._client = client
+        self._api_v1 = client._api_v1
+
+        if isinstance(self, GeniusHub):
+            self.zone_objs = []
+            self.zone_by_id = {}
+            self.zone_by_name = {}
+
+            self.device_objs = []
+            self.device_by_id = {}
+
+        elif isinstance(self, GeniusZone):
+            self._hub = hub
+
+            self.device_objs = []
+            self.device_by_id = {}
+
+        elif isinstance(self, GeniusDevice):
+            self._hub = hub
+            self._zone = zone
+
+    def _without_keys(self, dict_obj, keys) -> dict:
+        _info = dict(dict_obj)
+        _info = {k: v for k, v in _info.items() if k[:1] != '_'}
+        _info = {k: v for k, v in _info.items() if k not in keys}
+        return _info
+
+    async def _handle_assetion(self, error):
+        _LOGGER.debug("_handle_assetion(error=%s)", error)
+
+    async def _request(self, type, url, data=None):
+        _LOGGER.debug("_request(type=%s, url='%s')", type, url)
+
+        http_method = {
+            "GET": self._client._session.get,
+            "PATCH": self._client._session.patch,
+            "POST": self._client._session.post,
+            "PUT": self._client._session.put,
+        }.get(type)
+
+        # concurrent.futures._base.TimeoutError
+        async with http_method(
+            self._client._url_base + url,
+            json=data,
+            headers=self._client._headers,
+            auth=self._client._auth,
+            timeout=self._client._timeout
+        ) as response:
+            assert response.status == HTTP_OK, response.text
+            return await response.json(content_type=None)
+
+    @staticmethod
+    def LookupStatusError(status):
+        return API_STATUS_ERROR.get(status, str(status) + " Unknown status")
+
+
 class GeniusHub(GeniusObject):
     # connection.post("/v3/system/reboot", { username: e, password: t,json: {}} )
     # connection.get("/v3/auth/test", { username: e, password: t, timeout: n })
@@ -213,13 +237,12 @@ class GeniusHub(GeniusObject):
         _LOGGER.debug("GeniusHub(hub=%s)", hub_id[:8] + "...")
         super().__init__(client, data={'id': hub_id[:8] + "..."})
 
-        self._parent = None
+        self._info = {}  # a dict of attrs
+        self._zones = []  # a list of dicts
+        self._devices = []  # a list of dicts
+        self._issues = []  # a list of dicts
 
-        self._zones = []
-        self._devices = []
-        self._issues = []
-
-        self._zones_raw = self._devices_raw = None
+        self._issues_raw = self._devices_raw = self._zones_raw = None
 
     async def update(self, force_refresh=False):
         """Update the Hub with its latest state data."""
@@ -227,9 +250,9 @@ class GeniusHub(GeniusObject):
         def _populate_zone(zone_dict):
             hub = self  # for now, only Hubs invoke this method
 
-            idx = zone_dict['id']
+            id_no = zone_dict['id']
             try:  # does the hub already know about this device?
-                zone = hub.zone_by_id[idx]
+                zone = hub.zone_by_id[id_no]
             except KeyError:
                 _LOGGER.debug("Creating a Zone (hub=%s, zone=%s)", hub.id, zone_dict['id'])
                 zone = GeniusZone(self._client, hub, zone_dict)
@@ -238,6 +261,14 @@ class GeniusHub(GeniusObject):
                 hub.zone_by_name[zone.name] = zone
             else:
                 _LOGGER.debug("Found a Zone (hub=%s, zone=%s)", hub.id, zone_dict['id'])
+
+            if False:
+                print("zone.id:", zone.id,
+                    ", hub.zone_by_id[zone.id].id:", hub.zone_by_id[zone.id].id,
+                    ", hub.zone_by_id[zone.id].name:", hub.zone_by_id[zone.id].name)
+                print("zone.name:", zone.name,
+                    ", hub.zone_by_name[zone.name].id:", hub.zone_by_name[zone.name].id,
+                    ", hub.zone_by_name[zone.name].name:", hub.zone_by_name[zone.name].name)
 
         def _populate_device(device_dict, parent=None):
             if isinstance(self, GeniusHub):
@@ -279,6 +310,8 @@ class GeniusHub(GeniusObject):
 
           This is not a v1 API.
         """
+        _LOGGER.warn("Device(%s).info", self.id)
+
         def _convert_to_v1(input) -> dict:
             """Convert v3 output to v1 schema."""
             output = dict(input)
@@ -287,13 +320,10 @@ class GeniusHub(GeniusObject):
             output['schedule']['footprint'] = {}
             return output
 
-        self._detail = {}
-
-        tmp = await self.zones if not self._zones else self._zones
-        self._detail = tmp[0] if self._api_v1 else _convert_to_v1(tmp[0])
-
-        _LOGGER.debug("self._detail = %s", self._detail)
-        return self._detail
+        keys = ['device_objs', 'device_by_id', 'zone_objs', 'zone_by_id', 'zone_by_name']
+        info = self._without_keys(self.__dict__, keys)
+        _LOGGER.debug("self.info = %s", info)
+        return info
 
     @property
     async def version(self) -> dict:
@@ -344,8 +374,12 @@ class GeniusHub(GeniusObject):
           v1/zones: id, name, type, mode, temperature, setpoint, occupied,
           override, schedule
         """
-        if not self._zones:
-            await self._get_zones
+        _LOGGER.warn("len(self.zone_objs) = %s", len(self.zone_objs))
+        if not self._zones and False:
+            # await self._get_zones
+            self._zones = []
+            for zone in self.zone_objs:
+                self._zones.append(zone.info)
         return self._zones
 
     @property
@@ -387,8 +421,12 @@ class GeniusHub(GeniusObject):
           v1/devices/summary: id, type
           v1/devices: id, type, assignedZones, state
         """
-        if not self._devices:
-            await self._get_devices
+        _LOGGER.warn("len(self.device_objs) = %s", len(self.device_objs))
+        if not self._devices and False:
+            # await self._get_devices
+            self._devices = []
+            for device in self.device_objs:
+                self._devices.append(device.info)
         return self._devices
 
     @property
@@ -435,8 +473,11 @@ class GeniusZone(GeniusObject):
                       hub.id, zone_dict['id'])
         super().__init__(client, data=zone_dict)
 
-        self._parent = self.hub = hub
-        self._info = zone_dict
+        self._info = {}
+        self._devices = []
+        self._issues = []
+
+        self._issues_raw = self._devices_raw = None
 
     @property
     async def info(self) -> dict:
@@ -444,16 +485,14 @@ class GeniusZone(GeniusObject):
 
           This is a v1 API: GET /zones/{zoneId}
         """
-        self._info = None
-        for zone in self.hub._zones:
-            if zone['id'] == self.id:
-                self._info = zone
-
-        _LOGGER.debug("self.info = %s", self._info)
-        return self._info
+        _LOGGER.warn("Zone(%s).info", self.id)
+        keys = ['device_objs', 'device_by_id']
+        info = self._without_keys(self.__dict__, keys)
+        _LOGGER.debug("self.info = %s", info)
+        return info
 
     @property
-    async def devices(self) -> list:
+    async def _get_devices(self) -> list:
         """Return information for devices assigned to a zone.
 
           This is a v1 API: GET /zones/{zoneId}devices
@@ -465,6 +504,20 @@ class GeniusZone(GeniusObject):
             _populate_device(device, parent=self)
 
         _LOGGER.debug("self.devices = %s", self._devices)
+        return self._devices
+
+    @property
+    async def devices(self) -> list:
+        """Return information for devices assigned to a zone.
+
+          This is a v1 API: GET /zones/{zoneId}devices
+        """
+        _LOGGER.warn("len(self.device_objs) = %s", len(self.device_objs))
+        if not self._devices and False:
+            # await self._get_devices
+            self._devices = []
+            for device in self.device_objs:
+                self._devices.append(device.info)
         return self._devices
 
     async def set_mode(self, mode):
@@ -524,21 +577,19 @@ class GeniusDevice(GeniusObject):
                       hub.id, zone, device_dict['id'])
         super().__init__(client, data=device_dict)
 
-        self._hub = hub
-        self._parent = self.zone = zone
+        self._info = {}
+        self._issues = []
+
+        self._issues_raw = None
 
     @property
     async def info(self) -> dict:
         """Return all information for a device."""
-        url = 'devices/{}'
-        self._detail = await self._request("GET", url.format(self.id))
-
-        temp = dict(self._detail)
-        if not self._verbose:
-            del temp['assignedZones']
-
-        _LOGGER.debug("self.detail = %s", temp)
-        return temp
+        _LOGGER.warn("Device(%s).info", self.id)
+        keys = ['device_objs', 'device_by_id']
+        info = self._without_keys(self.__dict__, keys)
+        _LOGGER.debug("self.info = %s", info)
+        return info
 
     @property
     async def location(self) -> dict:  # aka assignedZones

@@ -1,10 +1,10 @@
 """
-Usage: ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] [(zones | devices | issues)] [-v | -vv | --raw]
+Usage: ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] [(zones | devices | issues)] [-v | -vv | -vvv ]
        ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] reboot
-       ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] --zone=ZONE [-v | -vv | --raw]
+       ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] --zone=ZONE [(devices | issues)] [--raw]
        ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] --zone=ZONE --mode=MODE
-       ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] --zone=ZONE [--secs=SECS] [--temp=TEMP]
-       ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] --device=DEVICE [-v | -vv | --raw]
+       ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] --zone=ZONE --temp=TEMP [--secs=SECS]
+       ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] --device=DEVICE [--raw]
 
 Connect to a Genius Hub and interact with it, a Zone, or a Device.
 
@@ -30,8 +30,7 @@ Options:
     -d DEVICE --device=DEVICE      the identifer of a Device
 
   If no COMMAND is used, the entity's properties will be displayed:
-    -v -vv                         increasing verbosity
-    -r --raw                       display the raw JSON
+    -v -vv -vvv                    increasing verbosity, -vvv gives raw JSON
 
 Examples:
   ghclient.py HUB_ID
@@ -68,19 +67,19 @@ MODE = '--mode'
 SECS = '--secs'
 TEMP = '--temp'
 
-ZONES = 'zones'
 DEVICES = 'devices'
+ISSUES = 'issues'
 REBOOT = 'reboot'
+ZONES = 'zones'
 
 VERBOSE = '-v'
-RAW_JSON = '--raw'
 
 async def main(loop):
     """Return the JSON as requested."""
     _LOGGER.debug("main()")
 
     args = docopt(__doc__)
-    print(args)
+    # print(args)
 
     session = aiohttp.ClientSession()
 
@@ -89,116 +88,108 @@ async def main(loop):
                              password=args[PASSWORD],
                              session=session)
 
-    # client.verbose = False if args.verbose is None else args.verbose > 3
-
     hub = client.hub
     await hub.update()
 
     if args[ZONE_ID]:
-        zone = hub.zone_by_id[args.zone]
+        try:  # is zone_is a Int or a Str?
+            zone_id = int(args[ZONE_ID])
+        except ValueError:  # it's a Str
+            key = args[ZONE_ID]
+            find_zone_by_key = hub.zone_by_name
+        else: # it's an Int
+            key = int(args[ZONE_ID])  # Zone IDs are Ints, not Strs
+            find_zone_by_key = hub.zone_by_id
 
-    if args[DEVICES]:
-        if args[RAW_JSON]:
-            pass
-        else:
-            keys = ['id', 'name']  # same as /v1/zones/summary
-            if args[VERBOSE] > 0:
-                keys += ['type', 'temperature', 'setpoint', 'mode',
-                        'occupied', 'override']
-            if args[VERBOSE] > 1:
-                keys += ['schedule']  # same as /v1/zones
+        try:  # does this zone exist?
+            zone = find_zone_by_key[key]
+        except KeyError:  #  no, Zone ID not found
+            raise  # TODO:
 
-        # display only the wanted keys
-        devices = []
-        print({k: v for k in keys for zone})
+        if args[ISSUES]:
+            print(await zone.issues)
 
-    elif args[ISSUES]:
-        # print(await hub.issues)
-        print("Sorry: not implemented yet.")
+        elif args[DEVICES]:
+            if args[VERBOSE] > 2:
+                print(zone._devices_raw)
+            else:
+                keys = ['id', 'type']  # same as /v1/devices/summary
+                if args[VERBOSE] > 0:
+                    keys += ['assignedZones']
+                if args[VERBOSE] > 1:  # same as /v1/devices
+                    keys += ['state']
 
-    elif args[REBOOT]:
-        # await hub.reboot()
-        print("Sorry: not implemented yet.")
+                for device in await zone.devices:
+                    # display only the wanted keys
+                    print({k: device[k] for k in keys if k in device})
 
-    else:  # args[INFO]
-        # print(await hub.info)
-        print("Sorry: not implemented yet.")
+        elif args[MODE]:
+            # await zone.set_mode()
+            print("Sorry: not implemented yet.")
 
+        elif args[TEMP]:
+            # await zone.set_override()
+            print("Sorry: not implemented yet.")
 
-
-        if not args.command or args.command == "info":
+        else:  # as per args[INFO]
             print(await zone.info)
 
-        elif args.command == "issues":
-            print("Sorry: not implemented yet.")
-            # print(await zone.issues)
-
-        elif args.command == "devices":
-           print(await zone.devices)
-
-        elif args.command == "mode":
-            await zone.set_mode(args.subcommand)
-
-        elif args.command == "override":
-            await zone.set_override()
-
     elif args[DEVICE_ID]:
-        print("Sorry: not implemented yet.")
-        return False
+        key = args[DEVICE_ID]  # Zone IDs are Strs, not Ints
 
-        device = hub.device(id=args.device)
-        device.verbose = 0 if args.verbose is None else args.verbose
+        try:  # does this Device exist?
+            device = hub.device_by_id[key]
+        except KeyError:  # no, Device ID not found
+            raise  # TODO:
 
-        if args.command == "detail":
-            print(await device.detail)
-        else:
-            print("Error: unknown command: {}".format(args.command))
+        if args[ISSUES]:
+            print(await zone.issues)
 
-    else:
-        if args[ZONES]:
-            if args[RAW_JSON]:
-                pass
+        else:  # as per args[INFO]
+            print(await device.info)
+
+    else:  # as per args[HUB_ID]
+        if args[ISSUES]:
+            print(await hub.issues)
+
+        elif args[ZONES]:
+            print(await hub.zones)
+            if args[VERBOSE] > 2:
+                print(hub._zones_raw)
             else:
                 keys = ['id', 'name']  # same as /v1/zones/summary
                 if args[VERBOSE] > 0:
                     keys += ['type', 'temperature', 'setpoint', 'mode',
                             'occupied', 'override']
-                if args[VERBOSE] > 1:
-                    keys += ['schedule']  # same as /v1/zones
+                if args[VERBOSE] > 1:  # same as /v1/zones
+                    keys += ['schedule']
 
-            # display only the wanted keys
-            zones = []
-            for zone in await hub.zones:
-                zones.append({k: zone[k] for k in keys if k in zone})
-            print(zones)
+                # display only the wanted keys
+                zones = []
+                for zone in await hub.zones:
+                    # display only the wanted keys
+                    print({k: zone[k] for k in keys if k in zone})
 
         elif args[DEVICES]:
-            if args[RAW_JSON]:
-                pass
+            if args[VERBOSE] > 2:
+                print(hub._devices_raw)
             else:
                 keys = ['id', 'type']  # same as /v1/devices/summary
                 if args[VERBOSE] > 0:
                     keys += ['assignedZones']
-                if args[VERBOSE] > 1:
-                    keys += ['state']  # same as /v1/devices
+                if args[VERBOSE] > 1:  # same as /v1/devices
+                    keys += ['state']
 
-            # display only the wanted keys
-            devices = []
-            for device in await hub.devices:
-                devices.append({k: device[k] for k in keys if k in device})
-            print(devices)
-
-        elif args[ISSUES]:
-            # print(await hub.issues)
-            print("Sorry: not implemented yet.")
+                for device in await hub.devices:
+                    # display only the wanted keys
+                    print({k: device[k] for k in keys if k in device})
 
         elif args[REBOOT]:
             # await hub.reboot()
             print("Sorry: not implemented yet.")
 
-        else:  # args[INFO]
-            # print(await hub.info)
-            print("Sorry: not implemented yet.")
+        else:  # as per args[INFO]
+            print(await hub.info)
 
     await session.close()
 
