@@ -90,6 +90,23 @@ def _convert_device(input) -> dict:
     return result
 
 
+def _convert_issue(input) -> list:                                               # TODO: not complete
+    """Convert v3 issue dict/json to v1 schema."""
+
+    output = []
+    for zone in input['data']:
+        for issue in zone['lstIssues']:
+            message = DESCRIPTION_TO_TEXT[issue['id']]
+
+            tmp = {}
+            tmp['description'] = message.format(zone['strName'])
+            tmp['level'] = LEVEL_TO_TEXT[issue['level']]
+
+            output.append(tmp)
+
+    return output
+
+
 def _extract_zones_from_zones(input) -> list:
     """Extract zones from /v3/data_manager JSON."""
 
@@ -309,21 +326,13 @@ class GeniusHub(GeniusObject):
         for device in await self._get_devices:
             _populate_device(device)
 
-        _LOGGER.debug("Hub(%s) len(hub.zone_objs)", self.id, len(self.zone_objs))
-        _LOGGER.debug("Hub(%s) len(hub.device_objs)", self.id, len(self.device_objs))
+        _LOGGER.debug("Hub(%s).update(): len(hub.zone_objs)", self.id, len(self.zone_objs))
+        _LOGGER.debug("Hub(%s).update(): len(hub.device_objs)", self.id, len(self.device_objs))
 
     @property
     def info(self) -> dict:
         """Return all information for the hub."""
         _LOGGER.debug("Hub(%s).info", self.id)
-
-        def _convert_to_v1(input) -> dict:
-            """Convert v3 output to v1 schema."""
-            output = dict(input)
-            output['schedule'] = {}
-            output['schedule']['timer'] = {}
-            output['schedule']['footprint'] = {}
-            return output
 
         keys = ['device_objs', 'device_by_id', 'zone_objs', 'zone_by_id', 'zone_by_name']
         info = self._without_keys(self.__dict__, keys)
@@ -369,7 +378,7 @@ class GeniusHub(GeniusObject):
         self._zones_raw = raw_json
         self._zones.sort(key=lambda s: int(s['id']))
 
-        _LOGGER.debug("GeniusHub.zones = %s", self._zones)
+        _LOGGER.debug("Hub().zones = %s", self._zones)
         return self._zones_raw
 
     @property
@@ -420,7 +429,7 @@ class GeniusHub(GeniusObject):
         self._devices_raw = raw_json
         self._devices.sort(key=lambda s: s['id'])
 
-        _LOGGER.debug("GeniusHub.devices = %s", self._devices)
+        _LOGGER.debug("Hub().devices = %s", self._devices)
         return self._devices_raw
 
     @property
@@ -447,25 +456,10 @@ class GeniusHub(GeniusObject):
 
           This is a v1 API: GET /issues
         """
-        def _convert_to_v1(input) -> list:
-            """Convert v3 output to v1 schema."""
-            output = []
-            for zone in input['data']:
-                for issue in zone['lstIssues']:
-                    message = DESCRIPTION_TO_TEXT[issue['id']]
-
-                    tmp = {}
-                    tmp['description'] = message.format(zone['strName'])
-                    tmp['level'] = LEVEL_TO_TEXT[issue['level']]
-
-                    output.append(tmp)
-
-            return output
-
         # url = 'issues' if self._api_v1 else 'zones'
         raw_json = await self._request("GET", 'issues')
 
-        self._issues = raw_json if self._api_v1 else _convert_to_v1(raw_json)
+        self._issues = raw_json if self._api_v1 else _convert_issue(raw_json)
 
         _LOGGER.debug("GeniusHub.issues = %s", self._issues)
         return raw_json if self._client._verbose else self._issues
