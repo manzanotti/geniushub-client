@@ -1,10 +1,10 @@
 """
 Usage: ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] [(zones | devices | issues)] [-v | -vv | -vvv ]
        ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] reboot
-       ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] --zone=ZONE [(devices | issues)] [--raw]
+       ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] --zone=ZONE [(devices | issues)] [-v | -vv | -vvv ]
        ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] --zone=ZONE --mode=MODE
        ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] --zone=ZONE --temp=TEMP [--secs=SECS]
-       ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] --device=DEVICE [--raw]
+       ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] --device=DEVICE [-v | -vv | -vvv ]
 
 Connect to a Genius Hub and interact with it, a Zone, or a Device.
 
@@ -89,7 +89,10 @@ async def main(loop):
                              session=session)
 
     hub = client.hub
-    await hub.update()
+    await hub.update()  # enumerate tall zones, and and all devices
+    # print(await hub.zones)
+    # print(await hub.devices)
+    # return
 
     if args[ZONE_ID]:
         try:  # is zone_is a Int or a Str?
@@ -105,6 +108,9 @@ async def main(loop):
             zone = find_zone_by_key[key]
         except KeyError:  #  no, Zone ID not found
             raise  # TODO:
+
+        # print(await zone.devices)
+        # return
 
         if args[ISSUES]:
             print(await zone.issues)
@@ -122,6 +128,7 @@ async def main(loop):
                 for device in await zone.devices:
                     # display only the wanted keys
                     print({k: device[k] for k in keys if k in device})
+                    # print(device)
 
         elif args[MODE]:
             # await zone.set_mode()
@@ -153,7 +160,6 @@ async def main(loop):
             print(await hub.issues)
 
         elif args[ZONES]:
-            print(await hub.zones)
             if args[VERBOSE] > 2:
                 print(hub._zones_raw)
             else:
@@ -169,6 +175,7 @@ async def main(loop):
                 for zone in await hub.zones:
                     # display only the wanted keys
                     print({k: zone[k] for k in keys if k in zone})
+                    # print(zone)
 
         elif args[DEVICES]:
             if args[VERBOSE] > 2:
@@ -183,6 +190,7 @@ async def main(loop):
                 for device in await hub.devices:
                     # display only the wanted keys
                     print({k: device[k] for k in keys if k in device})
+                    # print(device)
 
         elif args[REBOOT]:
             # await hub.reboot()
