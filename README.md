@@ -11,7 +11,7 @@ It is based upon work by @GeoffAtHome - thanks!
 
 ## Current limitations
 Current limitations & to-dos.
- - `ghclient.py` is a bit flaky
+ - `ghclient.py` is not complete
  - v3 zones have no schedule
  - some v3 devices have a Null type
 
