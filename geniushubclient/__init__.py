@@ -195,8 +195,8 @@ class GeniusHubClient(object):
 
 
 class GeniusObject(object):
-    def __init__(self, client, hub=None, zone=None, device=None, data={}):
-        self.__dict__.update(data)
+    def __init__(self, client, obj_dict, hub=None, zone=None):
+        self.__dict__.update(obj_dict)
 
         self._client = client
         self._api_v1 = client._api_v1
@@ -274,8 +274,8 @@ class GeniusHub(GeniusObject):
     # connection.get("/v3/auth/test", { username: e, password: t, timeout: n })
 
     def __init__(self, client, hub_id):
-        _LOGGER.debug("GeniusHub(hub=%s)", hub_id[:20] + "...")
-        super().__init__(client, data={'id': hub_id[:20] + "..."})
+        _LOGGER.debug("GeniusHub(hub=%s)", hub_id[:8] + "...")
+        super().__init__(client, {'id': hub_id[:8] + "..."})
 
         self._info = {}  # a dict of attrs
         self._zones = []  # a list of dicts
@@ -490,10 +490,10 @@ class GeniusHub(GeniusObject):
 
 
 class GeniusZone(GeniusObject):
-    def __init__(self, client, hub, zone_dict):
+    def __init__(self, client, zone_dict, hub):
         _LOGGER.debug("GeniusZone(hub=%s, zone=%s)",
                       hub.id, zone_dict['id'])
-        super().__init__(client, data=zone_dict)
+        super().__init__(client, zone_dict, hub=hub)
 
         self._info = {}
         self._devices = []
@@ -596,14 +596,14 @@ class GeniusZone(GeniusObject):
             self.__dict__.update(data)
         else:  # a WORKAROUND...
             _LOGGER.warn("Zone(%s).update(v3): type = %s", self.id, type(self))
-            await self.hub.update()
+            await self._hub.update()
 
 
 class GeniusDevice(GeniusObject):
-    def __init__(self, client, hub, zone, device_dict):
+    def __init__(self, client, device_dict, hub, zone=None):
         _LOGGER.debug("GeniusZone(hub=%s, zone=%s,device=%s)",
                       hub.id, zone, device_dict['id'])
-        super().__init__(client, data=device_dict)
+        super().__init__(client, device_dict, hub=hub, zone=zone)
 
         self._info = {}
         self._issues = []
@@ -634,5 +634,5 @@ class GeniusDevice(GeniusObject):
             data = await self._request("GET", url.format(self.id))
             self.__dict__.update(data)
         else:  # a WORKAROUND...
-            await self.hub.update()
+            await self._hub.update()
             _LOGGER.warn("Device(%s).update(v3): type = %s", self.id, type(self))
