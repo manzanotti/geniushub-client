@@ -1,8 +1,8 @@
 """Python client library for the Genius Hub API.
 
-see: https://my.geniushub.co.uk/docs
-"""
-import asyncio
+   see: https://my.geniushub.co.uk/docs
+   """
+# import asyncio
 from hashlib import sha256
 import logging
 
@@ -52,8 +52,8 @@ def _convert_zone(input) -> dict:
         result['occupied'] = u and d and not o
 
     if input['iType'] in [zone_types.OnOffTimer,
-                        zone_types.ControlSP,
-                        zone_types.TPI]:
+                          zone_types.ControlSP,
+                          zone_types.TPI]:
         result['override'] = {}
         result['override']['duration'] = input['iBoostTimeRemaining']
         if input['iType'] == zone_types.OnOffTimer:
@@ -238,16 +238,31 @@ class GeniusObject(object):
             "PUT": self._client._session.put,
         }.get(type)
 
-        # concurrent.futures._base.TimeoutError
-        async with http_method(
-            self._client._url_base + url,
-            json=data,
-            headers=self._client._headers,
-            auth=self._client._auth,
-            timeout=self._client._timeout
-        ) as response:
-            assert response.status == HTTP_OK, response.text
-            return await response.json(content_type=None)
+        try:
+            async with http_method(
+                self._client._url_base + url,
+                json=data,
+                headers=self._client._headers,
+                auth=self._client._auth,
+                timeout=self._client._timeout
+            ) as response:
+                assert response.status == HTTP_OK, response.text
+                return await response.json(content_type=None)
+
+        except aiohttp.client_exceptions.ServerDisconnectedError as err:
+            _LOGGER.warning("_request(): ServerDisconnected, message: ", err)
+            self._session = aiohttp.ClientSession()
+            async with http_method(
+                self._client._url_base + url,
+                json=data,
+                headers=self._client._headers,
+                auth=self._client._auth,
+                timeout=self._client._timeout
+            ) as response:
+                assert response.status == HTTP_OK, response.text
+                return await response.json(content_type=None)
+
+        # except concurrent.futures._base.TimeoutError as err:
 
     @staticmethod
     def LookupStatusError(status):
@@ -507,7 +522,7 @@ class GeniusZone(GeniusObject):
         self._devices = await self._request("GET", url.format(self.id))
 
         for device in await self.devices:
-            _populate_device(device, parent=self)
+            self._hub._populate_device(device, parent=self)
 
         _LOGGER.debug("self.devices = %s", self._devices)
         return self._devices
@@ -572,11 +587,16 @@ class GeniusZone(GeniusObject):
 
     async def update(self):
         """Update the Zone with its latest state data."""
-        _LOGGER.debug("Zone(%s).update()", self.id)
+        _LOGGER.error("Zone(%s).update(xx)", self.id)
 
-        url = 'zones/{}'
-        data = await self._request("GET", url.format(self.id))
-        self.__dict__.update(data)
+        if self._api_v1:  # TODO: this doesn't work for v3
+            _LOGGER.warn("Zone(%s).update(v1): type = %s", self.id, type(self))
+            url = 'zones/{}'
+            data = await self._request("GET", url.format(self.id))
+            self.__dict__.update(data)
+        else:  # a WORKAROUND...
+            _LOGGER.warn("Zone(%s).update(v3): type = %s", self.id, type(self))
+            await self.hub.update()
 
 
 class GeniusDevice(GeniusObject):
@@ -606,8 +626,13 @@ class GeniusDevice(GeniusObject):
 
     async def update(self):
         """Update the Device with its latest state data."""
-        _LOGGER.debug("Device(%s).update()", self.id)
+        _LOGGER.error("Device(%s).update(xx)", self.id)
 
-        url = 'devices/{}'
-        data = await self._request("GET", url.format(self.id))
-        self.__dict__.update(data)
+        if self._api_v1:  # TODO: this doesn't work for v3
+            _LOGGER.warn("Device(%s).update(v1): type = %s", self.id, type(self))
+            url = 'devices/{}'
+            data = await self._request("GET", url.format(self.id))
+            self.__dict__.update(data)
+        else:  # a WORKAROUND...
+            await self.hub.update()
+            _LOGGER.warn("Device(%s).update(v3): type = %s", self.id, type(self))
