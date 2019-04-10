@@ -347,8 +347,8 @@ class GeniusHub(GeniusObject):
         for d in await self._get_devices:
             _populate_device(d if self._api_v1 else _convert_device(d))
 
-        _LOGGER.debug("Hub(%s).update(): len(hub.zone_objs)", self.id, len(self.zone_objs))
-        _LOGGER.debug("Hub(%s).update(): len(hub.device_objs)", self.id, len(self.device_objs))
+        _LOGGER.debug("Hub(%s).update(): len(hub.zone_objs) = %s", self.id, len(self.zone_objs))
+        _LOGGER.debug("Hub(%s).update(): len(hub.device_objs) = %s", self.id, len(self.device_objs))
 
     @property
     def info(self) -> dict:
