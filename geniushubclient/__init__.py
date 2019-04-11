@@ -22,23 +22,6 @@ _LOGGER = logging.getLogger(__name__)
 _LOGGER.setLevel(logging.WARNING)
 
 
-def _convert_issue(input) -> dict:                                               # TODO: not complete
-    """Convert a v3 issues's dict/json to the v1 schema."""
-
-    output = []
-    for zone in input['data']:
-        for issue in zone['lstIssues']:
-            message = DESCRIPTION_TO_TEXT[issue['id']]
-
-            tmp = {}
-            tmp['description'] = message.format(zone['strName'])
-            tmp['level'] = LEVEL_TO_TEXT[issue['level']]
-
-            output.append(tmp)
-
-    return output
-
-
 def _extract_zones_from_zones(input) -> list:
     """Extract zones from /v3/zones JSON."""
     _LOGGER.debug("_zones_from_zones(): input = %s", input)
@@ -216,6 +199,22 @@ class GeniusObject(object):
         result['state'] = {}
 
         return result
+
+    def _convert_issue(self, input) -> dict:                                     # TODO: not complete
+        """Convert a v3 issues's dict/json to the v1 schema."""
+
+        output = []
+        for zone in input['data']:
+            for issue in zone['lstIssues']:
+                message = DESCRIPTION_TO_TEXT[issue['id']]
+
+                tmp = {}
+                tmp['description'] = message.format(zone['strName'])
+                tmp['level'] = LEVEL_TO_TEXT[issue['level']]
+
+                output.append(tmp)
+
+        return output
 
     def _without_keys(self, dict_obj, keys) -> dict:
         _info = dict(dict_obj)
