@@ -22,80 +22,6 @@ _LOGGER = logging.getLogger(__name__)
 _LOGGER.setLevel(logging.WARNING)
 
 
-def _convert_zone(input) -> dict:
-    """Convert a v3 zone's dict/json to the v1 schema."""
-    result = {}
-    result['id'] = input['iID']
-    result['type'] = ITYPE_TO_TYPE[input['iType']]
-    result['name'] = input['strName']
-
-    if input['iType'] in [zone_types.ControlSP, zone_types.TPI]:
-        result['temperature'] = input['fPV']
-        result['setpoint'] = input['fSP']
-
-    if input['iType'] == zone_types.OnOffTimer:
-        result['setpoint'] = input['fSP'] != 0
-
-    result['mode'] = IMODE_TO_MODE[input['iMode']]
-
-    # l = parseInt(i.iFlagExpectedKit) & e.equipmentTypes.Kit_PIR
-    if input['iFlagExpectedKit'] & kit_types.PIR:
-        # = parseInt(i.iMode) === e.zoneModes.Mode_Footprint
-        u = input['iMode'] == zone_modes.Footprint
-        # = null != (s = i.zoneReactive) ? s.bTriggerOn : void 0,
-        d = input['objFootprint']['objReactive']['bTriggerOn']
-        # = parseInt(i.iActivity) || 0,
-        # c = input['iActivity'] | 0
-        # o = t.isInFootprintNightMode(i)
-        o = input['objFootprint']['bIsNight']
-        # u && l && d && !o ? True : False
-        result['occupied'] = u and d and not o
-
-    if input['iType'] in [zone_types.OnOffTimer,
-                          zone_types.ControlSP,
-                          zone_types.TPI]:
-        result['override'] = {}
-        result['override']['duration'] = input['iBoostTimeRemaining']
-        if input['iType'] == zone_types.OnOffTimer:
-            result['override']['setpoint'] = (input['fBoostSP'] != 0)
-        else:
-            result['override']['setpoint'] = input['fBoostSP']
-
-        result['schedule'] = {}
-
-    # for device in input['nodes']:
-    #     if device['addr'] not in ['1', 'WeatherData']:
-    #         node = device['childNodes']['_cfg']['childValues']
-    #         device_name = node['name']['val']
-    #         device_sku = node['sku']['val']
-
-    return result
-
-
-def _convert_device(input) -> dict:
-    """Convert a v3 device's dict/json to the v1 schema."""
-
-    # if device['addr'] not in ['1', 'WeatherData']:
-    result = {}
-    result['id'] = input['addr']
-    node = input['childNodes']['_cfg']['childValues']
-    if node:
-        result['type'] = node['name']['val']
-        result['sku'] = node['sku']['val']
-    else:
-        result['type'] = None
-
-    tmp = input['childValues']['location']['val']
-    if tmp:
-        result['assignedZones'] = [{'name': tmp}]
-    else:
-        result['assignedZones'] = [{'name': None}]
-
-    result['state'] = {}
-
-    return result
-
-
 def _convert_issue(input) -> dict:                                               # TODO: not complete
     """Convert a v3 issues's dict/json to the v1 schema."""
 
@@ -220,6 +146,76 @@ class GeniusObject(object):
         elif isinstance(self, GeniusDevice):
             self.hub = hub
             self.assignedZone = assignedZone
+
+    def _convert_zone(self, input) -> dict:
+        """Convert a v3 zone's dict/json to the v1 schema."""
+        if self._api_v1:
+            return input
+
+        result = {}
+        result['id'] = input['iID']
+        result['type'] = ITYPE_TO_TYPE[input['iType']]
+        result['name'] = input['strName']
+
+        if input['iType'] in [zone_types.ControlSP, zone_types.TPI]:
+            result['temperature'] = input['fPV']
+            result['setpoint'] = input['fSP']
+
+        if input['iType'] == zone_types.OnOffTimer:
+            result['setpoint'] = input['fSP'] != 0
+
+        result['mode'] = IMODE_TO_MODE[input['iMode']]
+
+        # l = parseInt(i.iFlagExpectedKit) & e.equipmentTypes.Kit_PIR
+        if input['iFlagExpectedKit'] & kit_types.PIR:
+            # = parseInt(i.iMode) === e.zoneModes.Mode_Footprint
+            u = input['iMode'] == zone_modes.Footprint
+            # = null != (s = i.zoneReactive) ? s.bTriggerOn : void 0,
+            d = input['objFootprint']['objReactive']['bTriggerOn']
+            # = parseInt(i.iActivity) || 0,
+            # c = input['iActivity'] | 0
+            # o = t.isInFootprintNightMode(i)
+            o = input['objFootprint']['bIsNight']
+            # u && l && d && !o ? True : False
+            result['occupied'] = u and d and not o
+
+        if input['iType'] in [zone_types.OnOffTimer,
+                            zone_types.ControlSP,
+                            zone_types.TPI]:
+            result['override'] = {}
+            result['override']['duration'] = input['iBoostTimeRemaining']
+            if input['iType'] == zone_types.OnOffTimer:
+                result['override']['setpoint'] = (input['fBoostSP'] != 0)
+            else:
+                result['override']['setpoint'] = input['fBoostSP']
+
+            result['schedule'] = {}
+
+        return result
+
+    def _convert_device(self, input) -> dict:
+        """Convert a v3 device's dict/json to the v1 schema."""
+        if self._api_v1:
+            return input
+
+        result = {}
+        result['id'] = input['addr']
+        node = input['childNodes']['_cfg']['childValues']
+        if node:
+            result['type'] = node['name']['val']
+            result['sku'] = node['sku']['val']
+        else:
+            result['type'] = None
+
+        tmp = input['childValues']['location']['val']
+        if tmp:
+            result['assignedZones'] = [{'name': tmp}]
+        else:
+            result['assignedZones'] = [{'name': None}]
+
+        result['state'] = {}
+
+        return result
 
     def _without_keys(self, dict_obj, keys) -> dict:
         _info = dict(dict_obj)
@@ -352,9 +348,9 @@ class GeniusHub(GeniusObject):
                     self.device_by_id[device.id] = device
 
         for z in await self._get_zones:
-            _populate_zone(z if self._api_v1 else _convert_zone(z))
+            _populate_zone(self._convert_zone(z))
         for d in await self._get_devices:
-            _populate_device(d if self._api_v1 else _convert_device(d))
+            _populate_device(self._convert_device(d))
 
         _LOGGER.debug("Hub(%s).update(): len(hub.zone_objs) = %s",
                       self.id, len(self.zone_objs))
@@ -419,10 +415,7 @@ class GeniusHub(GeniusObject):
         _LOGGER.debug("Hub().zones: len(self.zone_objs) = %s",
                       len(self.zone_objs))
 
-        self._zones = []
-        for z in self._zones_raw:
-            self._zones.append(z if self._api_v1 else _convert_zone(z))
-
+        self._zones = [self._convert_zone(z) for z in self._zones_raw]
 
         _LOGGER.debug("Hub().zones: self._devices = %s", self._zones)
         return self._zones
@@ -462,9 +455,7 @@ class GeniusHub(GeniusObject):
         _LOGGER.debug("Hub().devices: len(self.device_objs) = %s",
                       len(self.device_objs))
 
-        self._devices = []
-        for d in self._devices_raw:
-            self._devices.append(d if self._api_v1 else _convert_device(d))
+        self._devices = [self._convert_device(d) for d in self._devices_raw]
 
         _LOGGER.debug("Hub().devices: self._devices = %s", self._devices)
         return self._devices
