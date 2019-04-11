@@ -419,10 +419,10 @@ class GeniusHub(GeniusObject):
         _LOGGER.debug("Hub().zones: len(self.zone_objs) = %s",
                       len(self.zone_objs))
 
-        if not self._zones:
-            self._zones = []
-            for zone in self.zone_objs:
-                self._zones.append(zone.info)
+        self._zones = []
+        for z in self._zones_raw:
+            self._zones.append(z if self._api_v1 else _convert_zone(z))
+
 
         _LOGGER.debug("Hub().zones: self._devices = %s", self._zones)
         return self._zones
@@ -462,10 +462,9 @@ class GeniusHub(GeniusObject):
         _LOGGER.debug("Hub().devices: len(self.device_objs) = %s",
                       len(self.device_objs))
 
-        if not self._devices:
-            self._devices = []
-            for device in self.device_objs:
-                self._devices.append(device.info)
+        self._devices = []
+        for d in self._devices_raw:
+            self._devices.append(d if self._api_v1 else _convert_device(d))
 
         _LOGGER.debug("Hub().devices: self._devices = %s", self._devices)
         return self._devices
