@@ -252,7 +252,7 @@ class GeniusObject(object):
                 return await response.json(content_type=None)
 
         except aiohttp.client_exceptions.ServerDisconnectedError as err:
-            _LOGGER.warning("_request(): ServerDisconnected, message: %s", err)
+            _LOGGER.warning("_request(): Exception: ServerDisconnected, message: %s", err)
             _session = aiohttp.ClientSession()
             async with http_method(
                 self._client._url_base + url,
@@ -402,12 +402,14 @@ class GeniusHub(GeniusObject):
         else:
             self._zones_raw = _extract_zones_from_zones(raw_json['data'])
 
+        # self._zones_raw.sort(key=lambda s: int(s['id']))
+
         _LOGGER.info("Hub()._get_zones(): len(self._zones_raw) = %s", len(self._zones_raw))
-        _LOGGER.debug("Hub()._get_zones(): self._zones_raw[0]) = %s", self._zones_raw[0])
+        _LOGGER.info("Hub()._get_zones(): self._zones_raw[0]) = %s", self._zones_raw[0])
         return self._zones_raw
 
     @property
-    async def zones(self) -> list:
+    def zones(self) -> list:
         """Return a list of Zones known to the Hub.
 
           v1/zones/summary: id, name
@@ -421,8 +423,6 @@ class GeniusHub(GeniusObject):
             self._zones = []
             for zone in self.zone_objs:
                 self._zones.append(zone.info)
-
-        # self._zones.sort(key=lambda s: int(s['id']))
 
         _LOGGER.debug("Hub().zones: self._devices = %s", self._zones)
         return self._zones
@@ -446,12 +446,14 @@ class GeniusHub(GeniusObject):
             else:  #._devices_raw = _extract_devices_from_zones(raw_json['data'])
                 self._devices_raw = _extract_devices_from_data_manager(raw_json['data'])
 
-        _LOGGER.info("Hub()._get_devices(/v3/data_manager): len(self._devices_raw) = %s", len(self._devices_raw))
-        _LOGGER.debug("Hub()._get_devices(/v3/data_manager): self._devices_raw[0]) = %s", self._devices_raw[0])
+        # self._get_devices.sort(key=lambda s: int(s['id']))
+
+        _LOGGER.info("Hub()._get_devices(): len(self._devices_raw) = %s", len(self._devices_raw))
+        _LOGGER.info("Hub()._get_devices(): self._devices_raw[0]) = %s", self._devices_raw[0])
         return self._devices_raw
 
     @property
-    async def devices(self) -> list:
+    def devices(self) -> list:
         """Return a list of Devices known to the Hub.
 
           v1/devices/summary: id, type
@@ -464,8 +466,6 @@ class GeniusHub(GeniusObject):
             self._devices = []
             for device in self.device_objs:
                 self._devices.append(device.info)
-
-        # self._devices.sort(key=lambda s: s['id'])
 
         _LOGGER.debug("Hub().devices: self._devices = %s", self._devices)
         return self._devices
@@ -517,7 +517,7 @@ class GeniusZone(GeniusObject):
         return info
 
     @property
-    async def devices(self) -> list:
+    def devices(self) -> list:
         """Return information for devices assigned to a zone.
 
           This is a v1 API: GET /zones/{zoneId}devices

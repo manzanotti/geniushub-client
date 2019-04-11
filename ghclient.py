@@ -119,16 +119,15 @@ async def main(loop):
             if args[VERBOSE] > 2:
                 print(zone._devices_raw)
             else:
-                keys = ['id', 'type']  # same as /v1/devices/summary
+                keys = ['id', 'type']  # as per /v1/devices/summary
                 if args[VERBOSE] > 0:
                     keys += ['assignedZones']
-                if args[VERBOSE] > 1:  # same as /v1/devices
+                if args[VERBOSE] > 1:  # as per /v1/devices
                     keys += ['state']
 
-                for device in await zone.devices:
+                for device in sorted(zone.devices, key=lambda k: k['id']):
                     # display only the wanted keys
                     print({k: device[k] for k in keys if k in device})
-                    # print(device)
 
         elif args[MODE]:
             # await zone.set_mode()
@@ -170,12 +169,9 @@ async def main(loop):
                 if args[VERBOSE] > 1:  # same as /v1/zones
                     keys += ['schedule']
 
-                # display only the wanted keys
-                zones = []
-                for zone in await hub.zones:
+                for zone in sorted(hub.zones, key=lambda k: k['id']):
                     # display only the wanted keys
                     print({k: zone[k] for k in keys if k in zone})
-                    # print(zone)
 
         elif args[DEVICES]:
             if args[VERBOSE] > 2:
@@ -187,10 +183,9 @@ async def main(loop):
                 if args[VERBOSE] > 1:  # same as /v1/devices
                     keys += ['state']
 
-                for device in await hub.devices:
+                for device in sorted(hub.devices, key=lambda k: k['id']):
                     # display only the wanted keys
                     print({k: device[k] for k in keys if k in device})
-                    # print(device)
 
         elif args[REBOOT]:
             # await hub.reboot()
