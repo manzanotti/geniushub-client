@@ -328,6 +328,8 @@ class GeniusHub(GeniusObject):
                 _LOGGER.debug("Found a Zone (hub=%s, zone=%s)",
                               hub.id, zone_dict['id'])
 
+            zone.__dict__.update(zone_dict)
+
             return zone_dict['id'], zone
 
         def _populate_device(device_dict, parent=None):
@@ -374,6 +376,8 @@ class GeniusHub(GeniusObject):
                 except KeyError:
                     self.device_objs.append(device)
                     self.device_by_id[device.id] = device
+
+            device.__dict__.update(device_dict)
 
             return device_dict['id'], device
 
@@ -442,7 +446,7 @@ class GeniusHub(GeniusObject):
         # self._zones_raw.sort(key=lambda s: int(s['id']))
 
         _LOGGER.debug("Hub()._get_zones(): len(self._zones_raw) = %s", len(self._zones_raw))
-        _LOGGER.debug("Hub()._get_zones(): self._zones_raw[0]) = %s", self._zones_raw[0])
+        # _LOGGER.debug("Hub()._get_zones(): self._zones_raw[0]) = %s", self._zones_raw[0])
         return self._zones_raw
 
     @property
@@ -479,7 +483,7 @@ class GeniusHub(GeniusObject):
         # self._get_devices.sort(key=lambda s: int(s['id']))
 
         _LOGGER.debug("Hub()._get_devices(): len(self._devices_raw) = %s", len(self._devices_raw))
-        _LOGGER.debug("Hub()._get_devices(): self._devices_raw[0]) = %s", self._devices_raw[0])
+        # _LOGGER.debug("Hub()._get_devices(): self._devices_raw[0]) = %s", self._devices_raw[0])
         return self._devices_raw
 
     @property
@@ -505,7 +509,7 @@ class GeniusHub(GeniusObject):
             self._issues_raw = self. _extract_issues_from_zones(self._zones_raw)
 
         _LOGGER.info("Hub()._get_issues(): len(self._issues_raw) = %s", len(self._issues_raw))
-        _LOGGER.info("Hub()._get_issues(): self._issues_raw[0]) = %s", self._issues_raw[0])
+        # _LOGGER.info("Hub()._get_issues(): self._issues_raw[0]) = %s", self._issues_raw[0])
         return self._issues_raw
 
     @property
@@ -566,7 +570,7 @@ class GeniusZone(GeniusObject):
         return self._devices
 
     @property
-    async def _get_issues(self) -> list:
+    async def OUT_get_issues(self) -> list:                                      # TODO: delete me
         """Return a list (of dicts) of devices included in the zone."""
         # url = 'issues' if self._api_v1 else 'zones'
         raw_json = await self._request("GET", 'issues')
@@ -631,15 +635,15 @@ class GeniusZone(GeniusObject):
 
     async def update(self):
         """Update the Zone with its latest state data."""
-        _LOGGER.error("Zone(%s).update(xx)", self.id)
+        _LOGGER.debug("Zone(%s).update(xx)", self.id)
 
-        if self._api_v1:                                                         # TODO: this doesn't work for v3
-            _LOGGER.info("Zone(%s).update(v1): type = %s", self.id, type(self))
+        if self._api_v1:                                                         # TODO: confirm this works for v1
+            _LOGGER.debug("Zone(%s).update(v1): type = %s", self.id, type(self))
             url = 'zones/{}'
             data = await self._request("GET", url.format(self.id))
             self.__dict__.update(data)
-        else:  # a WORKAROUND...
-            _LOGGER.info("Zone(%s).update(v3): type = %s", self.id, type(self))
+        else:  # a WORKAROUND...                                                 # TODO: this doesn't work for v3
+            _LOGGER.debug("Zone(%s).update(v3): type = %s", self.id, type(self))
             await self.hub.update()
 
 
@@ -673,13 +677,13 @@ class GeniusDevice(GeniusObject):
         """Update the Device with its latest state data."""
         _LOGGER.error("Device(%s).update(xx)", self.id)
 
-        if self._api_v1:                                                         # TODO: this block doesn't work for v3
-            _LOGGER.info("Device(%s).update(v1): type = %s",
+        if self._api_v1:                                                         # TODO: confirm this works for v1
+            _LOGGER.debug("Device(%s).update(v1): type = %s",
                          self.id, type(self))
             url = 'devices/{}'
             data = await self._request("GET", url.format(self.id))
             self.__dict__.update(data)
         else:  # a WORKAROUND...
             await self.hub.update()
-            _LOGGER.info("Device(%s).update(v3): type = %s",
+            _LOGGER.debug("Device(%s).update(v3): type = %s",
                          self.id, type(self))
