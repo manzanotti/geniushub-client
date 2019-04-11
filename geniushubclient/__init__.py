@@ -287,7 +287,7 @@ class GeniusHub(GeniusObject):
 
     async def update(self, force_refresh=False):
         """Update the Hub with its latest state data."""
-        _LOGGER.debug("Hub(%s).update()", self.id)
+        _LOGGER.warn("Hub(%s).update()", self.id)
 
         def _populate_zone(zone_dict):
             hub = self  # for now, only Hubs invoke this method
@@ -354,9 +354,9 @@ class GeniusHub(GeniusObject):
         for d in await self._get_devices:
             _populate_device(d if self._api_v1 else _convert_device(d))
 
-        _LOGGER.debug("Hub(%s).update(): len(hub.zone_objs) = %s",
+        _LOGGER.warn("Hub(%s).update(): len(hub.zone_objs) = %s",
                       self.id, len(self.zone_objs))
-        _LOGGER.debug("Hub(%s).update(): len(hub.device_objs) = %s",
+        _LOGGER.warn("Hub(%s).update(): len(hub.device_objs) = %s",
                       self.id, len(self.device_objs))
 
     @property
@@ -408,7 +408,7 @@ class GeniusHub(GeniusObject):
 
         self._zones.sort(key=lambda s: int(s['id']))
 
-        _LOGGER.debug("Hub().zones = %s", self._zones)
+        _LOGGER.warn("Hub().zones = %s", self._zones)
         return self._zones_raw
 
     @property
@@ -457,7 +457,7 @@ class GeniusHub(GeniusObject):
 
         self._devices.sort(key=lambda s: s['id'])
 
-        _LOGGER.debug("Hub().devices = %s", self._devices)
+        _LOGGER.warn("Hub().devices = %s", self._devices)
         return self._devices_raw
 
     @property
