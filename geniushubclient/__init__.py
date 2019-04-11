@@ -87,7 +87,7 @@ def _extract_issues_from_zones(input) -> list:
 class GeniusHubClient(object):
     def __init__(self, hub_id, username=None, password=None, session=None,
                  debug=False):
-        if True:  # debug is True:
+        if debug is True:
             _LOGGER.setLevel(logging.DEBUG)
             _LOGGER.error("Debug mode is explicitly enabled.")
         else:
