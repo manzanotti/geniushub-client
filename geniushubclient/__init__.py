@@ -22,76 +22,14 @@ _LOGGER = logging.getLogger(__name__)
 _LOGGER.setLevel(logging.WARNING)
 
 
-def _extract_zones_from_zones(input) -> list:
-    """Extract Zones from /v3/zones JSON.
-
-      This extracts a list of Zones from a flat list of Zones.
-    """
-    _LOGGER.debug("_zones_from_zones(): input = %s", input)
-
-    return input
-
-
-def _extract_devices_from_data_manager(input) -> list:
-    """Extract Devices from /v3/data_manager JSON.
-
-      This extracts a list of Devices from a nested list of Devices.  Each Zone
-      may have multiple Devices.
-    """
-    _LOGGER.debug("_devices_from_data_manager(): input = %s", input)
-
-    result = []
-    for k1, v1 in input['childNodes'].items():
-        if k1 != 'WeatherData':
-            for device_id, device in v1['childNodes'].items():
-                if device_id != '1':  # also: device['addr'] != '1':
-                    result.append(device)
-
-    return result
-
-
-def _extract_devices_from_zones(input) -> list:
-    """Extract Devices from /v3/zones JSON.
-
-      This extracts a list of Devices from a list of Zones.  Each Zone may have
-      multiple Devices.
-    """
-    _LOGGER.debug("_devices_from_zones(): input = %s", input)
-
-    result = []
-    for zone in input:
-        if 'nodes' in zone:
-            for device in zone['nodes']:
-                if device['addr'] not in ['1', 'WeatherData']:
-                    result.append(device)
-
-    return result
-
-
-def _extract_issues_from_zones(input) -> list:
-    """Extract Issues from /v3/zones JSON.
-
-      This extracts a list of Issues from a list of Zones.  Each Zone may have
-      multiple Issues.
-    """
-    _LOGGER.debug("_issues_from_zones(): input = %s", input)
-
-    result = []
-    for zone in input:
-        for issue in zone['lstIssues']:
-            result.append(issue.update({'zone_name', zone['name']}))
-
-    return result
-
-
 class GeniusHubClient(object):
     def __init__(self, hub_id, username=None, password=None, session=None,
                  debug=False):
         if debug is True:
             _LOGGER.setLevel(logging.DEBUG)
-            _LOGGER.error("Debug mode is explicitly enabled.")
+            _LOGGER.debug("Debug mode is explicitly enabled.")
         else:
-            _LOGGER.error("Debug mode is not explicitly enabled "
+            _LOGGER.debug("Debug mode is not explicitly enabled "
                           "(but may be enabled elsewhere).")
 
         _LOGGER.info("GeniusHubClient(hub_id=%s)", hub_id)
@@ -235,10 +173,10 @@ class GeniusObject(object):
         # from: [{'id': 'zone:using_weather_temp',                'level': 1}]
         # to:   [{"description": "Upstairs hall is currently...", "level": "warning"}]
 
-        description = DESCRIPTION_TO_TEXT[issue['id']]
+        description = DESCRIPTION_TO_TEXT[input['id']]
         if '{}' in description:
-            description = description.format(issue['name'])
-        level = LEVEL_TO_TEXT[issue['level']]
+            description = description.format(input['zone_name'])
+        level = LEVEL_TO_TEXT[input['level']]
 
         return {'description': description, 'level': level}
 
@@ -307,6 +245,65 @@ class GeniusHub(GeniusObject):
         self._issues = []  # a list of dicts
 
         self._issues_raw = self._devices_raw = self._zones_raw = None
+
+    def  _extract_zones_from_zones(self, input) -> list:
+        """Extract Zones from /v3/zones JSON.
+
+        This extracts a list of Zones from a flat list of Zones.
+        """
+        _LOGGER.debug("_zones_from_zones(): input = %s", input)
+
+        return input
+
+    def  _extract_devices_from_data_manager(self, input) -> list:
+        """Extract Devices from /v3/data_manager JSON.
+
+        This extracts a list of Devices from a nested list of Devices.  Each Zone
+        may have multiple Devices.
+        """
+        _LOGGER.debug("_devices_from_data_manager(): input = %s", input)
+
+        result = []
+        for k1, v1 in input['childNodes'].items():
+            if k1 != 'WeatherData':
+                for device_id, device in v1['childNodes'].items():
+                    if device_id != '1':  # also: device['addr'] != '1':
+                        result.append(device)
+
+        return result
+
+    def  _extract_devices_from_zones(self, input) -> list:
+        """Extract Devices from /v3/zones JSON.
+
+        This extracts a list of Devices from a list of Zones.  Each Zone may have
+        multiple Devices.
+        """
+        _LOGGER.debug("_devices_from_zones(): input = %s", input)
+
+        result = []
+        for zone in input:
+            if 'nodes' in zone:
+                for device in zone['nodes']:
+                    if device['addr'] not in ['1', 'WeatherData']:
+                        result.append(device)
+
+        return result
+
+    def  _extract_issues_from_zones(self, input) -> list:
+        """Extract Issues from /v3/zones JSON.
+
+        This extracts a list of Issues from a list of Zones.  Each Zone may have
+        multiple Issues.
+        """
+        _LOGGER.debug("_issues_from_zones(): input = %s", input)
+
+        result = []
+        for zone in input:
+            for issue in zone['lstIssues']:
+                issue.update({'zone_name': zone['strName']})                     # TODO: might better be an ID
+                result.append(issue)
+
+        return result
 
     async def update(self, force_refresh=False):
         """Update the Hub with its latest state data."""
@@ -440,7 +437,7 @@ class GeniusHub(GeniusObject):
         if self._api_v1:
             self._zones_raw = raw_json
         else:
-            self._zones_raw = _extract_zones_from_zones(raw_json['data'])
+            self._zones_raw = self. _extract_zones_from_zones(raw_json['data'])
 
         # self._zones_raw.sort(key=lambda s: int(s['id']))
 
@@ -471,13 +468,13 @@ class GeniusHub(GeniusObject):
             # WORKAROUND: There's a aiohttp.ServerDisconnectedError on 2nd HTTP
             # method (2nd GET v3/zones or GET v3/zones & get /data_manager) if
             # it is done the v1 way (above) for v3
-            self._devices_raw = _extract_devices_from_zones(self._zones_raw)
+            self._devices_raw = self. _extract_devices_from_zones(self._zones_raw)
         else:  # son = await self._request('GET', 'devices' if self._api_v1 else 'zones')
             raw_json = await self._request('GET', 'devices' if self._api_v1 else 'data_manager')
             if self._api_v1:
                 self._devices_raw = raw_json
-            else:  #._devices_raw = _extract_devices_from_zones(raw_json['data'])
-                self._devices_raw = _extract_devices_from_data_manager(raw_json['data'])
+            else:  #._devices_raw = self. _extract_devices_from_zones(raw_json['data'])
+                self._devices_raw = self. _extract_devices_from_data_manager(raw_json['data'])
 
         # self._get_devices.sort(key=lambda s: int(s['id']))
 
@@ -505,10 +502,10 @@ class GeniusHub(GeniusObject):
         if self._api_v1:
             self._issues_raw = await self._request('GET', 'issues')
         else:
-            self._issues_raw = _extract_issues_from_zones(self._zones_raw)
+            self._issues_raw = self. _extract_issues_from_zones(self._zones_raw)
 
-        _LOGGER.debug("Hub()._get_issues(): len(self._issues_raw) = %s", len(self._issues_raw))
-        _LOGGER.debug("Hub()._get_issues(): self._issues_raw[0]) = %s", self._issues_raw[0])
+        _LOGGER.info("Hub()._get_issues(): len(self._issues_raw) = %s", len(self._issues_raw))
+        _LOGGER.info("Hub()._get_issues(): self._issues_raw[0]) = %s", self._issues_raw[0])
         return self._issues_raw
 
     @property
@@ -637,12 +634,12 @@ class GeniusZone(GeniusObject):
         _LOGGER.error("Zone(%s).update(xx)", self.id)
 
         if self._api_v1:                                                         # TODO: this doesn't work for v3
-            _LOGGER.warn("Zone(%s).update(v1): type = %s", self.id, type(self))
+            _LOGGER.info("Zone(%s).update(v1): type = %s", self.id, type(self))
             url = 'zones/{}'
             data = await self._request("GET", url.format(self.id))
             self.__dict__.update(data)
         else:  # a WORKAROUND...
-            _LOGGER.warn("Zone(%s).update(v3): type = %s", self.id, type(self))
+            _LOGGER.info("Zone(%s).update(v3): type = %s", self.id, type(self))
             await self.hub.update()
 
 
@@ -677,12 +674,12 @@ class GeniusDevice(GeniusObject):
         _LOGGER.error("Device(%s).update(xx)", self.id)
 
         if self._api_v1:                                                         # TODO: this block doesn't work for v3
-            _LOGGER.warn("Device(%s).update(v1): type = %s",
+            _LOGGER.info("Device(%s).update(v1): type = %s",
                          self.id, type(self))
             url = 'devices/{}'
             data = await self._request("GET", url.format(self.id))
             self.__dict__.update(data)
         else:  # a WORKAROUND...
             await self.hub.update()
-            _LOGGER.warn("Device(%s).update(v3): type = %s",
+            _LOGGER.info("Device(%s).update(v3): type = %s",
                          self.id, type(self))

@@ -112,9 +112,9 @@ DESCRIPTION_TO_TEXT = {
     "manager:weather_data":
         "Weather data -",
     "zone:using_weather_temp":
-        "The {} zone is currently using the outside temperature",
+        "{} is currently using the outside temperature",                         # is correct
     "zone:using_assumed_temp":
-        "The {} zone is currently using the assumed temperature",
+        "{} is currently using the assumed temperature",
     "zone:tpi_no_temp":
-        "The {} zone has no valid temperature sensor",
+        "{} has no valid temperature sensor",
 }
