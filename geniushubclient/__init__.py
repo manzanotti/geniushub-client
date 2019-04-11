@@ -411,12 +411,10 @@ class GeniusHub(GeniusObject):
           v1/zones: id, name, type, mode, temperature, setpoint, occupied,
           override, schedule
         """
-        _LOGGER.debug("Hub().zones: len(self.zone_objs) = %s",
-                      len(self.zone_objs))
-
         self._zones = [self._convert_zone(z) for z in self._zones_raw]
 
-        _LOGGER.debug("Hub().zones: self._devices = %s", self._zones)
+        _LOGGER.debug("Hub().zones: len(self._devices) = %s",
+                      len(self._devices))
         return self._zones
 
     @property
@@ -451,12 +449,10 @@ class GeniusHub(GeniusObject):
           v1/devices/summary: id, type
           v1/devices: id, type, assignedZones, state
         """
-        _LOGGER.debug("Hub().devices: len(self.device_objs) = %s",
-                      len(self.device_objs))
-
         self._devices = [self._convert_device(d) for d in self._devices_raw]
 
-        _LOGGER.debug("Hub().devices: self._devices = %s", self._devices)
+        _LOGGER.debug("Hub().devices: len(self._devices) = %s",
+                      len(self._devices))
         return self._devices
 
     @property
