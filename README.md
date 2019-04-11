@@ -61,7 +61,7 @@ python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} zones -vvvv
 python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} devices -vvvv
 ```
 
-To obtain the actual v3API responses takes a little work.  First, use python to obtain a `HASH`:
+To obtain the actual v3 API responses takes a little work.  First, use python to obtain a `HASH`:
 ```python
 >>> from hashlib import sha256
 >>> hash = sha256()
