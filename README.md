@@ -53,6 +53,9 @@ python ghclient.py ${HUB_TOKEN} zones -vv
 
 curl -X GET https://my.geniushub.co.uk/v1/devices/summary -H "authorization: Bearer ${HUB_TOKEN}"
 python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} devices
+
+curl -X GET https://my.geniushub.co.uk/v1/issues -H "authorization: Bearer ${HUB_TOKEN}"
+python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} issues
 ```
 
 You can obtain the actual v3 API responses (i.e. the JSON is not converted to the v1 schema):
