@@ -128,8 +128,8 @@ class GeniusObject(object):
             result['occupied'] = u and d and not o
 
         if input['iType'] in [zone_types.OnOffTimer,
-                            zone_types.ControlSP,
-                            zone_types.TPI]:
+                              zone_types.ControlSP,
+                              zone_types.TPI]:
             result['override'] = {}
             result['override']['duration'] = input['iBoostTimeRemaining']
             if input['iType'] == zone_types.OnOffTimer:
@@ -246,7 +246,7 @@ class GeniusHub(GeniusObject):
 
         self._issues_raw = self._devices_raw = self._zones_raw = None
 
-    def  _extract_zones_from_zones(self, input) -> list:
+    def _extract_zones_from_zones(self, input) -> list:
         """Extract Zones from /v3/zones JSON.
 
         This extracts a list of Zones from a flat list of Zones.
@@ -255,7 +255,7 @@ class GeniusHub(GeniusObject):
 
         return input
 
-    def  _extract_devices_from_data_manager(self, input) -> list:
+    def _extract_devices_from_data_manager(self, input) -> list:
         """Extract Devices from /v3/data_manager JSON.
 
         This extracts a list of Devices from a nested list of Devices.  Each Zone
@@ -272,7 +272,7 @@ class GeniusHub(GeniusObject):
 
         return result
 
-    def  _extract_devices_from_zones(self, input) -> list:
+    def _extract_devices_from_zones(self, input) -> list:
         """Extract Devices from /v3/zones JSON.
 
         This extracts a list of Devices from a list of Zones.  Each Zone may have
@@ -289,7 +289,7 @@ class GeniusHub(GeniusObject):
 
         return result
 
-    def  _extract_issues_from_zones(self, input) -> list:
+    def _extract_issues_from_zones(self, input) -> list:
         """Extract Issues from /v3/zones JSON.
 
         This extracts a list of Issues from a list of Zones.  Each Zone may have
@@ -385,7 +385,7 @@ class GeniusHub(GeniusObject):
             hub = self  # for now, only Hubs invoke this method
 
             _LOGGER.debug("Found an Issue (hub=%s, zone=%s, issue=%s)",
-                            hub.id, "TBD", issue)
+                          hub.id, "TBD", issue)
 
             return issue_dict['description'], None
 
@@ -477,7 +477,7 @@ class GeniusHub(GeniusObject):
             raw_json = await self._request('GET', 'devices' if self._api_v1 else 'data_manager')
             if self._api_v1:
                 self._devices_raw = raw_json
-            else:  #._devices_raw = self. _extract_devices_from_zones(raw_json['data'])
+            else:  # _devices_raw = self. _extract_devices_from_zones(raw_json['data'])
                 self._devices_raw = self. _extract_devices_from_data_manager(raw_json['data'])
 
         # self._get_devices.sort(key=lambda s: int(s['id']))
@@ -520,7 +520,7 @@ class GeniusHub(GeniusObject):
         """
 
         if self._api_v1:
-             self._issues = self._issues_raw
+            self._issues = self._issues_raw
         else:
             self._issues = [self._convert_issue(d) for d in self._issues_raw]
 
@@ -532,7 +532,7 @@ class GeniusHub(GeniusObject):
 class GeniusZone(GeniusObject):
     def __init__(self, client, zone_dict, hub):
         _LOGGER.info("GeniusZone(hub=%s, zone['id]=%s)",
-                      hub.id, zone_dict['id'])
+                     hub.id, zone_dict['id'])
         super().__init__(client, zone_dict, hub=hub)
 
         self._info = {}
@@ -558,7 +558,7 @@ class GeniusZone(GeniusObject):
 
           This is a v1 API: GET /zones/{zoneId}devices
         """
-        self._devices = [self._convert_device(d) \
+        self._devices = [self._convert_device(d)
             for d in self._devices_raw if d['assignedZone'] == self.name]
 
         # self._devices = []
@@ -568,17 +568,6 @@ class GeniusZone(GeniusObject):
         _LOGGER.debug("Zone(%s).devices: len(self._devices) = %s",
                       self.id, len(self._devices))
         return self._devices
-
-    @property
-    async def OUT_get_issues(self) -> list:                                      # TODO: delete me
-        """Return a list (of dicts) of devices included in the zone."""
-        # url = 'issues' if self._api_v1 else 'zones'
-        raw_json = await self._request("GET", 'issues')
-
-        self._issues = raw_json if self._api_v1 else _convert_issue(raw_json)
-
-        _LOGGER.info("GeniusHub.issues = %s", self._issues)
-        return raw_json if self._client._verbose else self._issues
 
     @property
     def issues(self) -> list:
@@ -595,43 +584,41 @@ class GeniusZone(GeniusObject):
 
           mode is in {'off', 'timer', footprint', 'override'}
         """
-        _LOGGER.debug("set_mode(%s): mode=%s", self.id, mode)
+        _LOGGER.warn("set_mode(%s): mode=%s", self.id, mode)
 
         if self._api_v1:
             url = 'zones/{}/mode'
             await self._request("PUT", url.format(self.id), data=mode)
         else:
-            # 'off'       'data': {'iMode': 1}}
-            # 'footprint' 'data': {'iMode': 4}}
-            # 'timer'     'data': {'iMode': 2}}
+            # off:       {'iMode': 1}}
+            # footprint: {'iMode': 4}}
+            # timer:     {'iMode': 2}}
             url = 'zone/{}'
             data = {'iMode': mode}
             await self._request("PATCH", url.format(self.id), data=data)
 
-        _LOGGER.debug("set_mode(%s): done.", self.id)                            # TODO: remove this line
+        _LOGGER.warn("set_mode(%s): done.", self.id)                            # TODO: remove this line
 
-    async def set_override(self, duration, setpoint):
+    async def set_override(self, setpoint, duration=3600):
         """Set the zone to override to a certain temperature.
 
           duration is in seconds
           setpoint is in degrees Celsius
         """
-        _LOGGER.debug(
-            "set_override_temp(%s): duration=%s, setpoint=%s", self.id, duration, setpoint)
+        _LOGGER.warn(
+            "set_override_temp(%s): setpoint=%s, duration=%s", self.id, duration, setpoint)
 
         if self._api_v1:
             url = 'zones/{}/override'
             data = {'duration': duration, 'setpoint': setpoint}
             await self._request("POST", url.format(self.id), data=data)
         else:
-            # 'override'  'data': {'iMode': 16, 'iBoostTimeRemaining': 3600, 'fBoostSP': temp}}
+            # override: {'iMode': 16, 'fBoostSP': setpoint, 'iBoostTimeRemaining': 3600}
             url = 'zone/{}'
-            data = {'iMode': 16,
-                    'iBoostTimeRemaining': duration,
-                    'fBoostSP': setpoint}
+            data = {'iMode': 16, 'fBoostSP': setpoint, 'iBoostTimeRemaining': duration}
             await self._request("PATCH", url.format(self.id), data=data)
 
-        _LOGGER.debug("set_override_temp(%s): done.", self.id)                   # TODO: remove this line
+        _LOGGER.warn("set_override_temp(%s): done.", self.id)                   # TODO: remove this line
 
     async def update(self):
         """Update the Zone with its latest state data."""
@@ -650,7 +637,7 @@ class GeniusZone(GeniusObject):
 class GeniusDevice(GeniusObject):
     def __init__(self, client, device_dict, hub, zone=None):
         _LOGGER.info("GeniusZone(hub=%s, zone=%s,device['id']=%s)",
-                      hub.id, zone, device_dict['id'])
+                     hub.id, zone, device_dict['id'])
         super().__init__(client, device_dict, hub=hub, assignedZone=zone)
 
         self._info = {}
@@ -679,11 +666,11 @@ class GeniusDevice(GeniusObject):
 
         if self._api_v1:                                                         # TODO: confirm this works for v1
             _LOGGER.debug("Device(%s).update(v1): type = %s",
-                         self.id, type(self))
+                          self.id, type(self))
             url = 'devices/{}'
             data = await self._request("GET", url.format(self.id))
             self.__dict__.update(data)
         else:  # a WORKAROUND...
             await self.hub.update()
             _LOGGER.debug("Device(%s).update(v3): type = %s",
-                         self.id, type(self))
+                          self.id, type(self))
