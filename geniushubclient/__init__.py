@@ -190,12 +190,16 @@ class GeniusObject(object):
         if raw_dict['iFlagExpectedKit'] & KIT_TYPES.PIR:
             # = parseInt(i.iMode) === e.zoneModes.Mode_Footprint
             u = raw_dict['iMode'] == ZONE_MODES.Footprint
+
             # = null != (s = i.zoneReactive) ? s.bTriggerOn : void 0,
             d = raw_dict['objFootprint']['objReactive']['bTriggerOn']
+
             # = parseInt(i.iActivity) || 0,
             # c = raw_dict['iActivity'] | 0
+
             # o = t.isInFootprintNightMode(i)
             o = raw_dict['objFootprint']['bIsNight']
+
             # u && l && d && !o ? True : False
             result['occupied'] = u and d and not o
 
@@ -264,7 +268,8 @@ class GeniusObject(object):
         }.get(method)
 
         try:
-            _LOGGER.warning("_request(): 1st try: %s %s %s", method, url, data)
+            _LOGGER.debug("_request(): 1st try: method=%s url=%s data=%s",
+                          method, url, data)
             async with http_method(
                 self._client._url_base + url,
                 json=data,
@@ -281,9 +286,9 @@ class GeniusObject(object):
             return response
 
         except aiohttp.client_exceptions.ServerDisconnectedError as err:
-            _LOGGER.warning(
-                "_request(): 2nd try: %s %s %s - as ServerDisconnected. "
-                "Message was: %s", method, url, data, err)
+            _LOGGER.warning("_request(): 2nd try: method=%s url=%s data=%s. "
+                            "Exception was: ServerDisconnected, message: %s",
+                            method, url, data, err)
             _session = aiohttp.ClientSession()
             async with http_method(
                 self._client._url_base + url,
@@ -607,13 +612,15 @@ class GeniusZone(GeniusObject):
         """
         # TODO: device-specific logic to prevent placing into an invalid mode
         # TODO: e.g. zones only support footprint if they have a PIR
-        SUPPORTED_IMODES = [ZONE_MODES.Off, ZONE_MODES.Timer,
-                            ZONE_MODES.Footprint, ZONE_MODES.Override]
-        SUPPORTED_MODES = ['off', 'footprint', 'override', 'timer']
+        ALLOWED_MODES = [ZONE_MODES.Off, ZONE_MODES.Override, ZONE_MODES.Timer]
+        ALLOWED_MODE_STRS = [IMODE_TO_MODE[i] for i in ALLOWED_MODES]
 
-        if isinstance(mode, int) and mode in SUPPORTED_IMODES:
+        if hasattr(self, 'occupied'):
+            ALLOWED_IMODES += [ZONE_MODES.Footprint]
+
+        if isinstance(mode, int) and mode in ALLOWED_MODES:
             mode_str = IMODE_TO_MODE[mode]
-        elif isinstance(mode, str) and mode in SUPPORTED_MODES:
+        elif isinstance(mode, str) and mode in ALLOWED_MODE_STRS:
             mode_str = mode
             mode = MODE_TO_IMODE[mode_str]
         else:
