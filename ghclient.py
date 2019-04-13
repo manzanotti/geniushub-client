@@ -89,28 +89,24 @@ async def main(loop):
                              session=session)
 
     hub = client.hub
-    await hub.update()  # enumerate tall zones, and and all devices
+    await hub.update()  # enumerate all zones and devices
     # print(await hub.zones)
     # print(await hub.devices)
     # return
 
     if args[ZONE_ID]:
         try:  # is zone_is a Int or a Str?
-            zone_id = int(args[ZONE_ID])
+            key = int(args[ZONE_ID])
         except ValueError:  # it's a Str
             key = args[ZONE_ID]
             find_zone_by_key = hub.zone_by_name
         else: # it's an Int
-            key = int(args[ZONE_ID])  # Zone IDs are Ints, not Strs
             find_zone_by_key = hub.zone_by_id
 
         try:  # does this zone exist?
             zone = find_zone_by_key[key]
         except KeyError:  #  no, Zone ID not found
             raise  # TODO:
-
-        # print(await zone.devices)
-        # return
 
         if args[ISSUES]:
             print(await zone.issues)
@@ -138,7 +134,11 @@ async def main(loop):
             print("Sorry: not implemented yet.")
 
         else:  # as per args[INFO]
-            print(zone.info)
+            if args[VERBOSE] > 2:
+                print(dir(zone))
+                print(zone._dict_raw)
+            else:
+                print(zone.info)
 
     elif args[DEVICE_ID]:
         key = args[DEVICE_ID]  # Zone IDs are Strs, not Ints
