@@ -278,7 +278,7 @@ class GeniusObject(object):
                 timeout=self._client._timeout
             ) as resp:
                 assert resp.status == HTTP_OK
-                response = await resp.json()
+                response = await resp.json(content_type=None)
             if method != 'GET':
                 _LOGGER.debug(
                     "_request(method=%s, url=%s, data=%s): response: %s",
@@ -298,7 +298,7 @@ class GeniusObject(object):
                 timeout=self._client._timeout
             ) as resp:
                 assert resp.status == HTTP_OK
-                response = await resp.json()
+                response = await resp.json(content_type=None)
             if method != 'GET':
                 _LOGGER.debug(
                     "_request(method=%s, url=%s, data=%s): response: %s",
@@ -642,7 +642,8 @@ class GeniusZone(GeniusObject):
             resp = await self._request("PATCH", url.format(self.id),
                                        data={'iMode': mode})
 
-        resp = resp['data'] if resp['error'] == 0 else resp
+        if resp:  # for v1, resp = None?
+            resp = resp['data'] if resp['error'] == 0 else resp
         _LOGGER.debug("set_mode(%s): done, response = %s", self.id, resp)
 
     async def set_override(self, setpoint=None, duration=3600):
@@ -667,7 +668,8 @@ class GeniusZone(GeniusObject):
                     'iBoostTimeRemaining': duration}
             resp = await self._request("PATCH", url.format(self.id), data=data)
 
-        resp = resp['data'] if resp['error'] == 0 else resp
+        if resp:  # for v1, resp = None?
+            resp = resp['data'] if resp['error'] == 0 else resp
         _LOGGER.debug(
             "set_override_temp(%s): done, response = %s", self.id, resp)
 
