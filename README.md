@@ -5,7 +5,7 @@ This library can use either the **_offical_ v1 API** with a [hub token](https://
 
 If you use the v3 API, you can interrogate the hub directly, rather than via Heat Genius' servers. Note that the v3 API is undocumented, and so this functionality may break at any time.
 
-It is a WIP, and is missing some fuctionality (e.g. schedules).
+It is a WIP, and is missing some functionality (e.g. schedules). In addition, there are some other limitations (see below).
 
 It is based upon work by @GeoffAtHome - thanks!
 
