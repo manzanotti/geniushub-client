@@ -15,7 +15,6 @@ API_STATUS_ERROR = {
     502: "The hub is offline.",
     503: "The authorization information is invalid.",
 }
-
 zone_types = SimpleNamespace(
     Manager=1,
     OnOffTimer=2,
@@ -69,7 +68,6 @@ zone_flags = SimpleNamespace(
     Temps=1024,
     TPI=2048
 )
-
 ITYPE_TO_TYPE = {
     zone_types.Manager: 'manager',
     zone_types.OnOffTimer: 'on / off',
@@ -78,6 +76,8 @@ ITYPE_TO_TYPE = {
     zone_types.TPI: 'hot water temperature',
     zone_types.Surrogate: 'type 6',
 }  # also: 'group', 'wet underfloor'
+TYPE_TO_ITYPE = {v: k for k, v in ITYPE_TO_TYPE.items()}
+
 IMODE_TO_MODE = {
     zone_modes.Off: 'off',
     zone_modes.Timer: 'timer',
@@ -89,6 +89,8 @@ IMODE_TO_MODE = {
     zone_modes.Linked: 'linked',
     zone_modes.Other: 'other'
 }
+MODE_TO_IMODE = {v: k for k, v in IMODE_TO_MODE.items()}
+
 LEVEL_TO_TEXT = {
     0: 'error',
     1: 'warning',
