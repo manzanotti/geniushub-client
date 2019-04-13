@@ -15,7 +15,7 @@ API_STATUS_ERROR = {
     502: "The hub is offline.",
     503: "The authorization information is invalid.",
 }
-zone_types = SimpleNamespace(
+ZONE_TYPES = SimpleNamespace(
     Manager=1,
     OnOffTimer=2,
     ControlSP=3,
@@ -30,7 +30,7 @@ zone_types = SimpleNamespace(
 # 5 "Hot Water Temperature" OR "Wet Underfloor"
 # 6 "Group"
 
-zone_modes = SimpleNamespace(
+ZONE_MODES = SimpleNamespace(
     Off=1,
     Timer=2,
     Footprint=4,
@@ -42,7 +42,7 @@ zone_modes = SimpleNamespace(
     Linked=128,
     Other=256
 )
-kit_types = SimpleNamespace(
+KIT_TYPES = SimpleNamespace(
     Temp=1,
     Valve=2,
     PIR=4,
@@ -54,7 +54,7 @@ kit_types = SimpleNamespace(
     Humidity=256,
     Luminance=512
 )
-zone_flags = SimpleNamespace(
+ZONE_FLAGS = SimpleNamespace(
     Frost=1,
     Timer=2,
     Footprint=4,
@@ -69,25 +69,25 @@ zone_flags = SimpleNamespace(
     TPI=2048
 )
 ITYPE_TO_TYPE = {
-    zone_types.Manager: 'manager',
-    zone_types.OnOffTimer: 'on / off',
-    zone_types.ControlSP: 'radiator',
-    zone_types.ControlOnOffPID: 'type 4',
-    zone_types.TPI: 'hot water temperature',
-    zone_types.Surrogate: 'type 6',
+    ZONE_TYPES.Manager: 'manager',
+    ZONE_TYPES.OnOffTimer: 'on / off',
+    ZONE_TYPES.ControlSP: 'radiator',
+    ZONE_TYPES.ControlOnOffPID: 'type 4',
+    ZONE_TYPES.TPI: 'hot water temperature',
+    ZONE_TYPES.Surrogate: 'type 6',
 }  # also: 'group', 'wet underfloor'
 TYPE_TO_ITYPE = {v: k for k, v in ITYPE_TO_TYPE.items()}
 
 IMODE_TO_MODE = {
-    zone_modes.Off: 'off',
-    zone_modes.Timer: 'timer',
-    zone_modes.Footprint: 'footprint',
-    zone_modes.Away: 'away',
-    zone_modes.Boost: 'override',
-    zone_modes.Early: 'early',
-    zone_modes.Test: 'test',
-    zone_modes.Linked: 'linked',
-    zone_modes.Other: 'other'
+    ZONE_MODES.Off: 'off',
+    ZONE_MODES.Timer: 'timer',
+    ZONE_MODES.Footprint: 'footprint',
+    ZONE_MODES.Away: 'away',
+    ZONE_MODES.Boost: 'override',
+    ZONE_MODES.Early: 'early',
+    ZONE_MODES.Test: 'test',
+    ZONE_MODES.Linked: 'linked',
+    ZONE_MODES.Other: 'other'
 }
 MODE_TO_IMODE = {v: k for k, v in IMODE_TO_MODE.items()}
 
