@@ -1,19 +1,23 @@
 # geniushub-client
-This is a Python library to provide access to a **Genius Hub** via its [RESTful API](https://my.geniushub.co.uk/docs). It uses **aiohttp** and is therefore asyncio-friendly.
+This is a Python library to provide access to a **Genius Hub** via its [RESTful API](https://my.geniushub.co.uk/docs). It uses **aiohttp** and is therefore async-friendly.
 
 This library can use either the **_offical_ v1 API** with a [hub token](https://my.geniushub.co.uk/tokens), or the **_latest_ v3 API** (using your own [username and password](https://www.geniushub.co.uk/app)). In either case, the library will return v1-compatible results wherever possible (this is not a trivial task).
 
 If you use the v3 API, you can interrogate the hub directly, rather than via Heat Genius' servers. Note that the v3 API is undocumented, and so this functionality may break at any time.
 
-It is a WIP, and is currently read-only (e.g. you can't change the mode of a zone).
+It is a WIP, and is missing some fuctionality (e.g. schedules).
 
 It is based upon work by @GeoffAtHome - thanks!
 
 ## Current limitations
-Current limitations & to-dos.
- - `ghclient.py` is not complete
- - v3 zones have no schedule
- - some v3 devices have a Null type
+Current limitations & to-dos include:
+ - **ghclient.py** is not complete
+ - schedules can't be modified, and...
+ - for v3, all zones have a empty schedule
+ - for v3, some devices have a Null type
+ - for v3, the dual-channel controller is missing
+ - for v3, some zones can be set to `footprint` mode, even if they don't have a PIR
+ - for v3, some zones have the wrong value for `occupied`
 
 ## Installation
 Either clone this repository and run `python setup.py install`, or install from pip using `pip install geniushub-client`.
