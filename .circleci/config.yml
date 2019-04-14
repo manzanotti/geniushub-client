@@ -64,7 +64,7 @@ jobs:
           name: Diff Test 0
           no_output_timeout: 30
           command: |
-            diff v1.json v2.json > Test-0.txt
+            diff v1.json v2.json
 
       - run:
           name: cURL v1/Zones/Summary
@@ -78,13 +78,13 @@ jobs:
           name: Diff Test 1
           no_output_timeout: 30
           command: |
-            diff v1.json curl.json > Test-1.txt
+            diff v1.json curl.json
 
       - run:
           name: Diff Test 2
           no_output_timeout: 30
           command: |
-            diff v2.json curl.json > Test-2.txt
+            diff v2.json curl.json
 
       - store_artifacts:
           path: test-reports
