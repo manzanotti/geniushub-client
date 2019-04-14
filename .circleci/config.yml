@@ -50,7 +50,7 @@ jobs:
           command: |
             . venv/bin/activate
             python ghclient.py ${HUB_TOKEN} zones | \
-                python -c "import sys, json; print(json.load(sys.stdin))" > v1.json
+                python -c "import sys, json; print(json.load(sys.stdin))" > /tmp/reports/v1.json
             
       - run:
           name: Test v3/Zones/Summary
@@ -58,35 +58,10 @@ jobs:
           command: |
             . venv/bin/activate
             python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} zones | \
-                python -c "import sys, json; print(json.load(sys.stdin))" > v3.json
+                python -c "import sys, json; print(json.load(sys.stdin))" > /tmp/reports/v3.json
 
       - run:
           name: Diff Test 0
           no_output_timeout: 30
           command: |
-            diff v1.json v2.json
-
-      - run:
-          name: cURL v1/Zones/Summary
-          no_output_timeout: 300
-          command: |
-            . venv/bin/activate
-            curl -X GET https://my.geniushub.co.uk/v1/zones/summary -H "authorization: Bearer ${HUB_TOKEN}" | \
-                python -c "import sys, json; print(json.load(sys.stdin))" > curl.json
-
-      - run:
-          name: Diff Test 1
-          no_output_timeout: 30
-          command: |
-            diff v1.json curl.json
-
-      - run:
-          name: Diff Test 2
-          no_output_timeout: 30
-          command: |
-            diff v2.json curl.json
-
-      - store_artifacts:
-          path: test-reports
-          destination: test-reports
-
+            diff /tmp/reports/v1.json v2.json
