@@ -48,6 +48,7 @@ Examples:
 """
 
 import asyncio
+import json
 import logging
 
 import aiohttp
@@ -169,9 +170,13 @@ async def main(loop):
                 if args[VERBOSE] > 1:  # same as /v1/zones
                     keys += ['schedule']
 
-                for zone in sorted(hub.zones, key=lambda k: k['id']):
-                    # display only the wanted keys
-                    print({k: zone[k] for k in keys if k in zone})
+                # for zone in sorted(hub.zones, key=lambda k: k['id']):
+                #     # display only the wanted keys
+                #     print({k: zone[k] for k in keys if k in zone})
+
+                result = [{k: zone[k] for k in keys if k in zone}
+                             for zone in hub.zones]
+                print(json.dumps(result))
 
         elif args[DEVICES]:
             if args[VERBOSE] > 2:

@@ -17,6 +17,10 @@ jobs:
 
     working_directory: ~/repo
 
+    environment:
+      # TEST_RESULTS=/tmp/test-results; mkdir -p ${TEST_RESULTS}
+      TEST_RESULTS: /tmp/test-results
+
     steps:
       - checkout
 
@@ -44,33 +48,57 @@ jobs:
       # other common Python testing frameworks include pytest and nose
       # https://pytest.org
       # https://nose.readthedocs.io
+
+      - run: mkdir -p $TEST_RESULTS
+
       - run:
-          name: Test v1/Zones/Summary
+          name: ghclient v1/Zones/Summary
           no_output_timeout: 300
           command: |
             . venv/bin/activate
             python ghclient.py ${HUB_TOKEN} zones | \
-                python -c "import sys, json; print(json.load(sys.stdin))" > reports/v1.json
-            
-      - run:
-          name: Setup Testbed
-          no_output_timeout: 30
-          command: |
-            mkdir -p reports
+                python -c "import sys, json; print(json.load(sys.stdin))" > ${TEST_RESULTS}/v1.json
 
       - run:
-          name: Test v3/Zones/Summary
+          name: ghclient v3/Zones/Summary
           no_output_timeout: 120
           command: |
             . venv/bin/activate
             python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} zones | \
-                python -c "import sys, json; print(json.load(sys.stdin))" > reports/v3.json
+                python -c "import sys, json; print(json.load(sys.stdin))" > ${TEST_RESULTS}/v3.json
 
       - run:
-          name: Diff Test 0
+          name: Diff Test v1 Vs V2
           no_output_timeout: 30
           command: |
-            diff reports/v1.json reports/v2.json
+            echo diff -s ${TEST_RESULTS}/v1.json ${TEST_RESULTS}/v3.json >> ${TEST_RESULTS}/test-results.txt
+                 diff -s ${TEST_RESULTS}/v1.json ${TEST_RESULTS}/v3.json >> ${TEST_RESULTS}/test-results.txt
+            echo                                                         >> ${TEST_RESULTS}/test-results.txt
 
-       - store_artifacts:
-           path: reports
+      - run:
+          name: cURL v1/Zones/Summary
+          no_output_timeout: 300
+          command: |
+            . venv/bin/activate
+            curl -X GET https://my.geniushub.co.uk/v1/zones/summary -H "authorization: Bearer ${HUB_TOKEN}" | \
+                python -c "import sys, json; print(json.load(sys.stdin))" > ${TEST_RESULTS}/curl.json
+
+      - run:
+          name: Diff Test v1 Vs cURL
+          no_output_timeout: 30
+          command: |
+            echo diff -s ${TEST_RESULTS}/v1.json ${TEST_RESULTS}/curl.json >> ${TEST_RESULTS}/test-results.txt
+                 diff -s ${TEST_RESULTS}/v1.json ${TEST_RESULTS}/curl.json >> ${TEST_RESULTS}/test-results.txt
+            echo                                                           >> ${TEST_RESULTS}/test-results.txt
+
+      - run:
+          name: Diff Test v3 Vs cURL
+          no_output_timeout: 30
+          command: |
+            echo diff -s ${TEST_RESULTS}/v3.json ${TEST_RESULTS}/curl.json >> ${TEST_RESULTS}/test-results.txt
+                 diff -s ${TEST_RESULTS}/v3.json ${TEST_RESULTS}/curl.json >> ${TEST_RESULTS}/test-results.txt
+            echo                                                           >> ${TEST_RESULTS}/test-results.txt
+
+      - store_artifacts:
+          path: /tmp/test-results
+          # destination: test-reports
