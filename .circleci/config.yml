@@ -53,6 +53,12 @@ jobs:
                 python -c "import sys, json; print(json.load(sys.stdin))" > /tmp/reports/v1.json
             
       - run:
+          name: Setup Testbed
+          no_output_timeout: 30
+          command: |
+            mkdir -p /tmp/reports
+
+      - run:
           name: Test v3/Zones/Summary
           no_output_timeout: 120
           command: |
