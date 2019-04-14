@@ -45,11 +45,15 @@ jobs:
       # https://pytest.org
       # https://nose.readthedocs.io
       - run:
-          name: run tests
+          name: Test Zones/Summary
+          no_output_timeout: 2
           command: |
-            # . venv/bin/activate
-            echo username is ${USERNAME} >> test-reports
-            curl -X GET https://my.geniushub.co.uk/v1/version -H "authorization: Bearer ${YOUR_TOKEN}"
+            . venv/bin/activate
+            curl -X GET https://my.geniushub.co.uk/v1/zones/summary -H "authorization: Bearer ${HUB_TOKEN}" -o curl.json
+            python ghclient.py ${HUB_TOKEN} zones                                                            >   v1.json
+            python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} zones                            >   v2.json
+            diff v1.json curl.json  > test-reports
+            diff v1.json   v2.json >> test-reports
 
       - store_artifacts:
           path: test-reports
