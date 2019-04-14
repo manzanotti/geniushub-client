@@ -45,15 +45,46 @@ jobs:
       # https://pytest.org
       # https://nose.readthedocs.io
       - run:
-          name: Test Zones/Summary
+          name: Test v1/Zones/Summary
           no_output_timeout: 300
           command: |
             . venv/bin/activate
-            curl -X GET https://my.geniushub.co.uk/v1/zones/summary -H "authorization: Bearer ${HUB_TOKEN}"                     -o curl.json
-            python ghclient.py ${HUB_TOKEN} zones                                 | sed -e s/\'/\"/g -e 's/: /:/g' -e 's/, /,/g' >   v1.json
-            python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} zones | sed -e s/\'/\"/g -e 's/: /:/g' -e 's/, /,/g' >   v2.json
-            diff v1.json curl.json  > test-reports
-            diff v1.json   v2.json >> reports2
+            python ghclient.py ${HUB_TOKEN} zones | \
+                python -c "import sys, json; print(json.load(sys.stdin))" > v1.json
+            
+      - run:
+          name: Test v3/Zones/Summary
+          no_output_timeout: 120
+          command: |
+            . venv/bin/activate
+            python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} zones | \
+                python -c "import sys, json; print(json.load(sys.stdin))" > v3.json
+
+      - run:
+          name: Diff Test 0
+          no_output_timeout: 30
+          command: |
+            diff v1.json v2.json > Test-0.txt
+
+      - run:
+          name: cURL v1/Zones/Summary
+          no_output_timeout: 300
+          command: |
+            . venv/bin/activate
+            curl -X GET https://my.geniushub.co.uk/v1/zones/summary -H "authorization: Bearer ${HUB_TOKEN}" | \
+                python -c "import sys, json; print(json.load(sys.stdin))" > curl.json
+
+      - run:
+          name: Diff Test 1
+          no_output_timeout: 30
+          command: |
+            diff v1.json curl.json > Test-1.txt
+
+      - run:
+          name: Diff Test 2
+          no_output_timeout: 30
+          command: |
+            diff v2.json curl.json > Test-2.txt
 
       - store_artifacts:
           path: test-reports
