@@ -50,6 +50,7 @@ Examples:
 import asyncio
 import json
 import logging
+import re
 
 import aiohttp
 from docopt import docopt
@@ -78,6 +79,12 @@ VERBOSE = '-v'
 async def main(loop):
     """Return the JSON as requested."""
     _LOGGER.debug("main()")
+
+    def natural_sort(dict_list, dict_key):
+        convert = lambda text: int(text) if text.isdigit() else text.lower()
+        alphanum_key = lambda key: [ convert(c)
+            for c in re.split('([0-9]+)', key[dict_key]) ]
+        return sorted(dict_list, key = alphanum_key)
 
     args = docopt(__doc__)
     # print(args)
@@ -174,8 +181,10 @@ async def main(loop):
                 #     # display only the wanted keys
                 #     print({k: zone[k] for k in keys if k in zone})
 
+                zones = sorted(hub.zones, key=lambda k: k['id'])
+
                 result = [{k: zone[k] for k in keys if k in zone}
-                             for zone in hub.zones]
+                    for zone in zones]
                 print(json.dumps(result))
 
         elif args[DEVICES]:
@@ -188,13 +197,9 @@ async def main(loop):
                 if args[VERBOSE] > 1:  # same as /v1/devices
                     keys += ['state']
 
-                # for device in sorted(hub.devices, key=lambda k: k['id']):
-                #     # display only the wanted keys
-                #     print({k: device[k] for k in keys if k in device})
-
-                result = [{k: device[k] for k in keys if k in device}
-                             for device in hub.devices]
-                print(json.dumps(result))
+                devices = natural_sort(hub.devices, 'id')
+                devices = [{k: d[k] for k in keys if k in d} for d in devices]
+                print(json.dumps(devices))
 
         elif args[REBOOT]:
             # await hub.reboot()
