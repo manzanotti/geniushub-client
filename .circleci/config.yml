@@ -71,3 +71,6 @@ jobs:
           no_output_timeout: 30
           command: |
             diff reports/v1.json reports/v2.json
+
+       - store_artifacts:
+           path: reports
