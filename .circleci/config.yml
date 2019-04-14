@@ -19,7 +19,7 @@ jobs:
 
     environment:
       # TEST_RESULTS=/tmp/test-results; mkdir -p ${TEST_RESULTS}
-      TEST_RESULTS: /tmp/test-results/zones
+      TEST_RESULTS: /tmp/test-results
 
     steps:
       - checkout
@@ -52,12 +52,20 @@ jobs:
       - run: mkdir -p $TEST_RESULTS
 
       - run:
+          name: cURL v1/Zones/Summary
+          no_output_timeout: 300
+          command: |
+            . venv/bin/activate
+            curl -X GET https://my.geniushub.co.uk/v1/zones/summary -H "authorization: Bearer ${HUB_TOKEN}" | \
+                python -c "import sys, json; print(json.load(sys.stdin))" > ${TEST_RESULTS}/zones_curl.json
+
+      - run:
           name: ghclient v1/Zones/Summary
           no_output_timeout: 300
           command: |
             . venv/bin/activate
             python ghclient.py ${HUB_TOKEN} zones | \
-                python -c "import sys, json; print(json.load(sys.stdin))" > ${TEST_RESULTS}/v1.json
+                python -c "import sys, json; print(json.load(sys.stdin))" > ${TEST_RESULTS}/zones_v1.json
 
       - run:
           name: ghclient v3/Zones/Summary
@@ -65,39 +73,31 @@ jobs:
           command: |
             . venv/bin/activate
             python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} zones | \
-                python -c "import sys, json; print(json.load(sys.stdin))" > ${TEST_RESULTS}/v3.json
+                python -c "import sys, json; print(json.load(sys.stdin))" > ${TEST_RESULTS}/zones_v3.json
 
       - run:
-          name: Diff Test v1 Vs V2
+          name: Diff Zones v1 Vs cURL
           no_output_timeout: 30
           command: |
-            echo diff -s ${TEST_RESULTS}/v1.json ${TEST_RESULTS}/v3.json >> ${TEST_RESULTS}/test-results.txt
-                 diff -s ${TEST_RESULTS}/v1.json ${TEST_RESULTS}/v3.json >> ${TEST_RESULTS}/test-results.txt
-            echo                                                         >> ${TEST_RESULTS}/test-results.txt
+            echo diff -s ${TEST_RESULTS}/zones_v1.json ${TEST_RESULTS}/zones_curl.json >> ${TEST_RESULTS}/test-results.txt
+                 diff -s ${TEST_RESULTS}/zones_v1.json ${TEST_RESULTS}/zones_curl.json >> ${TEST_RESULTS}/test-results.txt
+            echo                                                                       >> ${TEST_RESULTS}/test-results.txt
 
       - run:
-          name: cURL v1/Zones/Summary
+          name: Diff Zones v1 Vs v3
+          no_output_timeout: 30
+          command: |
+            echo diff -s ${TEST_RESULTS}/zones_v1.json ${TEST_RESULTS}/zones_v3.json >> ${TEST_RESULTS}/test-results.txt
+                 diff -s ${TEST_RESULTS}/zones_v1.json ${TEST_RESULTS}/zones_v3.json >> ${TEST_RESULTS}/test-results.txt
+            echo                                                                     >> ${TEST_RESULTS}/test-results.txt
+
+      - run:
+          name: cURL v1/Devices/Summary
           no_output_timeout: 300
           command: |
             . venv/bin/activate
-            curl -X GET https://my.geniushub.co.uk/v1/zones/summary -H "authorization: Bearer ${HUB_TOKEN}" | \
-                python -c "import sys, json; print(json.load(sys.stdin))" > ${TEST_RESULTS}/curl.json
-
-      - run:
-          name: Diff Test v1 Vs cURL
-          no_output_timeout: 30
-          command: |
-            echo diff -s ${TEST_RESULTS}/v1.json ${TEST_RESULTS}/curl.json >> ${TEST_RESULTS}/test-results.txt
-                 diff -s ${TEST_RESULTS}/v1.json ${TEST_RESULTS}/curl.json >> ${TEST_RESULTS}/test-results.txt
-            echo                                                           >> ${TEST_RESULTS}/test-results.txt
-
-      - run:
-          name: Diff Test v3 Vs cURL
-          no_output_timeout: 30
-          command: |
-            echo diff -s ${TEST_RESULTS}/v3.json ${TEST_RESULTS}/curl.json >> ${TEST_RESULTS}/test-results.txt
-                 diff -s ${TEST_RESULTS}/v3.json ${TEST_RESULTS}/curl.json >> ${TEST_RESULTS}/test-results.txt
-            echo                                                           >> ${TEST_RESULTS}/test-results.txt
+            curl -X GET https://my.geniushub.co.uk/v1/devices/summary -H "authorization: Bearer ${HUB_TOKEN}" | \
+                python -c "import sys, json; print(json.load(sys.stdin))" > ${TEST_RESULTS}/devices_curl.json
 
       - run:
           name: ghclient v1/Devices/Summary
@@ -116,22 +116,6 @@ jobs:
                 python -c "import sys, json; print(json.load(sys.stdin))" > ${TEST_RESULTS}/devices_v3.json
 
       - run:
-          name: Diff Devices v1 Vs V2
-          no_output_timeout: 30
-          command: |
-            echo diff -s ${TEST_RESULTS}/devices_v1.json ${TEST_RESULTS}/devices_v3.json >> ${TEST_RESULTS}/test-results.txt
-                 diff -s ${TEST_RESULTS}/devices_v1.json ${TEST_RESULTS}/devices_v3.json >> ${TEST_RESULTS}/test-results.txt
-            echo                                                                         >> ${TEST_RESULTS}/test-results.txt
-
-      - run:
-          name: cURL v1/Devices/Summary
-          no_output_timeout: 300
-          command: |
-            . venv/bin/activate
-            curl -X GET https://my.geniushub.co.uk/v1/devices/summary -H "authorization: Bearer ${HUB_TOKEN}" | \
-                python -c "import sys, json; print(json.load(sys.stdin))" > ${TEST_RESULTS}/devices_curl.json
-
-      - run:
           name: Diff Devices v1 Vs cURL
           no_output_timeout: 30
           command: |
@@ -140,12 +124,12 @@ jobs:
             echo                                                                           >> ${TEST_RESULTS}/test-results.txt
 
       - run:
-          name: Diff Devices v3 Vs cURL
+          name: Diff Devices v1 Vs v3
           no_output_timeout: 30
           command: |
-            echo diff -s ${TEST_RESULTS}/devices_v3.json ${TEST_RESULTS}/devices_curl.json >> ${TEST_RESULTS}/test-results.txt
-                 diff -s ${TEST_RESULTS}/devices_v1.json ${TEST_RESULTS}/devices_curl.json >> ${TEST_RESULTS}/test-results.txt
-            echo                                                                           >> ${TEST_RESULTS}/test-results.txt
+            echo diff -s ${TEST_RESULTS}/devices_v1.json ${TEST_RESULTS}/devices_v3.json >> ${TEST_RESULTS}/test-results.txt
+                 diff -s ${TEST_RESULTS}/devices_v1.json ${TEST_RESULTS}/devices_v3.json >> ${TEST_RESULTS}/test-results.txt
+            echo                                                                         >> ${TEST_RESULTS}/test-results.txt
 
       - store_artifacts:
           path: /tmp/test-results
