@@ -5,6 +5,7 @@
 # import asyncio
 from hashlib import sha256
 import logging
+import re
 
 import aiohttp
 
@@ -50,7 +51,8 @@ def _extract_devices_from_data_manager(raw_json) -> list:
     for k1, v1 in raw_json['childNodes'].items():
         if k1 != 'WeatherData':
             for device_id, device in v1['childNodes'].items():
-                if device_id != '1':  # also: device['addr'] != '1':
+                # if device_id != '1':  # alternatively: device['addr'] != '1':
+                if device_id != '88':  # alternatively: device['addr'] != '1':
                     result.append(device)
 
     return result
@@ -65,10 +67,11 @@ def _extract_devices_from_zones(raw_json) -> list:
 
     result = []
     for zone in raw_json:
-        if 'nodes' in zone:
-            for device in zone['nodes']:
-                if device['addr'] not in ['1', 'WeatherData']:
-                    result.append(device)
+        # if 'nodes' in zone:
+        for device in zone['nodes']:
+            # if device['addr'] not in ['1', 'WeatherData']:
+            if device['addr'] not in ['WeatherData']:
+                result.append(device)
 
     return result
 
@@ -88,6 +91,13 @@ def _extract_issues_from_zones(raw_json) -> list:
             result.append(issue)
 
     return result
+
+
+def natural_sort(dict_list, dict_key):
+    convert = lambda text: int(text) if text.isdigit() else text.lower()
+    alphanum_key = lambda key: [ convert(c)
+        for c in re.split('([0-9]+)', key[dict_key]) ]
+    return sorted(dict_list, key = alphanum_key)
 
 
 class GeniusHubClient(object):
@@ -223,21 +233,68 @@ class GeniusObject(object):
             return raw_dict
 
         result = {}
+        # Determine Device Id...
         result['id'] = raw_dict['addr']
+
+        # Determine Device Type...
+        result['type'] = None
+
         node = raw_dict['childNodes']['_cfg']['childValues']
         if node:
             result['type'] = node['name']['val']
-            result['sku'] = node['sku']['val']
-        else:
-            result['type'] = None
+            result['_sku'] = node['sku']['val']
 
-        tmp = raw_dict['childValues']['location']['val']
-        if tmp:
-            result['assignedZones'] = [{'name': tmp}]
-        else:
-            result['assignedZones'] = [{'name': None}]
+        node = raw_dict['childValues']
+        if 'SwitchBinary' in node and \
+                node['SwitchBinary']['path'].count('/') == 3:
+            device_type = 'Dual Channel Receiver - Channel {}'
+            path = node['SwitchBinary']['path']
 
-        result['state'] = {}
+            if result['type'] is None:
+                result['id'] = '{}-{}'.format(path[-3], path[-1])
+                result['type'] = device_type.format(path[-1])
+            else:
+                _LOGGER.error("Clash for Device type: "
+                              "via Method 1: %s, via Method 2: %s",
+                              result['type'], device_type.format(path[-1]))
+
+        # Determine Device assignedZones...
+        result['assignedZones'] = [{'name': None}]
+        node = raw_dict['childValues']['location']
+        if node['val']:
+            result['assignedZones'] = [{'name': node['val']}]
+
+        # Determine Device state...
+        state = result['state'] = {}
+        node = raw_dict['childValues']
+
+        # DCCR, PLUG = ['outputOnOff']
+        # VALV, ROMT = ['batteryLevel', 'setTemperature', 'measuredTemperature']
+        # ROMS =  ['batteryLevel',  'measuredTemperature', 'luminance',  'occupancyTrigger']
+        # RADR = ['batteryLevel', 'setTemperature']
+        # RADR = ['outputOnOff', 'measuredTemperature']
+
+        # if result['type'] in ["Electric Switch"]:
+        if 'SwitchBinary' in node:
+            state['outputOnOff'] = node['SwitchBinary']['val'] != 0
+
+        # if result['type'] in ["Genius Valve", "Room Sensor", "Room Thermostat"]:
+        if 'Battery' in node:
+            state['batteryLevel'] = node['Battery']['val']
+
+        # if result['type'] in ["Genius Valve", "Room Thermostat"]:
+        if 'HEATING_1' in node:
+            state['setTemperature'] = node['HEATING_1']['val']
+
+        # if result['type'] in ["Electric Switch", "Genius Valve", "Room Sensor", "Room Thermostat"]:
+        if 'TEMPERATURE' in node:
+            state['measuredTemperature'] = node['TEMPERATURE']['val']
+
+        if 'LUMINANCE' in node:
+            state['luminance'] = node['LUMINANCE']['val']
+
+        if 'Motion' in node:
+            state['occupancyTrigger'] = node['Motion']['val']
 
         return result
 
@@ -481,7 +538,7 @@ class GeniusHub(GeniusObject):
         """Return a list (of dicts) of devices included in the system."""
         # getDeviceList = x.get("/v3/data_manager", {username: e, password: t})
 
-        if not self._api_v1:  # no longer required
+        if not self._api_v1:  # better for Dual Channel detection...
             # WORKAROUND: There's a aiohttp.ServerDisconnectedError on 2nd HTTP
             # method (2nd GET v3/zones or GET v3/zones & get /data_manager) if
             # it is done the v1 way (above) for v3
@@ -511,6 +568,19 @@ class GeniusHub(GeniusObject):
           v1/devices: id, type, assignedZones, state
         """
         self._devices = [self._convert_device(d) for d in self._devices_raw]
+
+        # This is a hack to make v3 output match v1
+        if not self._api_v1:
+            for device in self._devices:
+                if '-1' in device['id']:
+                    new_device = dict(device)
+                    new_device['id'] = device['id'][0]
+                    new_device['type'] = 'Dual Channel Receiver'
+                    new_device['assignedZones'] = None
+                    self._devices.append(new_device)
+                    break
+
+        self._devices = natural_sort(self._devices, 'id')
 
         _LOGGER.debug("Hub().devices: len(self._devices) = %s",
                       len(self._devices))

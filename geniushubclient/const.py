@@ -54,6 +54,14 @@ KIT_TYPES = SimpleNamespace(
     Humidity=256,
     Luminance=512
 )
+KIT_SKU_TO_TEXT = {
+    "DA-WRT-C": "Room Thermostat",
+    "DA-WRV-B": "Radiator Valve",
+    "DA-WRV-C": "Genius Valve",
+    "HO-ESW-D": "Electric Switch",
+    "PH-PLG-C": "Smart Plug",
+    "PH-WRS-B": "Room Sensor",
+}
 ZONE_FLAGS = SimpleNamespace(
     Frost=1,
     Timer=2,

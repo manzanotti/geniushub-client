@@ -80,12 +80,6 @@ async def main(loop):
     """Return the JSON as requested."""
     _LOGGER.debug("main()")
 
-    def natural_sort(dict_list, dict_key):
-        convert = lambda text: int(text) if text.isdigit() else text.lower()
-        alphanum_key = lambda key: [ convert(c)
-            for c in re.split('([0-9]+)', key[dict_key]) ]
-        return sorted(dict_list, key = alphanum_key)
-
     args = docopt(__doc__)
     # print(args)
 
@@ -197,9 +191,10 @@ async def main(loop):
                 if args[VERBOSE] > 1:  # same as /v1/devices
                     keys += ['state']
 
-                devices = natural_sort(hub.devices, 'id')
-                devices = [{k: d[k] for k in keys if k in d} for d in devices]
-                print(json.dumps(devices))
+
+                # devices = [{k: d[k] for k in keys if k in d}
+                #               for d in hub.devices]
+                print(json.dumps(hub.devices))
 
         elif args[REBOOT]:
             # await hub.reboot()
