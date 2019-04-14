@@ -46,14 +46,14 @@ jobs:
       # https://nose.readthedocs.io
       - run:
           name: Test Zones/Summary
-          no_output_timeout: 2
+          no_output_timeout: 300
           command: |
             . venv/bin/activate
             curl -X GET https://my.geniushub.co.uk/v1/zones/summary -H "authorization: Bearer ${HUB_TOKEN}"                     -o curl.json
             python ghclient.py ${HUB_TOKEN} zones                                 | sed -e s/\'/\"/g -e 's/: /:/g' -e 's/, /,/g' >   v1.json
             python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} zones | sed -e s/\'/\"/g -e 's/: /:/g' -e 's/, /,/g' >   v2.json
             diff v1.json curl.json  > test-reports
-            diff v1.json   v2.json >> test-reports
+            diff v1.json   v2.json >> reports2
 
       - store_artifacts:
           path: test-reports
