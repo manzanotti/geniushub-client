@@ -188,9 +188,13 @@ async def main(loop):
                 if args[VERBOSE] > 1:  # same as /v1/devices
                     keys += ['state']
 
-                for device in sorted(hub.devices, key=lambda k: k['id']):
-                    # display only the wanted keys
-                    print({k: device[k] for k in keys if k in device})
+                # for device in sorted(hub.devices, key=lambda k: k['id']):
+                #     # display only the wanted keys
+                #     print({k: device[k] for k in keys if k in device})
+
+                result = [{k: device[k] for k in keys if k in device}
+                             for device in hub.devices]
+                print(json.dumps(result))
 
         elif args[REBOOT]:
             # await hub.reboot()
