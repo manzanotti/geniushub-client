@@ -50,13 +50,13 @@ jobs:
           command: |
             . venv/bin/activate
             python ghclient.py ${HUB_TOKEN} zones | \
-                python -c "import sys, json; print(json.load(sys.stdin))" > /tmp/reports/v1.json
+                python -c "import sys, json; print(json.load(sys.stdin))" > reports/v1.json
             
       - run:
           name: Setup Testbed
           no_output_timeout: 30
           command: |
-            mkdir -p /tmp/reports
+            mkdir -p reports
 
       - run:
           name: Test v3/Zones/Summary
@@ -64,10 +64,10 @@ jobs:
           command: |
             . venv/bin/activate
             python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} zones | \
-                python -c "import sys, json; print(json.load(sys.stdin))" > /tmp/reports/v3.json
+                python -c "import sys, json; print(json.load(sys.stdin))" > reports/v3.json
 
       - run:
           name: Diff Test 0
           no_output_timeout: 30
           command: |
-            diff /tmp/reports/v1.json v2.json
+            diff reports/v1.json reports/v2.json
