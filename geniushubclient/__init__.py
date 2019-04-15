@@ -575,14 +575,14 @@ class GeniusHub(GeniusObject):
         """
         self._devices = [self._convert_device(d) for d in self._devices_raw]
 
-        # This is a hack to make v3 output match v1
+        # Hack v3 output match v1: add missing Dual channel controller
         if not self._api_v1:
             for device in self._devices:
                 if '-1' in device['id']:
                     new_device = dict(device)
                     new_device['id'] = device['id'][0]
                     new_device['type'] = 'Dual Channel Receiver'
-                    new_device['assignedZones'] = {'name': None}
+                    new_device['assignedZones'] = [{'name': None}]
                     self._devices.append(new_device)
                     break
 
