@@ -64,16 +64,8 @@ jobs:
           no_output_timeout: 300
           command: |
             . venv/bin/activate
-            python ghclient.py ${HUB_TOKEN} zones | \
+            python ghclient.py ${HUB_TOKEN} zones | sed -e s/\'/\"/g | \
                 python -c "import sys, json; print(json.load(sys.stdin))" > ${TEST_RESULTS}/zones_v1.json
-
-      - run:
-          name: ghclient v3/Zones/Summary
-          no_output_timeout: 120
-          command: |
-            . venv/bin/activate
-            python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} zones | \
-                python -c "import sys, json; print(json.load(sys.stdin))" > ${TEST_RESULTS}/zones_v3.json
 
       - run:
           name: Diff Zones v1 Vs cURL
@@ -82,6 +74,14 @@ jobs:
             echo diff -s ${TEST_RESULTS}/zones_v1.json ${TEST_RESULTS}/zones_curl.json >> ${TEST_RESULTS}/test-results.txt
                  diff -s ${TEST_RESULTS}/zones_v1.json ${TEST_RESULTS}/zones_curl.json >> ${TEST_RESULTS}/test-results.txt
             echo                                                                       >> ${TEST_RESULTS}/test-results.txt
+
+      - run:
+          name: ghclient v3/Zones/Summary
+          no_output_timeout: 120
+          command: |
+            . venv/bin/activate
+            python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} zones | sed -e s/\'/\"/g | \
+                python -c "import sys, json; print(json.load(sys.stdin))" > ${TEST_RESULTS}/zones_v3.json
 
       - run:
           name: Diff Zones v1 Vs v3
@@ -104,19 +104,8 @@ jobs:
           no_output_timeout: 300
           command: |
             . venv/bin/activate
-            python ghclient.py ${HUB_TOKEN} devices -vv | \
+            python ghclient.py ${HUB_TOKEN} devices -vv | sed -e s/\'/\"/g | \
                 python -c "import sys, json; print(json.load(sys.stdin))" > ${TEST_RESULTS}/devices_v1.json
-
-      - run:
-          name: ghclient v3/Devices
-          no_output_timeout: 120
-          command: |
-            . venv/bin/activate
-            python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} devices -vv | \
-                python -c "import sys, json; print(json.load(sys.stdin))" > ${TEST_RESULTS}/devices_v3.json
-
-            python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} devices -vvv | \
-                python -c "import sys, json; print(json.load(sys.stdin))" > ${TEST_RESULTS}/devices_v3_raw.json
 
       - run:
           name: Diff Devices v1 Vs cURL
@@ -125,6 +114,17 @@ jobs:
             echo diff -s ${TEST_RESULTS}/devices_v1.json ${TEST_RESULTS}/devices_curl.json >> ${TEST_RESULTS}/test-results.txt
                  diff -s ${TEST_RESULTS}/devices_v1.json ${TEST_RESULTS}/devices_curl.json >> ${TEST_RESULTS}/test-results.txt
             echo                                                                           >> ${TEST_RESULTS}/test-results.txt
+
+      - run:
+          name: ghclient v3/Devices
+          no_output_timeout: 120
+          command: |
+            . venv/bin/activate
+            python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} devices -vv | sed -e s/\'/\"/g | \
+                python -c "import sys, json; print(json.load(sys.stdin))" > ${TEST_RESULTS}/devices_v3.json
+
+            python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} devices -vvv | sed -e s/\'/\"/g | \
+                python -c "import sys, json; print(json.load(sys.stdin))" > ${TEST_RESULTS}/devices_v3_raw.json
 
       - run:
           name: Diff Devices v1 Vs v3

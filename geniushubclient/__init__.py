@@ -8,6 +8,7 @@ import logging
 import re
 
 import aiohttp
+import json
 
 from .const import (
     API_STATUS_ERROR,
@@ -513,8 +514,6 @@ class GeniusHub(GeniusObject):
         else:
             self._zones_raw = _extract_zones_from_zones(raw_json['data'])
 
-        # self._zones_raw.sort(key=lambda s: int(s['id']))
-
         _LOGGER.debug("Hub()._get_zones(): len(self._zones_raw) = %s",
                       len(self._zones_raw))
         return self._zones_raw
@@ -553,8 +552,6 @@ class GeniusHub(GeniusObject):
             else:
                 self._devices_raw = _extract_devices_from_data_manager(
                     raw_json['data'])
-
-        # self._get_devices.sort(key=lambda s: int(s['id']))
 
         _LOGGER.debug("Hub()._get_devices(): len(self._devices_raw) = %s",
                       len(self._devices_raw))
