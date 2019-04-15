@@ -57,7 +57,7 @@ jobs:
           command: |
             . venv/bin/activate
             curl -X GET https://my.geniushub.co.uk/v1/zones/summary -H "authorization: Bearer ${HUB_TOKEN}" | \
-                python -c "import sys, json; print(json.load(sys.stdin))" | tee ${TEST_RESULTS}/zones_curl.json
+              python -c "import sys, json; print(json.load(sys.stdin))" | tee ${TEST_RESULTS}/zones_curl.json
 
       - run:
           name: ghclient v1/Zones/Summary
@@ -65,7 +65,7 @@ jobs:
           command: |
             . venv/bin/activate
             python ghclient.py ${HUB_TOKEN} zones | sed -e s/\'/\"/g | \
-                python -c "import sys, json; print(json.load(sys.stdin))" | tee ${TEST_RESULTS}/zones_v1.json
+              python -c "import sys, json; print(json.load(sys.stdin))" | tee ${TEST_RESULTS}/zones_v1.json
 
       - run:
           name: Diff Zones v1 Vs cURL
@@ -81,7 +81,7 @@ jobs:
           command: |
             . venv/bin/activate
             python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} zones | sed -e s/\'/\"/g | \
-                python -c "import sys, json; print(json.load(sys.stdin))" | tee ${TEST_RESULTS}/zones_v3.json
+              python -c "import sys, json; print(json.load(sys.stdin))" | tee ${TEST_RESULTS}/zones_v3.json
 
       - run:
           name: Diff Zones v1 Vs v3
@@ -97,7 +97,7 @@ jobs:
           command: |
             . venv/bin/activate
             curl -X GET https://my.geniushub.co.uk/v1/devices -H "authorization: Bearer ${HUB_TOKEN}" | \
-                python -c "import sys, json; print(json.load(sys.stdin))" | tee ${TEST_RESULTS}/devices_curl.json
+              python -c "import sys, json; print(json.load(sys.stdin))" | tee ${TEST_RESULTS}/devices_curl.json
 
       - run:
           name: ghclient v1/Devices
@@ -105,7 +105,7 @@ jobs:
           command: |
             . venv/bin/activate
             python ghclient.py ${HUB_TOKEN} devices -vv | sed -e s/\'/\"/g | \
-                python -c "import sys, json; print(json.load(sys.stdin))" | tee ${TEST_RESULTS}/devices_v1.json
+              python -c "import sys, json; print(json.load(sys.stdin))" | tee ${TEST_RESULTS}/devices_v1.json
 
       - run:
           name: Diff Devices v1 Vs cURL
@@ -121,10 +121,7 @@ jobs:
           command: |
             . venv/bin/activate
             python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} devices -vv | sed -e s/\'/\"/g | \
-                python -c "import sys, json; print(json.load(sys.stdin))" | tee ${TEST_RESULTS}/devices_v3.json
-
-            python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} devices -vvv | sed -e s/\'/\"/g | \
-                python -c "import sys, json; print(json.load(sys.stdin))" | tee ${TEST_RESULTS}/devices_v3_raw.json
+              python -c "import sys, json; print(json.load(sys.stdin))" | tee ${TEST_RESULTS}/devices_v3.json
 
       - run:
           name: Diff Devices v1 Vs v3
@@ -133,6 +130,14 @@ jobs:
             echo diff -s ${TEST_RESULTS}/devices_v1.json ${TEST_RESULTS}/devices_v3.json | tee -a ${TEST_RESULTS}/test-results.txt
                  diff -s ${TEST_RESULTS}/devices_v1.json ${TEST_RESULTS}/devices_v3.json | tee -a ${TEST_RESULTS}/test-results.txt
             echo                                                                         | tee -a ${TEST_RESULTS}/test-results.txt
+
+      - run:
+          name: ghclient v3/Devices
+          no_output_timeout: 120
+          command: |
+            . venv/bin/activate
+            python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} devices -vvv | sed -e s/\'/\"/g | \
+              python -c "import sys, json; print(json.load(sys.stdin))" | tee ${TEST_RESULTS}/devices_v3_raw.json
 
       - store_artifacts:
           path: /tmp/test-results
