@@ -573,7 +573,7 @@ class GeniusHub(GeniusObject):
                     new_device = dict(device)
                     new_device['id'] = device['id'][0]
                     new_device['type'] = 'Dual Channel Receiver'
-                    new_device['assignedZones'] = None
+                    new_device['assignedZones'] = {'name': None}
                     self._devices.append(new_device)
                     break
 
