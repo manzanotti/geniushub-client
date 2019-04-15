@@ -192,9 +192,9 @@ async def main(loop):
                     keys += ['state']
 
 
-                # devices = [{k: d[k] for k in keys if k in d}
-                #               for d in hub.devices]
-                print(json.dumps(hub.devices))
+                devices = [{k: d[k] for k in keys if k in d}
+                              for d in hub.devices]
+                print(json.dumps(devices))
 
         elif args[REBOOT]:
             # await hub.reboot()
