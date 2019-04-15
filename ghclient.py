@@ -92,8 +92,8 @@ async def main(loop):
 
     hub = client.hub
     await hub.update()  # enumerate all zones and devices
-    # print(await hub.zones)
-    # print(await hub.devices)
+    # print(hub.zones)
+    # print(hub.devices)
     # return
 
     if args[ZONE_ID]:
@@ -158,7 +158,7 @@ async def main(loop):
 
     else:  # as per args[HUB_ID]
         if args[ISSUES]:
-            print(await hub.issues)
+            print(hub.issues)
 
         elif args[ZONES]:
             if args[VERBOSE] > 2:
@@ -201,7 +201,7 @@ async def main(loop):
             print("Sorry: not implemented yet.")
 
         else:  # as per args[INFO]
-            print(await hub.info)
+            print(hub.info)
 
     await session.close()
 

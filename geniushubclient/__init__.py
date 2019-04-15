@@ -304,13 +304,22 @@ class GeniusObject(object):
         if self._api_v1:
             return raw_dict
 
-        # from: [{'id': 'zone:using_weather_temp',                'level': 1}]
-        # to:   [{"description": "Upstairs hall is currently...", "level": "warning"}]
+        description = DESCRIPTION_TO_TEXT.get(raw_dict['id'], raw_dict['id'])
 
-        description = DESCRIPTION_TO_TEXT[raw_dict['id']]
-        if '{}' in description:
-            description = description.format(raw_dict['zone_name'])
-        level = LEVEL_TO_TEXT[raw_dict['level']]
+        if '{zone}' in description and '{device}' in description:
+            zone = raw_dict['zone_name']
+            device = self.device_by_id[raw_dict['data']['nodeID']].type
+            description = description.format(zone=zone, device=device)
+
+        elif '{zone}' in description:
+            zone = raw_dict['zone_name']
+            description = description.format(zone)
+
+        elif '{device}' in description:
+            device = self.device_by_id[raw_dict['data']['nodeID']].type
+            description = description.format(device)
+
+        level = LEVEL_TO_TEXT.get(raw_dict['level'], raw_dict['level'])
 
         return {'description': description, 'level': level}
 

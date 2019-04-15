@@ -100,31 +100,44 @@ IMODE_TO_MODE = {
 MODE_TO_IMODE = {v: k for k, v in IMODE_TO_MODE.items()}
 
 LEVEL_TO_TEXT = {
-    0: 'error',
+    2: 'error',
     1: 'warning',
-    2: 'information'
+    0: 'information'
 }
 DESCRIPTION_TO_TEXT = {
-    "node:no_comms":
-        "The device has lost communication with the Hub",
-    "node:not_seen":
-        "The device has not been found by the Hub",
-    "node:low_battery":
-        "The battery is dead and needs to be replaced",
-    "node:warn_battery":
-        "the battery is low",
     "manager:no_boiler_controller":
         "The hub does not have a boiler controller assigned",
     "manager:no_boiler_comms":
         "The hub has lost communication with the boiler controller",
     "manager:no_temp":
         "The hub does not have a valid temperature",
+    "manager:weather":                                                           # checked/confirmed
+        "Unable to fetch the weather data",
     "manager:weather_data":
         "Weather data -",
+
     "zone:using_weather_temp":
-        "{} is currently using the outside temperature",                         # is correct
+        "{} is currently using the outside temperature",
     "zone:using_assumed_temp":
         "{} is currently using the assumed temperature",
     "zone:tpi_no_temp":
         "{} has no valid temperature sensor",
+
+    "node:no_comms":
+        "The device has lost communication with the Hub",
+    "node:not_seen":                                                             # checked/confirmed
+        "The {device} in {zone} can not been found by the Hub",
+    "node:low_battery":
+        "The battery is dead and needs to be replaced",
+    "node:warn_battery":
+        "the battery is low",
 }
+
+### Examples:
+# [{'iID': 0, 'strName': '32 Clift road', 'lstIssues': [{
+#     'id': 'manager:weather', 'level': 1, 'zone_name': '32 Clift road',
+#         'data': {'msg': ''} }] }]
+
+# {'iID': 10, 'strName': 'Bathrooms', 'lstIssues': [{
+#     'id': 'node:not_seen', 'level': 2, 'zone_name': 'Bathrooms',
+#         'data': {'location': 'Bathrooms', 'nodeID': '19', 'nodeHash': ...} }] }]
