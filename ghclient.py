@@ -184,13 +184,23 @@ async def main(loop):
         elif args[DEVICES]:
             if args[VERBOSE] > 2:
                 print(hub._devices_raw)
+
+                # devices = sorted(hub._devices_raw, key=lambda k: k['addr'])
+                # result = {}
+                # for raw_dict in devices:
+                #    result['id'] = raw_dict['addr']
+                #    node = raw_dict['childValues']
+                #    result['attr'] = []
+                #    for k, v in node.items():
+                #        result['attr'].append(k)
+                #    print(result)
+
             else:
                 keys = ['id', 'type']  # same as /v1/devices/summary
                 if args[VERBOSE] > 0:
                     keys += ['assignedZones']
                 if args[VERBOSE] > 1:  # same as /v1/devices
                     keys += ['state']
-
 
                 devices = [{k: d[k] for k in keys if k in d}
                               for d in hub.devices]

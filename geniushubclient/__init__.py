@@ -233,6 +233,24 @@ class GeniusObject(object):
         if self._api_v1:
             return raw_dict
 
+        def _check_fingerprint(device, device_fingerprint):
+            if not device['type']:
+                _LOGGER.debug("Device %s: Matched by fingerprint '%s'",
+                    device['id'], device_fingerprint)
+                device['type'] = device_fingerprint
+
+            elif device['type'] == device_fingerprint:
+                _LOGGER.debug("Device %s: Type matches its fingerprint '%s'",
+                    device['id'], device_fingerprint)
+
+            elif device['type'][:21] == device_fingerprint:  # "Dual Channel Receiver"
+                _LOGGER.debug("Device %s: Type matches its fingerprint '%s'",
+                    device['id'], device_fingerprint)
+
+            else:  # device['type'] != device_type:
+                _LOGGER.error("Device %s: Type doesn't match fingerprint '%s'",
+                    device['id'], device_fingerprint)
+
         result = {}
         # Determine Device Id...
         result['id'] = raw_dict['addr']
@@ -246,8 +264,10 @@ class GeniusObject(object):
             result['_sku'] = node['sku']['val']
 
         node = raw_dict['childValues']
+        # try to find the Dual Channel Receiver
         if 'SwitchBinary' in node and \
                 node['SwitchBinary']['path'].count('/') == 3:
+
             device_type = 'Dual Channel Receiver - Channel {}'
             path = node['SwitchBinary']['path']
 
@@ -258,6 +278,37 @@ class GeniusObject(object):
                 _LOGGER.error("Clash for Device type: "
                               "via Method 1: %s, via Method 2: %s",
                               result['type'], device_type.format(path[-1]))
+
+        # try to 'fingerprint' the device type
+        if 'SwitchBinary' in node:
+            if 'TEMPERATURE' in node:
+                _check_fingerprint(result, "Electric Switch")
+
+            elif 'SwitchAllMode' in node:
+                _check_fingerprint(result, "Smart Plug")
+
+            else:
+                _check_fingerprint(result, "Dual Channel Receiver")
+
+        elif 'setback' in node:
+            if 'TEMPERATURE' in node:
+                _check_fingerprint(result, "Genius Valve")
+            else:
+                _check_fingerprint(result, "Radiator Valve")
+
+        elif 'Motion' in node:
+            _check_fingerprint(result, "Room Sensor")
+
+        elif 'Indicator' in node:
+            _check_fingerprint(result, "Room Thermostat")
+
+        else:  # unknown device fingerprint
+            if result['type']:
+                _LOGGER.debug("Device %s: Can't obtain a fingerprint",
+                    result['id'])
+            else:
+                _LOGGER.error("Device %s: Can't obtain a fingerprint",
+                    result['id'])
 
         # Determine Device assignedZones...
         result['assignedZones'] = [{'name': None}]
@@ -546,7 +597,7 @@ class GeniusHub(GeniusObject):
         """Return a list (of dicts) of devices included in the system."""
         # getDeviceList = x.get("/v3/data_manager", {username: e, password: t})
 
-        if not self._api_v1:  # better for Dual Channel detection...
+        if not self._api_v1:  # required for Dual Channel detection...
             # WORKAROUND: There's a aiohttp.ServerDisconnectedError on 2nd HTTP
             # method (2nd GET v3/zones or GET v3/zones & get /data_manager) if
             # it is done the v1 way (above) for v3
