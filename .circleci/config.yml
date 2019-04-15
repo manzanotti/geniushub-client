@@ -92,7 +92,7 @@ jobs:
             echo                                                                     | tee -a ${TEST_RESULTS}/test-results.txt
 
       - run:
-          name: cURL v1/Devices/Summary
+          name: cURL v1/Devices
           no_output_timeout: 300
           command: |
             . venv/bin/activate
@@ -132,7 +132,7 @@ jobs:
             echo                                                                         | tee -a ${TEST_RESULTS}/test-results.txt
 
       - run:
-          name: ghclient v3/Devices
+          name: ghclient v3/Devices/Raw
           no_output_timeout: 120
           command: |
             . venv/bin/activate
