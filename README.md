@@ -14,7 +14,6 @@ Current limitations & to-dos include:
  - **ghclient.py** is not complete
  - minimal support for schedules (e.g. they can't be modified), and...
  - for v3, all zones have a empty schedule
- - for v3, some devices have a Null type (thus, some zones can be set to `footprint` mode)
  - for v3, some zones have the wrong value for `occupied`
 
 ## Installation
