@@ -136,7 +136,7 @@ jobs:
           no_output_timeout: 120
           command: |
             . venv/bin/activate
-            python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} devices -vvv | sed -e s/\'/\"/g | \
+            python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} devices -vvS | sed -e s/\'/\"/g | \
               python -c "import sys, json; print(json.load(sys.stdin))" | tee ${TEST_RESULTS}/devices_v3_raw.json
 
       - store_artifacts:
