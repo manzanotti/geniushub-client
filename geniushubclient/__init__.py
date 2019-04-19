@@ -14,7 +14,7 @@ from .const import (
     API_STATUS_ERROR,
     DEFAULT_INTERVAL_V1, DEFAULT_INTERVAL_V3,
     DEFAULT_TIMEOUT_V1, DEFAULT_TIMEOUT_V3,
-    ITYPE_TO_TYPE, IMODE_TO_MODE, MODE_TO_IMODE,
+    ITYPE_TO_TYPE, IMODE_TO_MODE, MODE_TO_IMODE, IDAY_TO_DAY,
     LEVEL_TO_TEXT, DESCRIPTION_TO_TEXT,
     ZONE_TYPES, ZONE_MODES, KIT_TYPES)
 
@@ -92,7 +92,6 @@ def _extract_issues_from_zones(raw_json) -> list:
             result.append(issue)
 
     return result
-
 
 def natural_sort(dict_list, dict_key):
     convert = lambda text: int(text) if text.isdigit() else text.lower()
@@ -224,7 +223,33 @@ class GeniusObject(object):
             else:
                 result['override']['setpoint'] = raw_dict['fBoostSP']
 
-            result['schedule'] = {}
+        result['schedule'] = {'timer':{}, 'footprint':{}}
+        if raw_dict['iType'] != ZONE_TYPES.Manager:
+            for setpoints in raw_dict['objTimer']:
+                result['schedule']['timer'] = {'weekly': {}}
+                day = -1
+                for setpoint in raw_dict['objTimer']:
+                    if setpoint['iTm'] == -1:
+                        day += 1
+                        node = result['schedule']['timer']['weekly'][IDAY_TO_DAY[day]] = {}
+                        node['defaultSetpoint'] = setpoint['fSP']
+                        node['heatingPeriods'] = []
+                        start = None
+                    else:
+                        if not start:
+                            start = setpoint['iTm']
+                            temp = setpoint['fSP']
+                        else:
+                            node['heatingPeriods'].append({
+                                'end': setpoint['iTm'],
+                                'start': start,
+                                'setpoint': temp
+                            })
+                            start = None
+
+            if raw_dict['iFlagExpectedKit'] & KIT_TYPES.PIR:
+                result['schedule']['footprint'] = raw_dict['objFootprint']['lstSP']
+
 
         return result
 

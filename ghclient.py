@@ -85,7 +85,7 @@ VERBOSE = '-v'
 
 ATTRS_ZONE = {
     'summary_keys': ['id', 'name'],
-    'detail_keys': ['type', 'mode', 'temperature', 'setpoint', 'occupied', 'override']  # also: 'schedule'
+    'detail_keys': ['type', 'mode', 'temperature', 'setpoint', 'occupied', 'override', 'schedule']  # also: 'schedule'
 }
 ATTRS_DEVICE = {
     'summary_keys': ['id', 'type'],

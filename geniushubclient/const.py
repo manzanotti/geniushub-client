@@ -141,3 +141,13 @@ DESCRIPTION_TO_TEXT = {
 # {'iID': 10, 'strName': 'Bathrooms', 'lstIssues': [{
 #     'id': 'node:not_seen', 'level': 2, 'zone_name': 'Bathrooms',
 #         'data': {'location': 'Bathrooms', 'nodeID': '19', 'nodeHash': ...} }] }]
+
+IDAY_TO_DAY = {
+    0: 'sunday',
+    1: 'monday',
+    2: 'tuesday',
+    3: 'wednesday',
+    4: 'thursday',
+    5: 'friday',
+    6: 'saturday',
+}
