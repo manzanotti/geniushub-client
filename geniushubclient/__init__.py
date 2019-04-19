@@ -224,32 +224,75 @@ class GeniusObject(object):
                 result['override']['setpoint'] = raw_dict['fBoostSP']
 
         result['schedule'] = {'timer':{}, 'footprint':{}}
+
         if raw_dict['iType'] != ZONE_TYPES.Manager:
-            for setpoints in raw_dict['objTimer']:
-                result['schedule']['timer'] = {'weekly': {}}
-                day = -1
-                for setpoint in raw_dict['objTimer']:
-                    if setpoint['iTm'] == -1:
-                        day += 1
-                        node = result['schedule']['timer']['weekly'][IDAY_TO_DAY[day]] = {}
-                        node['defaultSetpoint'] = setpoint['fSP']
-                        node['heatingPeriods'] = []
-                        start = None
-                    else:
-                        if not start:
-                            start = setpoint['iTm']
-                            temp = setpoint['fSP']
-                        else:
-                            node['heatingPeriods'].append({
-                                'end': setpoint['iTm'],
-                                'start': start,
-                                'setpoint': temp
-                            })
-                            start = None
+            result['schedule']['timer'] = {'weekly': {}}
+            day = -1
+            for setpoint in raw_dict['objTimer']:
+                if setpoint['iTm'] == -1:
+                    day += 1
+                    node = result['schedule']['timer']['weekly'][IDAY_TO_DAY[day]] = {}
+                    node['defaultSetpoint'] = setpoint['fSP']
+                    node['heatingPeriods'] = []
+                    start = None
+                elif start is None:
+                    start = setpoint['iTm']
+                    temp = setpoint['fSP']
+                else:
+                    node['heatingPeriods'].append({
+                        'end': setpoint['iTm'],
+                        'start': start,
+                        'setpoint': temp
+                    })
+                    start = None
 
-            if raw_dict['iFlagExpectedKit'] & KIT_TYPES.PIR:
-                result['schedule']['footprint'] = raw_dict['objFootprint']['lstSP']
+        if raw_dict['iFlagExpectedKit'] & KIT_TYPES.PIR:
+            result['schedule']['footprint'] = {'weekly': {}}
+            day = -1
+            start = None
 
+            for setpoint in raw_dict['objFootprint']['lstSP']:
+                if setpoint['iTm'] == 0:
+                    if start is not None:
+                        node['heatingPeriods'].append({
+                            'end': 86400,
+                            'start': start,
+                            'setpoint': temp
+                        })
+                        start = end = None
+
+                    elif day >= 0 and end != 86400:
+                        node['heatingPeriods'].append({
+                            'end': 86400,
+                            'start': end,
+                            'setpoint': temp
+                        })
+
+                    day += 1
+                    node = result['schedule']['footprint']['weekly'][IDAY_TO_DAY[day]] = {}
+                    node['defaultSetpoint'] = raw_dict['objFootprint']['fFootprintAwaySP']
+                    node['heatingPeriods'] = []
+
+                if start is not None:
+                    end = setpoint['iTm']
+                    node['heatingPeriods'].append({
+                        'end': end,
+                        'start': start,
+                        'setpoint': temp
+                    })
+                    start = None
+                    temp = setpoint['fSP']
+
+                else:
+                    start = setpoint['iTm']
+                    temp = setpoint['fSP']
+
+            if end != 86400:
+                node['heatingPeriods'].append({
+                    'end': 86400,
+                    'start': end,
+                    'setpoint': temp
+                })
 
         return result
 
