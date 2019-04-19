@@ -84,17 +84,16 @@ ZONES = 'zones'
 VERBOSE = '-v'
 
 ATTRS_ZONE = {
-    summary_keys = ['id', 'name']
-    detail_keys = ['type', 'mode', 'temperature', 'setpoint', 'occupied',
-              'override']  # also: 'schedule'
+    'summary_keys': ['id', 'name'],
+    'detail_keys': ['type', 'mode', 'temperature', 'setpoint', 'occupied', 'override']  # also: 'schedule'
 }
 ATTRS_DEVICE = {
-    summary_keys: ['id', 'type'],
-    detail_keys = ['assignedZones', 'state']
+    'summary_keys': ['id', 'type'],
+    'detail_keys': ['assignedZones', 'state']
 }
-ATTRS_ISSUEE = {
-    summary_keys: ['description', 'level'],
-    detail_keys = []
+ATTRS_ISSUE = {
+    'summary_keys': ['description', 'level'],
+    'detail_keys': []
 }
 
 async def main(loop):
@@ -115,8 +114,9 @@ async def main(loop):
         if args[VERBOSE] >= 3:
             return item_list_raw
         elif args[VERBOSE] >= 2:
+            result = item_list
             if 'id' in result:
-                result = sorted(item_list, key=lambda k: k['id'])
+                result = sorted(result, key=lambda k: k['id'])
             return json.dumps(result)
         elif args[VERBOSE] >= 1:
             keys = summary_keys + detail_keys
