@@ -4,7 +4,7 @@ Usage: ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] [(zones | devices 
        ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] --zone=ZONE [(devices | info | issues)] [-v | -vv | -vvv ]
        ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] --zone=ZONE --mode=MODE
        ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] --zone=ZONE --temp=TEMP [--secs=SECS]
-       ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] --device=DEVICE  [(info | issues)] [-v | -vv | -vvv ]
+       ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] --device=DEVICE  [(info)] [-v | -vv | -vvv ]
 
 Connect to a Genius Hub and interact with it, a Zone, or a Device:
        ghclient.py <HUB ID> [COMMAND] [ENTITY] [PARAMETERS]
@@ -83,9 +83,52 @@ ZONES = 'zones'
 
 VERBOSE = '-v'
 
+ATTRS_ZONE = {
+    summary_keys = ['id', 'name']
+    detail_keys = ['type', 'mode', 'temperature', 'setpoint', 'occupied',
+              'override']  # also: 'schedule'
+}
+ATTRS_DEVICE = {
+    summary_keys: ['id', 'type'],
+    detail_keys = ['assignedZones', 'state']
+}
+ATTRS_ISSUEE = {
+    summary_keys: ['description', 'level'],
+    detail_keys = []
+}
+
 async def main(loop):
     """Return the JSON as requested."""
-    _LOGGER.debug("main()")
+    def subset_dict(item_dict, item_dict_raw, summary_keys=[], detail_keys=[]):
+        if args[VERBOSE] >= 3:
+            return item_dict_raw
+        elif args[VERBOSE] >= 2:
+            return json.dumps(item_dict)
+        elif args[VERBOSE] >= 1:
+            keys = summary_keys + detail_keys
+        else:
+            keys = summary_keys
+
+        return json.dumps({k: item[k] for k in keys if k in item})
+
+    def subset_list(item_list, item_list_raw, summary_keys=[], detail_keys=[]):
+        if args[VERBOSE] >= 3:
+            return item_list_raw
+        elif args[VERBOSE] >= 2:
+            if 'id' in result:
+                result = sorted(item_list, key=lambda k: k['id'])
+            return json.dumps(result)
+        elif args[VERBOSE] >= 1:
+            keys = summary_keys + detail_keys
+        else:
+            keys = summary_keys
+
+        result = [{k: item[k] for k in keys if k in item}
+            for item in item_list]
+        if 'id' in result:
+            result = sorted(result, key=lambda k: k['id'])
+
+        return json.dumps(result)
 
     args = docopt(__doc__)
     # print(args)
@@ -98,127 +141,73 @@ async def main(loop):
                              session=session)
 
     hub = client.hub
-    await hub.update()  # enumerate all zones and devices
-    # print(hub.zones)
-    # print(hub.devices)
-    # return
+    await hub.update()  # enumerate all zones, devices and issues
 
-    if args[ZONE_ID]:
-        try:  # is zone_is a Int or a Str?
+    if args[DEVICE_ID]:
+        key = args[DEVICE_ID]  # a device_id is always a str, never an int
+
+        try:  # does a Device with this ID exist?
+            device = hub.device_by_id[key]
+        except KeyError:
+            raise KeyError("Device '%s' does not exist.", args[ZONE_ID])
+
+        else:  # as per args[INFO]
+            kwargs = ATTRS_DEVICE
+            print(subset_dict(device.info, device._info_raw, **kwargs))
+
+    elif args[ZONE_ID]:
+        try:  # is the zone_id is a str, or an int?
             key = int(args[ZONE_ID])
-        except ValueError:  # it's a Str
+        except ValueError:
             key = args[ZONE_ID]
             find_zone_by_key = hub.zone_by_name
-        else: # it's an Int
+        else:
             find_zone_by_key = hub.zone_by_id
 
-        try:  # does this zone exist?
+        try:  # does a Zone with this ID exist?
             zone = find_zone_by_key[key]
-        except KeyError:  #  no, Zone ID not found
-            raise  # TODO:
+        except KeyError:
+            raise KeyError("Zone '%s' does not exist.", args[ZONE_ID])
 
-        if args[ISSUES]:
-            print(await zone.issues)
-
-        elif args[DEVICES]:
-            if args[VERBOSE] > 2:
-                print(zone._devices_raw)
-            else:
-                keys = ['id', 'type']  # as per /v1/devices/summary
-                if args[VERBOSE] > 0:
-                    keys += ['assignedZones']
-                if args[VERBOSE] > 1:  # as per /v1/devices
-                    keys += ['state']
-
-                for device in sorted(zone.devices, key=lambda k: k['id']):
-                    # display only the wanted keys
-                    print({k: device[k] for k in keys if k in device})
-
-        elif args[MODE]:
-            # await zone.set_mode()
-            print("Sorry: not implemented yet.")
+        if args[MODE]:
+            # await zone.set_mode(args[MODE])
+            raise NotImplementedError()
 
         elif args[TEMP]:
-            # await zone.set_override()
-            print("Sorry: not implemented yet.")
-
-        else:  # as per args[INFO]
-            if args[VERBOSE] > 2:
-                print(dir(zone))
-                print(zone._dict_raw)
-            else:
-                print(zone.info)
-
-    elif args[DEVICE_ID]:
-        key = args[DEVICE_ID]  # Zone IDs are Strs, not Ints
-
-        try:  # does this Device exist?
-            device = hub.device_by_id[key]
-        except KeyError:  # no, Device ID not found
-            raise  # TODO:
-
-        if args[ISSUES]:
-            print(await zone.issues)
-
-        else:  # as per args[INFO]
-            print(device.info)
-
-    else:  # as per args[HUB_ID]
-        if args[ISSUES]:
-            print(hub.issues)
-
-        elif args[ZONES]:
-            if args[VERBOSE] > 2:
-                print(hub._zones_raw)
-            else:
-                keys = ['id', 'name']  # same as /v1/zones/summary
-                if args[VERBOSE] > 0:
-                    keys += ['type', 'temperature', 'setpoint', 'mode',
-                            'occupied', 'override']
-                if args[VERBOSE] > 1:  # same as /v1/zones
-                    keys += ['schedule']
-
-                # for zone in sorted(hub.zones, key=lambda k: k['id']):
-                #     # display only the wanted keys
-                #     print({k: zone[k] for k in keys if k in zone})
-
-                zones = sorted(hub.zones, key=lambda k: k['id'])
-
-                result = [{k: zone[k] for k in keys if k in zone}
-                    for zone in zones]
-                print(json.dumps(result))
+            # await zone.set_override(args[TEMP], args[SECS])
+            raise NotImplementedError()
 
         elif args[DEVICES]:
-            if args[VERBOSE] > 2:
-                print(hub._devices_raw)
+            kwargs = ATTRS_DEVICE
+            print(subset_list(zone.devices, zone._devices_raw, **kwargs))
 
-                # devices = sorted(hub._devices_raw, key=lambda k: k['addr'])
-                # result = {}
-                # for raw_dict in devices:
-                #    result['id'] = raw_dict['addr']
-                #    node = raw_dict['childValues']
-                #    result['attr'] = []
-                #    for k, v in node.items():
-                #        result['attr'].append(k)
-                #    print(result)
-
-            else:
-                keys = ['id', 'type']  # same as /v1/devices/summary
-                if args[VERBOSE] > 0:
-                    keys += ['assignedZones']
-                if args[VERBOSE] > 1:  # same as /v1/devices
-                    keys += ['state']
-
-                devices = [{k: d[k] for k in keys if k in d}
-                              for d in hub.devices]
-                print(json.dumps(devices))
-
-        elif args[REBOOT]:
-            # await hub.reboot()
-            print("Sorry: not implemented yet.")
+        elif args[ISSUES]:
+            kwargs = ATTRS_ISSUE
+            print(subset_list(zone.issues, zone._issues_raw, **kwargs))
 
         else:  # as per args[INFO]
-            print(hub.info)
+            kwargs = ATTRS_ZONE
+            print(subset_dict(zone.info, zone._info_raw, **kwargs))
+
+    else:  # as per: args[HUB_ID]
+        if args[REBOOT]:
+            # await hub.reboot()
+            raise NotImplementedError()
+
+        elif args[ZONES]:
+            kwargs = ATTRS_ZONE
+            print(subset_list(hub.zones, hub._zones_raw, **kwargs))
+
+        elif args[DEVICES]:
+            kwargs = ATTRS_DEVICE
+            print(subset_list(hub.devices, hub._devices_raw, **kwargs))
+
+        elif args[ISSUES]:
+            kwargs = ATTRS_ISSUE
+            print(subset_list(hub.issues, hub._issues_raw, **kwargs))
+
+        else:  # as per args[INFO]
+            raise NotImplementedError()
 
     await session.close()
 
