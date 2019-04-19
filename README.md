@@ -12,9 +12,8 @@ It is based upon work by @GeoffAtHome - thanks!
 ## Current limitations
 Current limitations & to-dos include:
  - **ghclient.py** is not complete
- - minimal support for schedules (e.g. they can't be modified), and...
- - for v3, all zones have a empty schedule
- - for v3, some zones have the wrong value for `occupied`
+ - schedules are read-only
+ - when using the v3 API, some zones have the wrong value for `occupied`
 
 ## Installation
 Either clone this repository and run `python setup.py install`, or install from pip using `pip install geniushub-client`.
