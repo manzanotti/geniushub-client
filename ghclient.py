@@ -1,19 +1,26 @@
 """
-Usage: ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] [(zones | devices)] [-v | -vv | -vvv ]
-       ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] [(issues | reboot)]
-       ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] --zone=ZONE [devices] [-v | -vv | -vvv ]
+Usage: ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] [(zones | devices | info | issues)] [-v | -vv | -vvv ]
+       ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] reboot
+       ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] --zone=ZONE [(devices | info | issues)] [-v | -vv | -vvv ]
        ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] --zone=ZONE --mode=MODE
        ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] --zone=ZONE --temp=TEMP [--secs=SECS]
-       ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] --device=DEVICE [-v | -vv | -vvv ]
+       ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] --device=DEVICE  [(info | issues)] [-v | -vv | -vvv ]
 
-Connect to a Genius Hub and interact with it, a Zone, or a Device.
+Connect to a Genius Hub and interact with it, a Zone, or a Device:
+       ghclient.py <HUB ID> [COMMAND] [ENTITY] [PARAMETERS]
 
 Arguments:
-  HUB-ID  either a Hub token, or a Hub hostname/address (needs user credentials)
-    If a token is provided, then v1 API calls are made, otherwise v3 API calls
+  HUB-ID  either a Hub token, or a Hub hostname/address (which needs user credentials)
+    If a token is provided, then v1 API calls are made, otherwise its v3 API calls
 
-  COMMAND  the operation to perform: zones, devices, issues...
-    If no COMMAND is provided, the entity's properties will be displayed.
+  COMMAND  the method or property to use:
+    zones     display all zones attached to the hub, as a list of dicts
+    devices   display all devices attached to the hub/zone, as a list of dicts
+    issues    display all issues of the hub/zone/device, as a list of dicts
+    info      display the properties of the hub/zone/device, as a dict
+    reboot    reboot the hub
+
+    If no COMMAND is provided,  info is used and the entity's properties will be displayed.
 
 Options:
   If a USERNAME is provided, the HUB-ID must be hostname/IP address:
@@ -21,15 +28,15 @@ Options:
     -p PASSWORD --pass=PASSWORD    the password
 
   Operations on a Zone:
-    -z ZONE --zone=ZONE            the identifer of a Zone
-    -m MODE --mode=MODE            one of: off, timer, footprint, override
-    -s SECS --secs=SECS            the override duration in seconds
-    -t TEMP --temp=TEMP            the override temperature in Celsius
+    -z ZONE --zone=ZONE            the identifer of a Zone (id or name)
+    -m MODE --mode=MODE            set mode to: off, timer, footprint, override
+    -s SECS --secs=SECS            set the override duration, in seconds
+    -t TEMP --temp=TEMP            set the override temperature, in Celsius
 
   Operations on a Device:
-    -d DEVICE --device=DEVICE      the identifer of a Device
+    -d DEVICE --device=DEVICE      the identifer of a Device (a string)
 
-  If no COMMAND is used, the entity's properties will be displayed:
+  Level of detail displayed:
     -v -vv -vvv                    increasing verbosity, -vvv gives raw JSON
 
 Examples:
