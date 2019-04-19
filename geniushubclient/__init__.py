@@ -224,6 +224,9 @@ class GeniusObject(object):
                 result['override']['setpoint'] = raw_dict['fBoostSP']
 
         result['schedule'] = {'timer':{}, 'footprint':{}}
+        # Known:
+        #   timer={}: Manager
+        #   footprint={}: Manager, OnOffTimer, TPI
 
         if raw_dict['iType'] != ZONE_TYPES.Manager:
             result['schedule']['timer'] = {'weekly': {}}
@@ -239,6 +242,8 @@ class GeniusObject(object):
                     start = setpoint['iTm']
                     temp = setpoint['fSP']
                 else:
+                    if raw_dict['iType'] == ZONE_TYPES.OnOffTimer:
+                        temp = (temp != 0)
                     node['heatingPeriods'].append({
                         'end': setpoint['iTm'],
                         'start': start,
@@ -246,7 +251,7 @@ class GeniusObject(object):
                     })
                     start = None
 
-        if raw_dict['iFlagExpectedKit'] & KIT_TYPES.PIR:
+        if raw_dict['iType'] in [ZONE_TYPES.ControlSP]:
             result['schedule']['footprint'] = {'weekly': {}}
             day = -1
             start = None
