@@ -225,8 +225,8 @@ class GeniusObject(object):
 
         result['schedule'] = {'timer':{}, 'footprint':{}}
         # Known:
-        #   timer={}: Manager
-        #   footprint={}: Manager, OnOffTimer, TPI
+        #   timer={} if: Manager
+        #   footprint={} if: Manager, OnOffTimer, TPI
 
         if raw_dict['iType'] != ZONE_TYPES.Manager:
             result['schedule']['timer'] = {'weekly': {}}
@@ -241,12 +241,14 @@ class GeniusObject(object):
                     node['defaultSetpoint'] = temp
                     node['heatingPeriods'] = []
                     start = None
+
                 elif start is None:
-                    start = setpoint['iTm']
                     temp = setpoint['fSP']
-                else:
                     if raw_dict['iType'] == ZONE_TYPES.OnOffTimer:
                         temp = temp != 0
+                    start = setpoint['iTm']
+
+                else:
                     node['heatingPeriods'].append({
                         'end': setpoint['iTm'],
                         'start': start,
