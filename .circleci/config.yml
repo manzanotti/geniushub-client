@@ -117,7 +117,7 @@ jobs:
           no_output_timeout: 120
           command: |
             . venv/bin/activate
-            python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} devices -v | tee ${TEST_RESULTS}/devices_v3.json
+            python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} devices -v | sed -e s/\"/\'/g | tee ${TEST_RESULTS}/devices_v3.json
 
       - run:
           name: Diff Devices v1 Vs v3
