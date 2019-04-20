@@ -312,7 +312,7 @@ class GeniusObject(object):
             if end != 86400:
                 node['heatingPeriods'].append({
                     'end': 86400,
-                    'start': start,
+                    'start': end,
                     'setpoint': temp
                 })
 
