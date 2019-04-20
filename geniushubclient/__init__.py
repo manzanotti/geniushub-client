@@ -12,6 +12,7 @@ import json
 
 from .const import (
     API_STATUS_ERROR,
+    ATTRS_DEVICE, ATTRS_ISSUE, ATTRS_ZONE,
     DEFAULT_INTERVAL_V1, DEFAULT_INTERVAL_V3,
     DEFAULT_TIMEOUT_V1, DEFAULT_TIMEOUT_V3,
     ITYPE_TO_TYPE, IMODE_TO_MODE, MODE_TO_IMODE, IDAY_TO_DAY,
@@ -134,20 +135,24 @@ class GeniusHubClient(object):
             self._timeout = aiohttp.ClientTimeout(total=DEFAULT_TIMEOUT_V3)
             self._poll_interval = DEFAULT_INTERVAL_V3
 
-        self._verbose = False
+        self._verbose = 1
         hub_id = hub_id[:8] + "..." if len(hub_id) > 20 else hub_id
 
         self.hub = GeniusHub(self, {'id': hub_id})
 
     @property
-    def verbose(self) -> int:
+    def verbosity(self) -> int:
         """Currently unused, ignore."""
         return self._verbose
 
-    @verbose.setter
-    def verbose(self, value):
-        """Currently unused, ignore."""
-        self._verbose = 0 if value is None else value
+    @verbosity.setter
+    def verbosity(self, value):
+        if value >= 0 and value <= 3:
+            self._verbose = value
+        else:
+            raise ValueError("'%s' is not valid for verbosity. "
+                                "The permissible range is (0-3).",
+                                value)
 
 
 class GeniusObject(object):
@@ -511,6 +516,58 @@ class GeniusObject(object):
 
         # except concurrent.futures._base.TimeoutError as err:
 
+    def _subset_list(self, item_list_raw, _convert_to_v1,
+                     summary_keys=[], detail_keys=[]) -> list:
+        if self._client._verbose >= 3:
+            return item_list_raw
+
+        item_list = [_convert_to_v1(i) for i in item_list_raw]
+
+        # Hack v3 output to match v1: add missing Dual channel controller
+        try:
+            if not self._api_v1:
+                for item in [i for i in item_list if '-1' in i['id']]:
+                    new_item = dict(item)
+                    new_item['id'] = item['id'][0]
+                    new_item['type'] = 'Dual Channel Receiver'
+                    new_item['assignedZones'] = [{'name': None}]
+                    item_list = [new_item] + item_list
+        except (TypeError):
+            pass  # Forgive me, you weren't a device list
+
+        # if 'id' in item_list:
+        #     item_list = sorted(item_list, key=lambda k: k['id'])
+
+        if self._client._verbose >= 2:
+            return item_list
+
+        if self._client._verbose >= 1:
+            keys = summary_keys + detail_keys
+        else:
+            keys = summary_keys
+
+        result = [{k: item[k] for k in keys if k in item}
+            for item in item_list]
+
+        return result
+
+    def _subset_dict(self, item_dict_raw, _convert_to_v1,
+                     summary_keys=[], detail_keys=[]):
+        if self._client._verbose >= 3:
+            return item_dict_raw
+
+        item_dict = _convert_to_v1(item_dict_raw)
+
+        if self._client._verbose >= 2:
+            return item_dict
+
+        elif self._client._verbose >= 1:
+            keys = summary_keys + detail_keys
+        else:
+            keys = summary_keys
+
+        return {k: item[k] for k in keys if k in item}
+
 
 class GeniusHub(GeniusObject):
     """The class for a Genius Hub."""
@@ -668,14 +725,15 @@ class GeniusHub(GeniusObject):
         """Return a list of Zones known to the Hub.
 
           v1/zones/summary: id, name
-          v1/zones: id, name, type, mode, temperature, setpoint, occupied,
-          override, schedule
+          v1/zones:         id, name, type, mode, temperature, setpoint,
+          occupied, override, schedule
         """
-        self._zones = [self._convert_zone(z) for z in self._zones_raw]
+        kwargs = ATTRS_ZONE
+        result = self._subset_list(
+            self._zones_raw, self._convert_zone, **kwargs)
 
-        _LOGGER.debug("Hub().zones: len(self._devices) = %s",
-                      len(self._devices))
-        return self._zones
+        _LOGGER.debug("Hub().zones, count = %s", len(result))
+        return result
 
     @property
     async def _get_devices(self) -> list:
@@ -709,24 +767,15 @@ class GeniusHub(GeniusObject):
           v1/devices/summary: id, type
           v1/devices: id, type, assignedZones, state
         """
-        self._devices = [self._convert_device(d) for d in self._devices_raw]
+        kwargs = ATTRS_DEVICE
+        result = self._subset_list(
+            self._devices_raw, self._convert_device, **kwargs)
 
-        # Hack v3 output match v1: add missing Dual channel controller
-        if not self._api_v1:
-            for device in self._devices:
-                if '-1' in device['id']:
-                    new_device = dict(device)
-                    new_device['id'] = device['id'][0]
-                    new_device['type'] = 'Dual Channel Receiver'
-                    new_device['assignedZones'] = [{'name': None}]
-                    self._devices.append(new_device)
-                    break
+        if not self._api_v1 and self._client._verbose != 3:
+            result = natural_sort(result, 'id')
 
-        self._devices = natural_sort(self._devices, 'id')
-
-        _LOGGER.debug("Hub().devices: len(self._devices) = %s",
-                      len(self._devices))
-        return self._devices
+        _LOGGER.debug("Hub().devices, count = %s", len(result))
+        return result
 
     @property
     async def _get_issues(self) -> list:
@@ -746,17 +795,14 @@ class GeniusHub(GeniusObject):
     def issues(self) -> list:
         """Return a list of Issues known to the Hub.
 
-          v1/issues: ???
+          v1/issues: description, level
         """
+        kwargs = ATTRS_ISSUE
+        result = self._subset_list(
+            self._issues_raw, self._convert_issue, **kwargs)
 
-        if self._api_v1:
-            self._issues = self._issues_raw
-        else:
-            self._issues = [self._convert_issue(d) for d in self._issues_raw]
-
-        _LOGGER.debug("Hub().issues: len(self._issues) = %s",
-                      len(self._issues))
-        return self._issues
+        _LOGGER.debug("Hub().issues = %s", result)
+        return result
 
 
 class GeniusZone(GeniusObject):

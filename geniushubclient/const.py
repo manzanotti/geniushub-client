@@ -151,3 +151,16 @@ IDAY_TO_DAY = {
     5: 'friday',
     6: 'saturday',
 }
+
+ATTRS_ZONE = {
+    'summary_keys': ['id', 'name'],
+    'detail_keys': ['type', 'mode', 'temperature', 'setpoint', 'occupied', 'override', 'schedule']  # also: 'schedule'
+}
+ATTRS_DEVICE = {
+    'summary_keys': ['id', 'type'],
+    'detail_keys': ['assignedZones', 'state']
+}
+ATTRS_ISSUE = {
+    'summary_keys': ['description', 'level'],
+    'detail_keys': []
+}
