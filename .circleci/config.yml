@@ -67,7 +67,7 @@ jobs:
             python ghclient.py ${HUB_TOKEN} zones | tee ${TEST_RESULTS}/zones_v1.json
 
       - run:
-          name: Diff Zones v1 Vs cURL
+          name: Diff Zones/Summary v1 Vs cURL
           no_output_timeout: 30
           command: |
             echo diff -s ${TEST_RESULTS}/zones_v1.json ${TEST_RESULTS}/zones_curl.json | tee -a ${TEST_RESULTS}/test-results.txt
@@ -82,7 +82,7 @@ jobs:
             python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} zones | tee ${TEST_RESULTS}/zones_v3.json
 
       - run:
-          name: Diff Zones v1 Vs v3
+          name: Diff Zones/Summary v1 Vs v3
           no_output_timeout: 30
           command: |
             echo diff -s ${TEST_RESULTS}/zones_v1.json ${TEST_RESULTS}/zones_v3.json | tee -a ${TEST_RESULTS}/test-results.txt
@@ -102,7 +102,7 @@ jobs:
           no_output_timeout: 300
           command: |
             . venv/bin/activate
-            python ghclient.py ${HUB_TOKEN} devices -vv | sed -e s/\'/\"/g | tee ${TEST_RESULTS}/devices_v1.json
+            python ghclient.py ${HUB_TOKEN} devices -v | tee ${TEST_RESULTS}/devices_v1.json
 
       - run:
           name: Diff Devices v1 Vs cURL
