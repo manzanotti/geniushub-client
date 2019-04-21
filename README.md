@@ -13,7 +13,7 @@ It is based upon work by @GeoffAtHome - thanks!
 Current limitations & to-dos include:
  - **ghclient.py** is not complete
  - schedules are read-only
- - when using the v3 API, some zones have the wrong value for `occupied`
+ - when using the v3 API, zones sometimes have the wrong value for `occupied`
 
 ## Installation
 Either clone this repository and run `python setup.py install`, or install from pip using `pip install geniushub-client`.
@@ -58,13 +58,13 @@ curl -X GET https://my.geniushub.co.uk/v1/issues -H "authorization: Bearer ${HUB
 python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} issues
 ```
 
-You can obtain the actual v3 API responses (i.e. the JSON is not converted to the v1 schema):
+You can obtain the v3 API responses (i.e. the JSON is not converted to the v1 schema):
 ```bash
-python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} zones -vvvv
-python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} devices -vvvv
+python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} zones -vvv
+python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} devices -vvv
 ```
 
-To obtain the actual v3 API responses takes a little work.  First, use python to obtain a `HASH`:
+To obtain the benchmark v3 API responses takes a little work.  First, use python to obtain a `HASH`:
 ```python
 >>> from hashlib import sha256
 >>> hash = sha256()
@@ -78,24 +78,28 @@ curl --user ${USERNAME}:${HASH} -X GET http://${HUB_ADDRESS}:1223/v3/zones
 ```
 
 ## Advanced Features
- When used as a library, there is the option to utilize the rerencing module's own `aiohttp.ClientSession()` (recommended):
+ When used as a library, there is the option to utilize the referencing module's own `aiohttp.ClientSession()` (recommended):
  ```python
 import asyncio
 import aiohttp
-from geniushubclient import GeniusHubClient, GeniusHub
+from geniushubclient import GeniusHubClient
 
-session = aiohttp.ClientSession()
+my_session = aiohttp.ClientSession()
 
 ...
 
 if not (username or password):
-    client = GeniusHubClient(hub_id=hub_address, username, password, session=session)
+    client = GeniusHubClient(hub_id=hub_address, username, password, session=my_session)
 else:
     client = GeniusHubClient(hub_id=hub_token, session=my_session)
 
-hub = GeniusHub(client, hub_id=args.hub_id[:20])
+client.verbose = 0  # same as v1/zones/summary, v1/devices/summary
+client.verbose = 1  # default, same as v1/zones, v1/devices, v1/issues
+    
+hub = client.hub
+await hub.update()  # enumerate all zones, devices and issues
 
-print(await hub.zones)
+print(hub.zones)
 print(hub.zone_by_id[3].temperature)
 
 await session.close()
