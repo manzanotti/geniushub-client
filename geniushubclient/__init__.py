@@ -4,17 +4,17 @@
    """
 # import asyncio
 from hashlib import sha256
+
 import logging
 import re
 
 import aiohttp
-import json
 
 from .const import (
-    API_STATUS_ERROR,
+    ATTRS_DEVICE, ATTRS_ISSUE, ATTRS_ZONE,
     DEFAULT_INTERVAL_V1, DEFAULT_INTERVAL_V3,
     DEFAULT_TIMEOUT_V1, DEFAULT_TIMEOUT_V3,
-    ITYPE_TO_TYPE, IMODE_TO_MODE, MODE_TO_IMODE,
+    ITYPE_TO_TYPE, IMODE_TO_MODE, MODE_TO_IMODE, IDAY_TO_DAY,
     LEVEL_TO_TEXT, DESCRIPTION_TO_TEXT,
     ZONE_TYPES, ZONE_MODES, KIT_TYPES)
 
@@ -24,12 +24,16 @@ _LOGGER = logging.getLogger(__name__)
 _LOGGER.setLevel(logging.WARNING)
 
 # pylint: disable=no-member, invalid-name, protected-access
+# pylint: disable=too-many-instance-attributes, too-few-public-methods,
+# pylint: disable=too-many-arguments, too-many-locals, too-many-branches, too-many-statements
+
 
 def _without_keys(dict_obj, keys) -> dict:
     _info = dict(dict_obj)
     _info = {k: v for k, v in _info.items() if k[:1] != '_'}
     _info = {k: v for k, v in _info.items() if k not in keys}
     return _info
+
 
 def _extract_zones_from_zones(raw_json) -> list:
     """Extract Zones from /v3/zones JSON.
@@ -39,6 +43,7 @@ def _extract_zones_from_zones(raw_json) -> list:
     _LOGGER.debug("_zones_from_zones(): raw_json = %s", raw_json)
 
     return raw_json
+
 
 def _extract_devices_from_data_manager(raw_json) -> list:
     """Extract Devices from /v3/data_manager JSON.
@@ -58,6 +63,7 @@ def _extract_devices_from_data_manager(raw_json) -> list:
 
     return result
 
+
 def _extract_devices_from_zones(raw_json) -> list:
     """Extract Devices from /v3/zones JSON.
 
@@ -76,6 +82,7 @@ def _extract_devices_from_zones(raw_json) -> list:
 
     return result
 
+
 def _extract_issues_from_zones(raw_json) -> list:
     """Extract Issues from /v3/zones JSON.
 
@@ -87,7 +94,7 @@ def _extract_issues_from_zones(raw_json) -> list:
     result = []
     for zone in raw_json:
         for issue in zone['lstIssues']:
-            # TODO: might better be an ID
+            # TODO: might better be as an ID
             issue.update({'zone_name': zone['strName']})
             result.append(issue)
 
@@ -96,9 +103,9 @@ def _extract_issues_from_zones(raw_json) -> list:
 
 def natural_sort(dict_list, dict_key):
     convert = lambda text: int(text) if text.isdigit() else text.lower()
-    alphanum_key = lambda key: [ convert(c)
-        for c in re.split('([0-9]+)', key[dict_key]) ]
-    return sorted(dict_list, key = alphanum_key)
+    alphanum_key = lambda key: [convert(c)
+                                for c in re.split('([0-9]+)', key[dict_key])]
+    return sorted(dict_list, key=alphanum_key)
 
 
 class GeniusHubClient(object):
@@ -114,7 +121,7 @@ class GeniusHubClient(object):
 
         _LOGGER.info("GeniusHubClient(hub_id=%s)", hub_id)
 
-        # use existing session if provided
+        # use existing session if one was provided
         self._session = session if session else aiohttp.ClientSession()
 
         # if no credentials, then hub_id is a token for v1 API
@@ -135,20 +142,23 @@ class GeniusHubClient(object):
             self._timeout = aiohttp.ClientTimeout(total=DEFAULT_TIMEOUT_V3)
             self._poll_interval = DEFAULT_INTERVAL_V3
 
-        self._verbose = False
+        self._verbose = 1
         hub_id = hub_id[:8] + "..." if len(hub_id) > 20 else hub_id
 
         self.hub = GeniusHub(self, {'id': hub_id})
 
     @property
-    def verbose(self) -> int:
+    def verbosity(self) -> int:
         """Currently unused, ignore."""
         return self._verbose
 
-    @verbose.setter
-    def verbose(self, value):
-        """Currently unused, ignore."""
-        self._verbose = 0 if value is None else value
+    @verbosity.setter
+    def verbosity(self, value):
+        if value >= 0 and value <= 3:
+            self._verbose = value
+        else:
+            raise ValueError("'{}' is not valid for verbosity. "
+                             "The permissible range is (0-3).".format(value))
 
 
 class GeniusObject(object):
@@ -224,7 +234,73 @@ class GeniusObject(object):
             else:
                 result['override']['setpoint'] = raw_dict['fBoostSP']
 
-            result['schedule'] = {}
+        """Schedules - What is known:
+             timer={} if: Manager
+             footprint={} if: Manager, OnOffTimer, TPI
+             footprint={...} if: ControlSP, _even_ if no PIR
+        """
+        result['schedule'] = {'timer': {}, 'footprint': {}}
+
+        if raw_dict['iType'] != ZONE_TYPES.Manager:
+            root = result['schedule']['timer'] = {'weekly': {}}
+
+            day = -1
+            for setpoint in raw_dict['objTimer']:
+                next_time = setpoint['iTm']
+                next_temp = setpoint['fSP']
+                if raw_dict['iType'] == ZONE_TYPES.OnOffTimer:
+                    next_temp = bool(setpoint['fSP'])
+
+                if next_time == -1:  # i.e. default SP entry
+                    day += 1
+                    node = root['weekly'][IDAY_TO_DAY[day]] = {}
+                    node['defaultSetpoint'] = default_temp = next_temp
+                    node['heatingPeriods'] = []
+
+                elif setpoint_temp != default_temp:                              # noqa: disable=F821; pylint: disable=used-before-assignment
+                    node['heatingPeriods'].append({
+                        'end': next_time,
+                        'start': setpoint_time,                                  # noqa: disable=F821; pylint: disable=used-before-assignment
+                        'setpoint': setpoint_temp                                # noqa: disable=F821; pylint: qisable=used-before-assignment
+                    })
+
+                setpoint_time = next_time
+                setpoint_temp = next_temp
+
+        if raw_dict['iType'] in [ZONE_TYPES.ControlSP]:
+            root = result['schedule']['footprint'] = {'weekly': {}}
+
+            away_temp = raw_dict['objFootprint']['fFootprintAwaySP']
+            night_temp = raw_dict['objFootprint']['fFootprintNightSP']
+            night_start = raw_dict['objFootprint']['iFootprintTmNightStart']
+
+            day = -1
+            for setpoint in raw_dict['objFootprint']['lstSP']:
+                next_time = setpoint['iTm']
+                next_temp = setpoint['fSP']
+
+                if next_time == 0:  # i.e. start of day
+                    day += 1
+                    node = root['weekly'][IDAY_TO_DAY[day]] = {}
+                    node['defaultSetpoint'] = away_temp
+                    node['heatingPeriods'] = []
+
+                elif setpoint_temp != away_temp:
+                    node['heatingPeriods'].append({
+                        'end': next_time,
+                        'start': setpoint_time,
+                        'setpoint': setpoint_temp
+                    })
+
+                if next_time == night_start:  # e.g. 11pm
+                    node['heatingPeriods'].append({
+                        'end': 86400,
+                        'start': night_start,
+                        'setpoint': night_temp
+                    })
+
+                setpoint_time = next_time
+                setpoint_temp = next_temp
 
         return result
 
@@ -236,20 +312,20 @@ class GeniusObject(object):
         def _check_fingerprint(device, device_fingerprint):
             if not device['type']:
                 _LOGGER.debug("Device %s: Matched by fingerprint '%s'",
-                    device['id'], device_fingerprint)
+                              device['id'], device_fingerprint)
                 device['type'] = device_fingerprint
 
             elif device['type'] == device_fingerprint:
                 _LOGGER.debug("Device %s: Type matches its fingerprint '%s'",
-                    device['id'], device_fingerprint)
+                              device['id'], device_fingerprint)
 
             elif device['type'][:21] == device_fingerprint:  # "Dual Channel Receiver"
                 _LOGGER.debug("Device %s: Type matches its fingerprint '%s'",
-                    device['id'], device_fingerprint)
+                              device['id'], device_fingerprint)
 
             else:  # device['type'] != device_type:
                 _LOGGER.error("Device %s: Type doesn't match fingerprint '%s'",
-                    device['id'], device_fingerprint)
+                              device['id'], device_fingerprint)
 
         result = {}
         # Determine Device Id...
@@ -305,10 +381,10 @@ class GeniusObject(object):
         else:  # unknown device fingerprint
             if result['type']:
                 _LOGGER.debug("Device %s: Can't obtain a fingerprint",
-                    result['id'])
+                              result['id'])
             else:
                 _LOGGER.error("Device %s: Can't obtain a fingerprint",
-                    result['id'])
+                              result['id'])
 
         # Determine Device assignedZones...
         result['assignedZones'] = [{'name': None}]
@@ -425,6 +501,52 @@ class GeniusObject(object):
             return response
 
         # except concurrent.futures._base.TimeoutError as err:
+
+    def _subset_list(self, item_list_raw, _convert_to_v1,
+                     summary_keys=[], detail_keys=[]) -> list:
+        if self._client._verbose >= 3:
+            return item_list_raw
+
+        item_list = [_convert_to_v1(i) for i in item_list_raw]
+
+        # Hack v3 output to match v1: add missing Dual channel controller
+        if _convert_to_v1 == self._convert_device and not self._api_v1:
+            for item in [i for i in item_list if '-1' in i['id']]:
+                new_item = dict(item)
+                new_item['id'] = item['id'][0]
+                new_item['type'] = 'Dual Channel Receiver'
+                new_item['assignedZones'] = [{'name': None}]
+                item_list = [new_item] + item_list
+
+        if self._client._verbose >= 2:
+            return item_list
+
+        if self._client._verbose >= 1:
+            keys = summary_keys + detail_keys
+        else:
+            keys = summary_keys
+
+        result = [{k: item[k] for k in keys if k in item}
+                  for item in item_list]
+
+        return result
+
+    def _subset_dict(self, item_dict_raw, _convert_to_v1,
+                     summary_keys=[], detail_keys=[]):
+        if self._client._verbose >= 3:
+            return item_dict_raw
+
+        item_dict = _convert_to_v1(item_dict_raw)
+
+        if self._client._verbose >= 2:
+            return item_dict
+
+        elif self._client._verbose >= 1:
+            keys = summary_keys + detail_keys
+        else:
+            keys = summary_keys
+
+        return {k: item_dict[k] for k in keys if k in item_dict}
 
 
 class GeniusHub(GeniusObject):
@@ -583,14 +705,15 @@ class GeniusHub(GeniusObject):
         """Return a list of Zones known to the Hub.
 
           v1/zones/summary: id, name
-          v1/zones: id, name, type, mode, temperature, setpoint, occupied,
-          override, schedule
+          v1/zones:         id, name, type, mode, temperature, setpoint,
+          occupied, override, schedule
         """
-        self._zones = [self._convert_zone(z) for z in self._zones_raw]
+        kwargs = ATTRS_ZONE
+        result = self._subset_list(
+            self._zones_raw, self._convert_zone, **kwargs)
 
-        _LOGGER.debug("Hub().zones: len(self._devices) = %s",
-                      len(self._devices))
-        return self._zones
+        _LOGGER.debug("Hub().zones, count = %s", len(result))
+        return result
 
     @property
     async def _get_devices(self) -> list:
@@ -624,24 +747,15 @@ class GeniusHub(GeniusObject):
           v1/devices/summary: id, type
           v1/devices: id, type, assignedZones, state
         """
-        self._devices = [self._convert_device(d) for d in self._devices_raw]
+        kwargs = ATTRS_DEVICE
+        result = self._subset_list(
+            self._devices_raw, self._convert_device, **kwargs)
 
-        # Hack v3 output match v1: add missing Dual channel controller
-        if not self._api_v1:
-            for device in self._devices:
-                if '-1' in device['id']:
-                    new_device = dict(device)
-                    new_device['id'] = device['id'][0]
-                    new_device['type'] = 'Dual Channel Receiver'
-                    new_device['assignedZones'] = [{'name': None}]
-                    self._devices.append(new_device)
-                    break
+        if not self._api_v1 and self._client._verbose != 3:
+            result = natural_sort(result, 'id')
 
-        self._devices = natural_sort(self._devices, 'id')
-
-        _LOGGER.debug("Hub().devices: len(self._devices) = %s",
-                      len(self._devices))
-        return self._devices
+        _LOGGER.debug("Hub().devices, count = %s", len(result))
+        return result
 
     @property
     async def _get_issues(self) -> list:
@@ -661,17 +775,14 @@ class GeniusHub(GeniusObject):
     def issues(self) -> list:
         """Return a list of Issues known to the Hub.
 
-          v1/issues: ???
+          v1/issues: description, level
         """
+        kwargs = ATTRS_ISSUE
+        result = self._subset_list(
+            self._issues_raw, self._convert_issue, **kwargs)
 
-        if self._api_v1:
-            self._issues = self._issues_raw
-        else:
-            self._issues = [self._convert_issue(d) for d in self._issues_raw]
-
-        _LOGGER.debug("Hub().issues: len(self._issues) = %s",
-                      len(self._issues))
-        return self._issues
+        _LOGGER.debug("Hub().issues = %s", result)
+        return result
 
 
 class GeniusZone(GeniusObject):
@@ -743,7 +854,7 @@ class GeniusZone(GeniusObject):
         ALLOWED_MODE_STRS = [IMODE_TO_MODE[i] for i in ALLOWED_MODES]
 
         if hasattr(self, 'occupied'):
-            ALLOWED_IMODES += [ZONE_MODES.Footprint]
+            ALLOWED_MODES += [ZONE_MODES.Footprint]
 
         if isinstance(mode, int) and mode in ALLOWED_MODES:
             mode_str = IMODE_TO_MODE[mode]

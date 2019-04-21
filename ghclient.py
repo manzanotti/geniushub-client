@@ -1,19 +1,26 @@
 """
-Usage: ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] [(zones | devices)] [-v | -vv | -vvv ]
-       ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] [(issues | reboot)]
-       ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] --zone=ZONE [devices] [-v | -vv | -vvv ]
+Usage: ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] [(zones | devices | info | issues)] [-v | -vv | -vvv ]
+       ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] reboot
+       ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] --zone=ZONE [(devices | info | issues)] [-v | -vv | -vvv ]
        ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] --zone=ZONE --mode=MODE
        ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] --zone=ZONE --temp=TEMP [--secs=SECS]
-       ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] --device=DEVICE [-v | -vv | -vvv ]
+       ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] --device=DEVICE  [(info)] [-v | -vv | -vvv ]
 
-Connect to a Genius Hub and interact with it, a Zone, or a Device.
+Connect to a Genius Hub and interact with it, a Zone, or a Device:
+       ghclient.py <HUB ID> [COMMAND] [ENTITY] [PARAMETERS]
 
 Arguments:
-  HUB-ID  either a Hub token, or a Hub hostname/address (needs user credentials)
-    If a token is provided, then v1 API calls are made, otherwise v3 API calls
+  HUB-ID  either a Hub token, or a Hub hostname/address (which needs user credentials)
+    If a token is provided, then v1 API calls are made, otherwise its v3 API calls
 
-  COMMAND  the operation to perform: zones, devices, issues...
-    If no COMMAND is provided, the entity's properties will be displayed.
+  COMMAND  the method or property to use:
+    zones     display all zones attached to the hub, as a list of dicts
+    devices   display all devices attached to the hub/zone, as a list of dicts
+    issues    display all issues of the hub/zone/device, as a list of dicts
+    info      display the properties of the hub/zone/device, as a dict
+    reboot    reboot the hub
+
+    If no COMMAND is provided,  info is used and the entity's properties will be displayed.
 
 Options:
   If a USERNAME is provided, the HUB-ID must be hostname/IP address:
@@ -21,15 +28,15 @@ Options:
     -p PASSWORD --pass=PASSWORD    the password
 
   Operations on a Zone:
-    -z ZONE --zone=ZONE            the identifer of a Zone
-    -m MODE --mode=MODE            one of: off, timer, footprint, override
-    -s SECS --secs=SECS            the override duration in seconds
-    -t TEMP --temp=TEMP            the override temperature in Celsius
+    -z ZONE --zone=ZONE            the identifer of a Zone (id or name)
+    -m MODE --mode=MODE            set mode to: off, timer, footprint, override
+    -s SECS --secs=SECS            set the override duration, in seconds
+    -t TEMP --temp=TEMP            set the override temperature, in Celsius
 
   Operations on a Device:
-    -d DEVICE --device=DEVICE      the identifer of a Device
+    -d DEVICE --device=DEVICE      the identifer of a Device (a string)
 
-  If no COMMAND is used, the entity's properties will be displayed:
+  Level of detail displayed:
     -v -vv -vvv                    increasing verbosity, -vvv gives raw JSON
 
 Examples:
@@ -78,7 +85,6 @@ VERBOSE = '-v'
 
 async def main(loop):
     """Return the JSON as requested."""
-    _LOGGER.debug("main()")
 
     args = docopt(__doc__)
     # print(args)
@@ -90,128 +96,57 @@ async def main(loop):
                              password=args[PASSWORD],
                              session=session)
 
-    hub = client.hub
-    await hub.update()  # enumerate all zones and devices
-    # print(hub.zones)
-    # print(hub.devices)
-    # return
+    client.verbosity = args[VERBOSE]
 
-    if args[ZONE_ID]:
-        try:  # is zone_is a Int or a Str?
+    hub = client.hub
+    await hub.update()  # initialise: enumerate all zones, devices & issues
+
+    if args[DEVICE_ID]:
+        key = args[DEVICE_ID]  # a device_id is always a str, never an int
+
+        try:  # does a Device with this ID exist?
+            device = hub.device_by_id[key]
+        except KeyError:
+            raise KeyError("Device '%s' does not exist.", args[ZONE_ID])
+
+        print(device.info)
+
+    elif args[ZONE_ID]:
+        try:  # is the zone_id is a str, or an int?
             key = int(args[ZONE_ID])
-        except ValueError:  # it's a Str
+        except ValueError:
             key = args[ZONE_ID]
             find_zone_by_key = hub.zone_by_name
-        else: # it's an Int
+        else:
             find_zone_by_key = hub.zone_by_id
 
-        try:  # does this zone exist?
+        try:  # does a Zone with this ID exist?
             zone = find_zone_by_key[key]
-        except KeyError:  #  no, Zone ID not found
-            raise  # TODO:
+        except KeyError:
+            raise KeyError("Zone '%s' does not exist.", args[ZONE_ID])
 
-        if args[ISSUES]:
-            print(await zone.issues)
-
-        elif args[DEVICES]:
-            if args[VERBOSE] > 2:
-                print(zone._devices_raw)
-            else:
-                keys = ['id', 'type']  # as per /v1/devices/summary
-                if args[VERBOSE] > 0:
-                    keys += ['assignedZones']
-                if args[VERBOSE] > 1:  # as per /v1/devices
-                    keys += ['state']
-
-                for device in sorted(zone.devices, key=lambda k: k['id']):
-                    # display only the wanted keys
-                    print({k: device[k] for k in keys if k in device})
-
-        elif args[MODE]:
-            # await zone.set_mode()
-            print("Sorry: not implemented yet.")
-
+        if args[MODE]:
+            raise NotImplementedError()  # await zone.set_mode(args[MODE])
         elif args[TEMP]:
-            # await zone.set_override()
-            print("Sorry: not implemented yet.")
-
-        else:  # as per args[INFO]
-            if args[VERBOSE] > 2:
-                print(dir(zone))
-                print(zone._dict_raw)
-            else:
-                print(zone.info)
-
-    elif args[DEVICE_ID]:
-        key = args[DEVICE_ID]  # Zone IDs are Strs, not Ints
-
-        try:  # does this Device exist?
-            device = hub.device_by_id[key]
-        except KeyError:  # no, Device ID not found
-            raise  # TODO:
-
-        if args[ISSUES]:
-            print(await zone.issues)
-
-        else:  # as per args[INFO]
-            print(device.info)
-
-    else:  # as per args[HUB_ID]
-        if args[ISSUES]:
-            print(hub.issues)
-
-        elif args[ZONES]:
-            if args[VERBOSE] > 2:
-                print(hub._zones_raw)
-            else:
-                keys = ['id', 'name']  # same as /v1/zones/summary
-                if args[VERBOSE] > 0:
-                    keys += ['type', 'temperature', 'setpoint', 'mode',
-                            'occupied', 'override']
-                if args[VERBOSE] > 1:  # same as /v1/zones
-                    keys += ['schedule']
-
-                # for zone in sorted(hub.zones, key=lambda k: k['id']):
-                #     # display only the wanted keys
-                #     print({k: zone[k] for k in keys if k in zone})
-
-                zones = sorted(hub.zones, key=lambda k: k['id'])
-
-                result = [{k: zone[k] for k in keys if k in zone}
-                    for zone in zones]
-                print(json.dumps(result))
-
+            raise NotImplementedError()  # await zone.set_override(args[TEMP], args[SECS])
         elif args[DEVICES]:
-            if args[VERBOSE] > 2:
-                print(hub._devices_raw)
-
-                # devices = sorted(hub._devices_raw, key=lambda k: k['addr'])
-                # result = {}
-                # for raw_dict in devices:
-                #    result['id'] = raw_dict['addr']
-                #    node = raw_dict['childValues']
-                #    result['attr'] = []
-                #    for k, v in node.items():
-                #        result['attr'].append(k)
-                #    print(result)
-
-            else:
-                keys = ['id', 'type']  # same as /v1/devices/summary
-                if args[VERBOSE] > 0:
-                    keys += ['assignedZones']
-                if args[VERBOSE] > 1:  # same as /v1/devices
-                    keys += ['state']
-
-                devices = [{k: d[k] for k in keys if k in d}
-                              for d in hub.devices]
-                print(json.dumps(devices))
-
-        elif args[REBOOT]:
-            # await hub.reboot()
-            print("Sorry: not implemented yet.")
-
+            print(zone.devices)
+        elif args[ISSUES]:
+            print(zone.issues)
         else:  # as per args[INFO]
-            print(hub.info)
+            print(zone.info)
+
+    else:  # as per: args[HUB_ID]
+        if args[REBOOT]:
+            raise NotImplementedError()  # await hub.reboot()
+        elif args[ZONES]:
+            print(hub.zones)
+        elif args[DEVICES]:
+            print(hub.devices)
+        elif args[ISSUES]:
+            print(hub.issues)
+        else:  # as per args[INFO]
+            raise NotImplementedError()  # await hub.info
 
     await session.close()
 

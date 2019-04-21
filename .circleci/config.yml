@@ -52,44 +52,42 @@ jobs:
       - run: mkdir -p $TEST_RESULTS
 
       - run:
-          name: cURL v1/Zones/Summary
+          name: cURL v1/Issues
           no_output_timeout: 300
           command: |
             . venv/bin/activate
-            curl -X GET https://my.geniushub.co.uk/v1/zones/summary -H "authorization: Bearer ${HUB_TOKEN}" | \
-              python -c "import sys, json; print(json.load(sys.stdin))" | tee ${TEST_RESULTS}/zones_curl.json
+            curl -X GET https://my.geniushub.co.uk/v1/issues -H "authorization: Bearer ${HUB_TOKEN}" | \
+              python -c "import sys, json; print(json.load(sys.stdin))" | tee ${TEST_RESULTS}/issues_curl.json
 
       - run:
-          name: ghclient v1/Zones/Summary
+          name: ghclient v1/Issues
           no_output_timeout: 300
           command: |
             . venv/bin/activate
-            python ghclient.py ${HUB_TOKEN} zones | sed -e s/\'/\"/g | \
-              python -c "import sys, json; print(json.load(sys.stdin))" | tee ${TEST_RESULTS}/zones_v1.json
+            python ghclient.py ${HUB_TOKEN} issues -v | tee ${TEST_RESULTS}/issues_v1.json
 
       - run:
-          name: Diff Zones v1 Vs cURL
+          name: Diff Issues v1 Vs cURL
           no_output_timeout: 30
           command: |
-            echo diff -s ${TEST_RESULTS}/zones_v1.json ${TEST_RESULTS}/zones_curl.json | tee -a ${TEST_RESULTS}/test-results.txt
-                 diff -s ${TEST_RESULTS}/zones_v1.json ${TEST_RESULTS}/zones_curl.json | tee -a ${TEST_RESULTS}/test-results.txt
-            echo                                                                       | tee -a ${TEST_RESULTS}/test-results.txt
+            echo diff -s ${TEST_RESULTS}/issues_v1.json ${TEST_RESULTS}/issues_curl.json | tee -a ${TEST_RESULTS}/test-results.txt
+                 diff -s ${TEST_RESULTS}/issues_v1.json ${TEST_RESULTS}/issues_curl.json | tee -a ${TEST_RESULTS}/test-results.txt
+            echo                                                                         | tee -a ${TEST_RESULTS}/test-results.txt
 
       - run:
-          name: ghclient v3/Zones/Summary
+          name: ghclient v3/Issues
           no_output_timeout: 120
           command: |
             . venv/bin/activate
-            python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} zones | sed -e s/\'/\"/g | \
-              python -c "import sys, json; print(json.load(sys.stdin))" | tee ${TEST_RESULTS}/zones_v3.json
+            python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} issues -v | tee ${TEST_RESULTS}/issues_v3.json
 
       - run:
-          name: Diff Zones v1 Vs v3
+          name: Diff Issues v1 Vs v3
           no_output_timeout: 30
           command: |
-            echo diff -s ${TEST_RESULTS}/zones_v1.json ${TEST_RESULTS}/zones_v3.json | tee -a ${TEST_RESULTS}/test-results.txt
-                 diff -s ${TEST_RESULTS}/zones_v1.json ${TEST_RESULTS}/zones_v3.json | tee -a ${TEST_RESULTS}/test-results.txt
-            echo                                                                     | tee -a ${TEST_RESULTS}/test-results.txt
+            echo diff -s ${TEST_RESULTS}/issues_v1.json ${TEST_RESULTS}/issues_v3.json | tee -a ${TEST_RESULTS}/test-results.txt
+                 diff -s ${TEST_RESULTS}/issues_v1.json ${TEST_RESULTS}/issues_v3.json | tee -a ${TEST_RESULTS}/test-results.txt
+            echo                                                                       | tee -a ${TEST_RESULTS}/test-results.txt
 
       - run:
           name: cURL v1/Devices
@@ -104,8 +102,7 @@ jobs:
           no_output_timeout: 300
           command: |
             . venv/bin/activate
-            python ghclient.py ${HUB_TOKEN} devices -vv | sed -e s/\'/\"/g | \
-              python -c "import sys, json; print(json.load(sys.stdin))" | tee ${TEST_RESULTS}/devices_v1.json
+            python ghclient.py ${HUB_TOKEN} devices -v | tee ${TEST_RESULTS}/devices_v1.json
 
       - run:
           name: Diff Devices v1 Vs cURL
@@ -120,8 +117,7 @@ jobs:
           no_output_timeout: 120
           command: |
             . venv/bin/activate
-            python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} devices -vv | sed -e s/\'/\"/g | \
-              python -c "import sys, json; print(json.load(sys.stdin))" | tee ${TEST_RESULTS}/devices_v3.json
+            python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} devices -v | sed -e s/\"/\'/g | tee ${TEST_RESULTS}/devices_v3.json
 
       - run:
           name: Diff Devices v1 Vs v3
@@ -136,8 +132,45 @@ jobs:
           no_output_timeout: 120
           command: |
             . venv/bin/activate
-            python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} devices -vv | sed -e s/\'/\"/g | \
-              python -c "import sys, json; print(json.load(sys.stdin))" | tee ${TEST_RESULTS}/devices_v3_raw.json
+            python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} devices -v | tee ${TEST_RESULTS}/devices_v3_raw.json
+
+      - run:
+          name: cURL v1/Zones
+          no_output_timeout: 300
+          command: |
+            . venv/bin/activate
+            curl -X GET https://my.geniushub.co.uk/v1/zones -H "authorization: Bearer ${HUB_TOKEN}" | \
+              python -c "import sys, json; print(json.load(sys.stdin))" | tee ${TEST_RESULTS}/zones_curl.json
+
+      - run:
+          name: ghclient v1/Zones
+          no_output_timeout: 300
+          command: |
+            . venv/bin/activate
+            python ghclient.py ${HUB_TOKEN} zones -v | tee ${TEST_RESULTS}/zones_v1.json
+
+      - run:
+          name: Diff Zones v1 Vs cURL
+          no_output_timeout: 30
+          command: |
+            echo diff -s ${TEST_RESULTS}/zones_v1.json ${TEST_RESULTS}/zones_curl.json | tee -a ${TEST_RESULTS}/test-results.txt
+                 diff -s ${TEST_RESULTS}/zones_v1.json ${TEST_RESULTS}/zones_curl.json | tee -a ${TEST_RESULTS}/test-results.txt
+            echo                                                                       | tee -a ${TEST_RESULTS}/test-results.txt
+
+      - run:
+          name: ghclient v3/Zones
+          no_output_timeout: 120
+          command: |
+            . venv/bin/activate
+            python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} zones -v | tee ${TEST_RESULTS}/zones_v3.json
+
+      - run:
+          name: Diff Zones v1 Vs v3
+          no_output_timeout: 30
+          command: |
+            echo diff -s ${TEST_RESULTS}/zones_v1.json ${TEST_RESULTS}/zones_v3.json | tee -a ${TEST_RESULTS}/test-results.txt
+                 diff -s ${TEST_RESULTS}/zones_v1.json ${TEST_RESULTS}/zones_v3.json | tee -a ${TEST_RESULTS}/test-results.txt
+            echo                                                                     | tee -a ${TEST_RESULTS}/test-results.txt
 
       - store_artifacts:
           path: /tmp/test-results

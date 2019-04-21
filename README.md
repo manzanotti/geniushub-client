@@ -3,7 +3,7 @@ This is a Python library to provide access to a **Genius Hub** via its [RESTful 
 
 This library can use either the **_offical_ v1 API** with a [hub token](https://my.geniushub.co.uk/tokens), or the **_latest_ v3 API** (using your own [username and password](https://www.geniushub.co.uk/app)). In either case, the library will return v1-compatible results wherever possible (this is not a trivial task).
 
-If you use the v3 API, you can interrogate the hub directly, rather than via Heat Genius' own servers. Note that the v3 API is undocumented, and so this functionality may break at any time.
+If you use the v3 API, you can interrogate the hub directly, rather than via Heat Genius' own servers. Note that the v3 API is undocumented, and so this functionality may break at any time. In fact, the v3 to v1 conversion if best efforts and may even be broken as is for some edge cases - it was tested with HW, on/off (i.e. smart plugs), and radiators only.
 
 It is a WIP, and is missing some functionality (e.g. schedules). In addition, there are some other limitations (see below).
 
@@ -12,8 +12,8 @@ It is based upon work by @GeoffAtHome - thanks!
 ## Current limitations
 Current limitations & to-dos include:
  - **ghclient.py** is not complete
- - minimal support for schedules (e.g. they can't be modified), and...
- - for v3, some zones have the wrong value for `occupied`
+ - schedules are read-only
+ - when using the v3 API, zones sometimes have the wrong value for `occupied`
 
 ## Installation
 Either clone this repository and run `python setup.py install`, or install from pip using `pip install geniushub-client`.
@@ -29,7 +29,7 @@ Option 1: **hub token** only:
   - requires a hub token obtained from https://my.geniushub.co.uk/tokens
   - uses the v1 API - which is well-documented
   - interrogates Heat Genius' own servers (so is slower)
- 
+
 Option 2: hub **hostname/address** with **user credentials**:
   - requires your `username` & `password`, as used with https://www.geniushub.co.uk/app
   - uses the v3 API - results are WIP and may not be what you expect
@@ -92,7 +92,7 @@ if not (username or password):
     client = GeniusHubClient(hub_id=hub_address, username, password, session=my_session)
 else:
     client = GeniusHubClient(hub_id=hub_token, session=my_session)
-    
+
 client.verbose = 0  # same as v1/zones/summary, v1/devices/summary
 client.verbose = 1  # default, same as v1/zones, v1/devices, v1/issues
     
@@ -104,4 +104,4 @@ print(hub.zone_by_id[3].temperature)
 
 await session.close()
 ```
- 
+
