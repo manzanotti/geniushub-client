@@ -93,8 +93,8 @@ if not (username or password):
 else:
     client = GeniusHubClient(hub_id=hub_token, session=my_session)
 
-client.verbose = 0  # same as v1/zones/summary, v1/devices/summary
-client.verbose = 1  # default, same as v1/zones, v1/devices, v1/issues
+client.verbosity = 0  # same as v1/zones/summary, v1/devices/summary
+client.verbosity = 1  # default, same as v1/zones, v1/devices, v1/issues
     
 hub = client.hub
 await hub.update()  # enumerate all zones, devices and issues
