@@ -49,7 +49,7 @@ python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} zones -v
 You can compare any output to the official API (v1 response):
 ```bash
 curl -X GET https://my.geniushub.co.uk/v1/zones -H "authorization: Bearer ${HUB_TOKEN}"
-python ghclient.py ${HUB_TOKEN} zones -vv
+python ghclient.py ${HUB_TOKEN} zones -v
 
 curl -X GET https://my.geniushub.co.uk/v1/devices/summary -H "authorization: Bearer ${HUB_TOKEN}"
 python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} devices
