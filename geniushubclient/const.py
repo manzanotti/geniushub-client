@@ -133,14 +133,14 @@ DESCRIPTION_TO_TEXT = {
         "the battery is low",
 }
 
-# Examples:
+# Examples of JSON/schema (order changed):
 
 # [{'iID': 0, 'strName': '32 Clift road', 'lstIssues': [{
-#     'id': 'manager:weather', 'level': 1, 'zone_name': '32 Clift road',
+#     'id': 'manager:weather', 'level': 1,
 #         'data': {'msg': ''} }] }]
 
 # {'iID': 10, 'strName': 'Bathrooms', 'lstIssues': [{
-#     'id': 'node:not_seen', 'level': 2, 'zone_name': 'Bathrooms',
+#     'id': 'node:not_seen', 'level': 2,
 #         'data': {'location': 'Bathrooms', 'nodeID': '19', 'nodeHash': ...} }] }]
 
 IDAY_TO_DAY = {

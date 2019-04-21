@@ -94,7 +94,7 @@ def _extract_issues_from_zones(raw_json) -> list:
     result = []
     for zone in raw_json:
         for issue in zone['lstIssues']:
-            # TODO: might better be an ID
+            # TODO: might better be as an ID
             issue.update({'zone_name': zone['strName']})
             result.append(issue)
 
@@ -121,7 +121,7 @@ class GeniusHubClient(object):
 
         _LOGGER.info("GeniusHubClient(hub_id=%s)", hub_id)
 
-        # use existing session if provided
+        # use existing session if one was provided
         self._session = session if session else aiohttp.ClientSession()
 
         # if no credentials, then hub_id is a token for v1 API
@@ -510,19 +510,13 @@ class GeniusObject(object):
         item_list = [_convert_to_v1(i) for i in item_list_raw]
 
         # Hack v3 output to match v1: add missing Dual channel controller
-        try:
-            if not self._api_v1:
-                for item in [i for i in item_list if '-1' in i['id']]:
-                    new_item = dict(item)
-                    new_item['id'] = item['id'][0]
-                    new_item['type'] = 'Dual Channel Receiver'
-                    new_item['assignedZones'] = [{'name': None}]
-                    item_list = [new_item] + item_list
-        except TypeError:
-            pass  # Forgive me, you weren't a device list
-
-        # if 'id' in item_list:
-        #     item_list = sorted(item_list, key=lambda k: k['id'])
+        if _convert_to_v1 == self._convert_device and not self._api_v1:
+            for item in [i for i in item_list if '-1' in i['id']]:
+                new_item = dict(item)
+                new_item['id'] = item['id'][0]
+                new_item['type'] = 'Dual Channel Receiver'
+                new_item['assignedZones'] = [{'name': None}]
+                item_list = [new_item] + item_list
 
         if self._client._verbose >= 2:
             return item_list
