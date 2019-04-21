@@ -95,7 +95,7 @@ def _extract_issues_from_zones(raw_json) -> list:
     for zone in raw_json:
         for issue in zone['lstIssues']:
             # TODO: might better be as an ID
-            issue.update({'zone_name': zone['strName']})
+            issue['_zone_name'] = zone['strName']
             result.append(issue)
 
     return result
@@ -402,25 +402,16 @@ class GeniusObject(object):
         # RADR = ['batteryLevel', 'setTemperature']
         # RADR = ['outputOnOff', 'measuredTemperature']
 
-        # if result['type'] in ["Electric Switch"]:
         if 'SwitchBinary' in node:
-            state['outputOnOff'] = node['SwitchBinary']['val'] != 0
-
-        # if result['type'] in ["Genius Valve", "Room Sensor", "Room Thermostat"]:
+            state['outputOnOff'] = bool(node['SwitchBinary']['val'])
         if 'Battery' in node:
             state['batteryLevel'] = node['Battery']['val']
-
-        # if result['type'] in ["Genius Valve", "Room Thermostat"]:
         if 'HEATING_1' in node:
             state['setTemperature'] = node['HEATING_1']['val']
-
-        # if result['type'] in ["Electric Switch", "Genius Valve", "Room Sensor", "Room Thermostat"]:
         if 'TEMPERATURE' in node:
             state['measuredTemperature'] = node['TEMPERATURE']['val']
-
         if 'LUMINANCE' in node:
             state['luminance'] = node['LUMINANCE']['val']
-
         if 'Motion' in node:
             state['occupancyTrigger'] = node['Motion']['val']
 
@@ -433,18 +424,18 @@ class GeniusObject(object):
 
         description = DESCRIPTION_TO_TEXT.get(raw_dict['id'], raw_dict['id'])
 
-        if '{zone}' in description and '{device}' in description:
-            zone = raw_dict['zone_name']
+        if '{zone_name}' in description and '{device_type}' in description:
+            zone = raw_dict['data']['location']  # or: ['_zone_name']
             device = self.device_by_id[raw_dict['data']['nodeID']].type
-            description = description.format(zone=zone, device=device)
+            description = description.format(zone_name=zone, device_type=device)
 
-        elif '{zone}' in description:
-            zone = raw_dict['zone_name']
-            description = description.format(zone)
+        elif '{zone_name}' in description:
+            zone = raw_dict['data']['location']  # or: ['_zone_name']
+            description = description.format(zone_name=zone)
 
-        elif '{device}' in description:
+        elif '{device_type}' in description:
             device = self.device_by_id[raw_dict['data']['nodeID']].type
-            description = description.format(device)
+            description = description.format(device_type=device)
 
         level = LEVEL_TO_TEXT.get(raw_dict['level'], raw_dict['level'])
 
@@ -817,12 +808,8 @@ class GeniusZone(GeniusObject):
 
           This is a v1 API: GET /zones/{zoneId}devices
         """
-        self._devices = [self._convert_device(d) for d in self._devices_raw
-                         if d['assignedZone'] == self.name]
-
-        # self._devices = []
-        # for device in self.device_objs:
-        #     self._devices.append(device.info)
+        self._devices = [self._convert_device(d) for d in self.hub._devices_raw
+                         if d['childValues']['location']['val'] == self.name]
 
         _LOGGER.debug("Zone(%s).devices: len(self._devices) = %s",
                       self.id, len(self._devices))
@@ -832,7 +819,8 @@ class GeniusZone(GeniusObject):
     def issues(self) -> list:
         """Return a list of Issues known to the Zone."""
 
-        self._issues = [self._convert_issue(i) for i in self._issues_raw]
+        self._issues = [self._convert_issue(i) for i in self.hub._issues_raw
+                         if i['_zone_name'] == self.name]
 
         _LOGGER.debug("Hub().devices: len(self._devices) = %s",
                       len(self._devices))
