@@ -4,14 +4,13 @@
    """
 # import asyncio
 from hashlib import sha256
+
 import logging
 import re
 
 import aiohttp
-import json
 
 from .const import (
-    API_STATUS_ERROR,
     ATTRS_DEVICE, ATTRS_ISSUE, ATTRS_ZONE,
     DEFAULT_INTERVAL_V1, DEFAULT_INTERVAL_V3,
     DEFAULT_TIMEOUT_V1, DEFAULT_TIMEOUT_V3,
@@ -25,12 +24,16 @@ _LOGGER = logging.getLogger(__name__)
 _LOGGER.setLevel(logging.WARNING)
 
 # pylint: disable=no-member, invalid-name, protected-access
+# pylint: disable=too-many-instance-attributes, too-few-public-methods,
+# pylint: disable=too-many-arguments, too-many-locals, too-many-branches, too-many-statements
+
 
 def _without_keys(dict_obj, keys) -> dict:
     _info = dict(dict_obj)
     _info = {k: v for k, v in _info.items() if k[:1] != '_'}
     _info = {k: v for k, v in _info.items() if k not in keys}
     return _info
+
 
 def _extract_zones_from_zones(raw_json) -> list:
     """Extract Zones from /v3/zones JSON.
@@ -40,6 +43,7 @@ def _extract_zones_from_zones(raw_json) -> list:
     _LOGGER.debug("_zones_from_zones(): raw_json = %s", raw_json)
 
     return raw_json
+
 
 def _extract_devices_from_data_manager(raw_json) -> list:
     """Extract Devices from /v3/data_manager JSON.
@@ -59,6 +63,7 @@ def _extract_devices_from_data_manager(raw_json) -> list:
 
     return result
 
+
 def _extract_devices_from_zones(raw_json) -> list:
     """Extract Devices from /v3/zones JSON.
 
@@ -77,6 +82,7 @@ def _extract_devices_from_zones(raw_json) -> list:
 
     return result
 
+
 def _extract_issues_from_zones(raw_json) -> list:
     """Extract Issues from /v3/zones JSON.
 
@@ -94,11 +100,12 @@ def _extract_issues_from_zones(raw_json) -> list:
 
     return result
 
+
 def natural_sort(dict_list, dict_key):
     convert = lambda text: int(text) if text.isdigit() else text.lower()
-    alphanum_key = lambda key: [ convert(c)
-        for c in re.split('([0-9]+)', key[dict_key]) ]
-    return sorted(dict_list, key = alphanum_key)
+    alphanum_key = lambda key: [convert(c)
+                                for c in re.split('([0-9]+)', key[dict_key])]
+    return sorted(dict_list, key=alphanum_key)
 
 
 class GeniusHubClient(object):
@@ -150,9 +157,8 @@ class GeniusHubClient(object):
         if value >= 0 and value <= 3:
             self._verbose = value
         else:
-            raise ValueError("'%s' is not valid for verbosity. "
-                                "The permissible range is (0-3).",
-                                value)
+            raise ValueError("'{}' is not valid for verbosity. "
+                             "The permissible range is (0-3).".format(value))
 
 
 class GeniusObject(object):
@@ -233,7 +239,7 @@ class GeniusObject(object):
              footprint={} if: Manager, OnOffTimer, TPI
              footprint={...} if: ControlSP, _even_ if no PIR
         """
-        result['schedule'] = {'timer':{}, 'footprint':{}}
+        result['schedule'] = {'timer': {}, 'footprint': {}}
 
         if raw_dict['iType'] != ZONE_TYPES.Manager:
             root = result['schedule']['timer'] = {'weekly': {}}
@@ -251,11 +257,11 @@ class GeniusObject(object):
                     node['defaultSetpoint'] = default_temp = next_temp
                     node['heatingPeriods'] = []
 
-                elif setpoint_temp != default_temp:
+                elif setpoint_temp != default_temp:                              # noqa: disable=F821; pylint: disable=used-before-assignment
                     node['heatingPeriods'].append({
                         'end': next_time,
-                        'start': setpoint_time,
-                        'setpoint': setpoint_temp
+                        'start': setpoint_time,                                  # noqa: disable=F821; pylint: disable=used-before-assignment
+                        'setpoint': setpoint_temp                                # noqa: disable=F821; pylint: qisable=used-before-assignment
                     })
 
                 setpoint_time = next_time
@@ -296,8 +302,6 @@ class GeniusObject(object):
                 setpoint_time = next_time
                 setpoint_temp = next_temp
 
-
-
         return result
 
     def _convert_device(self, raw_dict) -> dict:
@@ -308,20 +312,20 @@ class GeniusObject(object):
         def _check_fingerprint(device, device_fingerprint):
             if not device['type']:
                 _LOGGER.debug("Device %s: Matched by fingerprint '%s'",
-                    device['id'], device_fingerprint)
+                              device['id'], device_fingerprint)
                 device['type'] = device_fingerprint
 
             elif device['type'] == device_fingerprint:
                 _LOGGER.debug("Device %s: Type matches its fingerprint '%s'",
-                    device['id'], device_fingerprint)
+                              device['id'], device_fingerprint)
 
             elif device['type'][:21] == device_fingerprint:  # "Dual Channel Receiver"
                 _LOGGER.debug("Device %s: Type matches its fingerprint '%s'",
-                    device['id'], device_fingerprint)
+                              device['id'], device_fingerprint)
 
             else:  # device['type'] != device_type:
                 _LOGGER.error("Device %s: Type doesn't match fingerprint '%s'",
-                    device['id'], device_fingerprint)
+                              device['id'], device_fingerprint)
 
         result = {}
         # Determine Device Id...
@@ -377,10 +381,10 @@ class GeniusObject(object):
         else:  # unknown device fingerprint
             if result['type']:
                 _LOGGER.debug("Device %s: Can't obtain a fingerprint",
-                    result['id'])
+                              result['id'])
             else:
                 _LOGGER.error("Device %s: Can't obtain a fingerprint",
-                    result['id'])
+                              result['id'])
 
         # Determine Device assignedZones...
         result['assignedZones'] = [{'name': None}]
@@ -514,7 +518,7 @@ class GeniusObject(object):
                     new_item['type'] = 'Dual Channel Receiver'
                     new_item['assignedZones'] = [{'name': None}]
                     item_list = [new_item] + item_list
-        except (TypeError):
+        except TypeError:
             pass  # Forgive me, you weren't a device list
 
         # if 'id' in item_list:
@@ -529,7 +533,7 @@ class GeniusObject(object):
             keys = summary_keys
 
         result = [{k: item[k] for k in keys if k in item}
-            for item in item_list]
+                  for item in item_list]
 
         return result
 
@@ -548,7 +552,7 @@ class GeniusObject(object):
         else:
             keys = summary_keys
 
-        return {k: item[k] for k in keys if k in item}
+        return {k: item_dict[k] for k in keys if k in item_dict}
 
 
 class GeniusHub(GeniusObject):
@@ -856,7 +860,7 @@ class GeniusZone(GeniusObject):
         ALLOWED_MODE_STRS = [IMODE_TO_MODE[i] for i in ALLOWED_MODES]
 
         if hasattr(self, 'occupied'):
-            ALLOWED_IMODES += [ZONE_MODES.Footprint]
+            ALLOWED_MODES += [ZONE_MODES.Footprint]
 
         if isinstance(mode, int) and mode in ALLOWED_MODES:
             mode_str = IMODE_TO_MODE[mode]

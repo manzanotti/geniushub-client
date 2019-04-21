@@ -133,7 +133,8 @@ DESCRIPTION_TO_TEXT = {
         "the battery is low",
 }
 
-### Examples:
+# Examples:
+
 # [{'iID': 0, 'strName': '32 Clift road', 'lstIssues': [{
 #     'id': 'manager:weather', 'level': 1, 'zone_name': '32 Clift road',
 #         'data': {'msg': ''} }] }]
