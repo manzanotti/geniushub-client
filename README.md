@@ -13,7 +13,6 @@ It is based upon work by @GeoffAtHome - thanks!
 Current limitations & to-dos include:
  - **ghclient.py** is not complete
  - minimal support for schedules (e.g. they can't be modified), and...
- - for v3, all zones have a empty schedule
  - for v3, some zones have the wrong value for `occupied`
 
 ## Installation
@@ -50,7 +49,7 @@ python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} zones -v
 You can compare any output to the official API (v1 response):
 ```bash
 curl -X GET https://my.geniushub.co.uk/v1/zones -H "authorization: Bearer ${HUB_TOKEN}"
-python ghclient.py ${HUB_TOKEN} zones -vv
+python ghclient.py ${HUB_TOKEN} zones -v
 
 curl -X GET https://my.geniushub.co.uk/v1/devices/summary -H "authorization: Bearer ${HUB_TOKEN}"
 python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} devices
@@ -59,13 +58,13 @@ curl -X GET https://my.geniushub.co.uk/v1/issues -H "authorization: Bearer ${HUB
 python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} issues
 ```
 
-You can obtain the actual v3 API responses (i.e. the JSON is not converted to the v1 schema):
+You can obtain the v3 API responses (i.e. the JSON is not converted to the v1 schema):
 ```bash
-python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} zones -vvvv
-python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} devices -vvvv
+python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} zones -vvv
+python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} devices -vvv
 ```
 
-To obtain the actual v3 API responses takes a little work.  First, use python to obtain a `HASH`:
+To obtain the benchmark v3 API responses takes a little work.  First, use python to obtain a `HASH`:
 ```python
 >>> from hashlib import sha256
 >>> hash = sha256()
@@ -93,6 +92,9 @@ if not (username or password):
     client = GeniusHubClient(hub_id=hub_address, username, password, session=my_session)
 else:
     client = GeniusHubClient(hub_id=hub_token, session=my_session)
+    
+client.verbose = 0  # same as v1/zones/summary, v1/devices/summary
+client.verbose = 1  # default, same as v1/zones, v1/devices, v1/issues
     
 hub = client.hub
 await hub.update()  # enumerate all zones, devices and issues
