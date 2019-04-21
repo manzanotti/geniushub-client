@@ -228,10 +228,12 @@ class GeniusObject(object):
             else:
                 result['override']['setpoint'] = raw_dict['fBoostSP']
 
+        """Schedules - What is known:
+             timer={} if: Manager
+             footprint={} if: Manager, OnOffTimer, TPI
+             footprint={...} if: ControlSP, _even_ if no PIR
+        """
         result['schedule'] = {'timer':{}, 'footprint':{}}
-        # Known:
-        #   timer={} if: Manager
-        #   footprint={} if: Manager, OnOffTimer, TPI
 
         if raw_dict['iType'] != ZONE_TYPES.Manager:
             result['schedule']['timer'] = {'weekly': {}}
@@ -271,7 +273,6 @@ class GeniusObject(object):
         if raw_dict['iType'] in [ZONE_TYPES.ControlSP]:
             result['schedule']['footprint'] = {'weekly': {}}
 
-            active_temp = raw_dict['objFootprint']['fFootprintActiveSP']
             away_temp = raw_dict['objFootprint']['fFootprintAwaySP']
             night_temp = raw_dict['objFootprint']['fFootprintNightSP']
             night_start = raw_dict['objFootprint']['iFootprintTmNightStart']
@@ -287,7 +288,7 @@ class GeniusObject(object):
                     node['defaultSetpoint'] = away_temp
                     node['heatingPeriods'] = []
 
-                elif setpoint_temp == active_temp:
+                elif setpoint_temp != away_temp:
                     node['heatingPeriods'].append({
                         'end': next_time,
                         'start': setpoint_time,
@@ -297,7 +298,7 @@ class GeniusObject(object):
                 if next_time == night_start:  # e.g. 11pm
                     node['heatingPeriods'].append({
                         'end': 86400,
-                        'start': setpoint_time,
+                        'start': night_start,
                         'setpoint': night_temp
                     })
 
