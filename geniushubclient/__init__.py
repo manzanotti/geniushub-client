@@ -271,7 +271,9 @@ class GeniusObject(object):
         if raw_dict['iType'] in [ZONE_TYPES.ControlSP]:
             result['schedule']['footprint'] = {'weekly': {}}
 
-            night_setpoint = raw_dict['objFootprint']['fFootprintNightSP']
+            active_temp = raw_dict['objFootprint']['fFootprintActiveSP']
+            away_temp = raw_dict['objFootprint']['fFootprintAwaySP']
+            night_temp = raw_dict['objFootprint']['fFootprintNightSP']
             night_start = raw_dict['objFootprint']['iFootprintTmNightStart']
 
             day = -1
@@ -282,10 +284,10 @@ class GeniusObject(object):
                 if next_time == 0:  # i.e. start of day
                     day += 1
                     node = result['schedule']['footprint']['weekly'][IDAY_TO_DAY[day]] = {}
-                    node['defaultSetpoint'] = raw_dict['objFootprint']['fFootprintAwaySP']
+                    node['defaultSetpoint'] = away_temp
                     node['heatingPeriods'] = []
 
-                else:
+                elif setpoint_temp == active_temp:
                     node['heatingPeriods'].append({
                         'end': next_time,
                         'start': setpoint_time,
@@ -296,7 +298,7 @@ class GeniusObject(object):
                     node['heatingPeriods'].append({
                         'end': 86400,
                         'start': setpoint_time,
-                        'setpoint': raw_dict['objFootprint']['fFootprintNightSP']
+                        'setpoint': night_temp
                     })
 
                 setpoint_time = next_time
