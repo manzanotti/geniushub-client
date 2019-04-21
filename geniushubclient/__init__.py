@@ -236,42 +236,33 @@ class GeniusObject(object):
         result['schedule'] = {'timer':{}, 'footprint':{}}
 
         if raw_dict['iType'] != ZONE_TYPES.Manager:
-            result['schedule']['timer'] = {'weekly': {}}
+            root = result['schedule']['timer'] = {'weekly': {}}
+
             day = -1
             for setpoint in raw_dict['objTimer']:
-                if setpoint['iTm'] == -1:
+                next_time = setpoint['iTm']
+                next_temp = setpoint['fSP']
+
+                if next_time == -1:  # i.e. default SP entry
                     day += 1
-                    node = result['schedule']['timer']['weekly'][IDAY_TO_DAY[day]] = {}
-                    temp = setpoint['fSP']
+                    node = root['weekly'][IDAY_TO_DAY[day]] = {}
+                    node['defaultSetpoint'] = default_temp = setpoint['fSP']
                     if raw_dict['iType'] == ZONE_TYPES.OnOffTimer:
-                        temp = temp != 0
-                    node['defaultSetpoint'] = temp
+                        node['defaultSetpoint'] = bool(setpoint['fSP'])
                     node['heatingPeriods'] = []
-                    start = None
 
-                elif start is None:
-                    temp = setpoint['fSP']
-                    if raw_dict['iType'] == ZONE_TYPES.OnOffTimer:
-                        temp = temp != 0
-                    start = setpoint['iTm']
-
-                else:
+                elif setpoint_temp != default_temp:
                     node['heatingPeriods'].append({
-                        'end': setpoint['iTm'],
-                        'start': start,
-                        'setpoint': temp
+                        'end': next_time,
+                        'start': setpoint_time,
+                        'setpoint': setpoint_temp
                     })
 
-                    temp = setpoint['fSP']
-                    if raw_dict['iType'] == ZONE_TYPES.OnOffTimer:
-                        temp = temp != 0
-                    if temp == node['defaultSetpoint']:
-                        start = None
-                    else:
-                        start = setpoint['iTm']
+                setpoint_time = next_time
+                setpoint_temp = next_temp
 
         if raw_dict['iType'] in [ZONE_TYPES.ControlSP]:
-            result['schedule']['footprint'] = {'weekly': {}}
+            root = result['schedule']['footprint'] = {'weekly': {}}
 
             away_temp = raw_dict['objFootprint']['fFootprintAwaySP']
             night_temp = raw_dict['objFootprint']['fFootprintNightSP']
@@ -284,7 +275,7 @@ class GeniusObject(object):
 
                 if next_time == 0:  # i.e. start of day
                     day += 1
-                    node = result['schedule']['footprint']['weekly'][IDAY_TO_DAY[day]] = {}
+                    node = root['weekly'][IDAY_TO_DAY[day]] = {}
                     node['defaultSetpoint'] = away_temp
                     node['heatingPeriods'] = []
 
