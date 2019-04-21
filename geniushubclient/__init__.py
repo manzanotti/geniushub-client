@@ -270,51 +270,39 @@ class GeniusObject(object):
 
         if raw_dict['iType'] in [ZONE_TYPES.ControlSP]:
             result['schedule']['footprint'] = {'weekly': {}}
+
+            night_setpoint = raw_dict['objFootprint']['fFootprintNightSP']
+            night_start = raw_dict['objFootprint']['iFootprintTmNightStart']
+
             day = -1
-            start = None
-
             for setpoint in raw_dict['objFootprint']['lstSP']:
-                if setpoint['iTm'] == 0:
-                    if start is not None:
-                        node['heatingPeriods'].append({
-                            'end': 86400,
-                            'start': start,
-                            'setpoint': temp
-                        })
-                        start = end = None
+                next_time = setpoint['iTm']
+                next_temp = setpoint['fSP']
 
-                    elif day >= 0 and end != 86400:
-                        node['heatingPeriods'].append({
-                            'end': 86400,
-                            'start': end,
-                            'setpoint': temp
-                        })
-
+                if next_time == 0:  # i.e. start of day
                     day += 1
                     node = result['schedule']['footprint']['weekly'][IDAY_TO_DAY[day]] = {}
                     node['defaultSetpoint'] = raw_dict['objFootprint']['fFootprintAwaySP']
                     node['heatingPeriods'] = []
 
-                if start is not None:
-                    end = setpoint['iTm']
-                    node['heatingPeriods'].append({
-                        'end': end,
-                        'start': start,
-                        'setpoint': temp
-                    })
-                    start = None
-                    temp = setpoint['fSP']
-
                 else:
-                    start = setpoint['iTm']
-                    temp = setpoint['fSP']
+                    node['heatingPeriods'].append({
+                        'end': next_time,
+                        'start': setpoint_time,
+                        'setpoint': setpoint_temp
+                    })
 
-            if end != 86400:
-                node['heatingPeriods'].append({
-                    'end': 86400,
-                    'start': end,
-                    'setpoint': temp
-                })
+                if next_time == night_start:  # e.g. 11pm
+                    node['heatingPeriods'].append({
+                        'end': 86400,
+                        'start': setpoint_time,
+                        'setpoint': raw_dict['objFootprint']['fFootprintNightSP']
+                    })
+
+                setpoint_time = next_time
+                setpoint_temp = next_temp
+
+
 
         return result
 
