@@ -117,16 +117,16 @@ DESCRIPTION_TO_TEXT = {
         "Weather data -",
 
     "zone:using_weather_temp":
-        "{} is currently using the outside temperature",
+        "{zone_name} is currently using the outside temperature",
     "zone:using_assumed_temp":
-        "{} is currently using the assumed temperature",
+        "{zone_name} is currently using the assumed temperature",
     "zone:tpi_no_temp":
-        "{} has no valid temperature sensor",
+        "{zone_name} has no valid temperature sensor",
 
     "node:no_comms":
         "The device has lost communication with the Hub",
     "node:not_seen":                                                             # checked/confirmed
-        "The {device} in {zone} can not been found by the Hub",
+        "The {device_type} in {zone_name} can not been found by the Hub",
     "node:low_battery":
         "The battery is dead and needs to be replaced",
     "node:warn_battery":
