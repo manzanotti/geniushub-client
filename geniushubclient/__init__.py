@@ -242,13 +242,13 @@ class GeniusObject(object):
             for setpoint in raw_dict['objTimer']:
                 next_time = setpoint['iTm']
                 next_temp = setpoint['fSP']
+                if raw_dict['iType'] == ZONE_TYPES.OnOffTimer:
+                    next_temp = bool(setpoint['fSP'])
 
                 if next_time == -1:  # i.e. default SP entry
                     day += 1
                     node = root['weekly'][IDAY_TO_DAY[day]] = {}
-                    node['defaultSetpoint'] = default_temp = setpoint['fSP']
-                    if raw_dict['iType'] == ZONE_TYPES.OnOffTimer:
-                        node['defaultSetpoint'] = bool(setpoint['fSP'])
+                    node['defaultSetpoint'] = default_temp = next_temp
                     node['heatingPeriods'] = []
 
                 elif setpoint_temp != default_temp:
