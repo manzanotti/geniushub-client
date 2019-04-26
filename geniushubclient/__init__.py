@@ -839,10 +839,10 @@ class GeniusZone(GeniusObject):
         # TODO: device-specific logic to prevent placing into an invalid mode
         # TODO: e.g. zones only support footprint if they have a PIR
         ALLOWED_MODES = [ZONE_MODES.Off, ZONE_MODES.Override, ZONE_MODES.Timer]
-        ALLOWED_MODE_STRS = [IMODE_TO_MODE[i] for i in ALLOWED_MODES]
 
         if hasattr(self, 'occupied'):
             ALLOWED_MODES += [ZONE_MODES.Footprint]
+        ALLOWED_MODE_STRS = [IMODE_TO_MODE[i] for i in ALLOWED_MODES]
 
         if isinstance(mode, int) and mode in ALLOWED_MODES:
             mode_str = IMODE_TO_MODE[mode]
@@ -851,7 +851,7 @@ class GeniusZone(GeniusObject):
             mode = MODE_TO_IMODE[mode_str]
         else:
             raise TypeError(
-                "Zone.set_mode(): mode={} isn't valid (str/int).".format(mode))
+                "Zone.set_mode(): mode='{}' isn't valid.".format(mode))
 
         _LOGGER.debug("Zone(%s).set_mode(mode=%s, mode_str='%s')...",
                       self.id, mode, mode_str)
