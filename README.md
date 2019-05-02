@@ -119,7 +119,3 @@ QA includes comparing JSON from **cURL** with output from this app using **diff*
 
 (venv) root@hostname:~/$ diff a.out b.out
 ```
-Newer versions of the gateway require authentication:
-```bash
-(venv) root@hostname:~/$ curl --user ${USER}:${PASS} -X GET http://${HOSTNAME}/protect/data.json?heater=0
-```
