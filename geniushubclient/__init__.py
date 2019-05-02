@@ -507,6 +507,9 @@ class GeniusObject(object):
                 new_item['id'] = item['id'][0]
                 new_item['type'] = 'Dual Channel Receiver'
                 new_item['assignedZones'] = [{'name': None}]
+                # TODO: 'outputOnOff' isn't same as dict(item)'s
+                new_item['state'] = [{'outputOnOff': False}]  # try this
+
                 item_list = [new_item] + item_list
 
         if self._client._verbose >= 2:
