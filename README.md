@@ -9,7 +9,7 @@ If you use the v3 API, you can interrogate the hub directly, rather than via Hea
 
 It is a WIP, and is missing some functionality (e.g. schedules). In addition, there are some other limitations (see below).
 
-It is based upon work by @GeoffAtHome - thanks!
+It is based upon work by [@GeoffAtHome](https://github.com/zxdavb/geniushub-client/commits?author=GeoffAtHome) - thanks!
 
 ## Current limitations
 Current limitations & to-dos include:
