@@ -109,3 +109,17 @@ print(hub.zone_by_id[3].temperature)
 await session.close()
 ```
 
+### QA/CI via CircleCI
+QA includes comparing JSON from **cURL** with output from this app using **diff**, for example:
+```bash
+(venv) root@hostname:~/$ curl -X GET https://my.geniushub.co.uk/v1/zones -H "authorization: Bearer ${HUB_TOKEN}" | \
+    python -c "import sys, json; print(json.load(sys.stdin))" > a.out
+    
+(venv) root@hostname:~/$ python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} zones -v > b.out
+
+(venv) root@hostname:~/$ diff a.out b.out
+```
+Newer versions of the gateway require authentication:
+```bash
+(venv) root@hostname:~/$ curl --user ${USER}:${PASS} -X GET http://${HOSTNAME}/protect/data.json?heater=0
+```
