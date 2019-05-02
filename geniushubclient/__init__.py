@@ -508,7 +508,7 @@ class GeniusObject(object):
                 new_item['type'] = 'Dual Channel Receiver'
                 new_item['assignedZones'] = [{'name': None}]
                 # TODO: 'outputOnOff' isn't same as dict(item)'s
-                new_item['state'] = [{'outputOnOff': False}]  # try this
+                new_item['state'] = {'outputOnOff': False}  # try this
 
                 item_list = [new_item] + item_list
 
