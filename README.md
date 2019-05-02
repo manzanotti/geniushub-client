@@ -1,7 +1,7 @@
 [![CircleCI](https://circleci.com/gh/zxdavb/geniushub-client.svg?style=svg)](https://circleci.com/gh/zxdavb/geniushub-client)
 
 # geniushub-client
-This is a Python library to provide access to a **Genius Hub** via its [RESTful API](https://my.geniushub.co.uk/docs). It uses **aiohttp** and is therefore async-friendly.
+This is a Python library to provide access to a **Genius Hub** by abstracting its [RESTful API](https://my.geniushub.co.uk/docs). It uses **aiohttp** and is therefore async-friendly.
 
 This library can use either the **_offical_ v1 API** with a [hub token](https://my.geniushub.co.uk/tokens), or the **_latest_ v3 API** (using your own [username and password](https://www.geniushub.co.uk/app)). In either case, the library will return v1-compatible results wherever possible (this is not a trivial task).
 
