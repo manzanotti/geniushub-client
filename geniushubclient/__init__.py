@@ -343,7 +343,7 @@ class GeniusObject(object):
 
         node = raw_dict['childValues']
         # Hack: find any Dual Channel Receiver(s), to give a type
-        if False and 'SwitchBinary' in node and \
+        if 'SwitchBinary' in node and \
                 node['SwitchBinary']['path'].count('/') == 3:
 
             DEVICE_TYPE = 'Dual Channel Receiver - Channel {}'
