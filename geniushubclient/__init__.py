@@ -62,7 +62,7 @@ def _extract_devices_from_data_manager(raw_json) -> list:
                     for k2, v2 in device['childNodes'].items():
                         if k2 != "_cfg":
                             temp = dict(v2)
-                            temp['addr'] = '{}-{}'.format(device_id, temp['addr'])
+                            temp['addr'] = '{}-{}'.format(device_id, k2)
                             result.append(temp)
 
     return result
