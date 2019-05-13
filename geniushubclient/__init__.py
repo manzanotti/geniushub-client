@@ -57,9 +57,13 @@ def _extract_devices_from_data_manager(raw_json) -> list:
     for k1, v1 in raw_json['childNodes'].items():
         if k1 != 'WeatherData':
             for device_id, device in v1['childNodes'].items():
-                # if device_id != '1':  # alternatively: device['addr'] != '1':
-                if device_id != '88':  # alternatively: device['addr'] != '1':
+                if device_id != '1':  # alternatively: device['addr'] != '1':
                     result.append(device)
+                    for k2, v2 in device['childNodes'].items():
+                        if k2 != "_cfg":
+                            temp = dict(v2)
+                            temp['addr'] = '{}-{}'.format(device_id, temp['addr'])
+                            result.append(temp)
 
     return result
 
@@ -500,18 +504,6 @@ class GeniusObject(object):
 
         item_list = [_convert_to_v1(i) for i in item_list_raw]
 
-        # Hack v3 output to match v1: add missing Dual channel controller
-        if _convert_to_v1 == self._convert_device and not self._api_v1:
-            for item in [i for i in item_list if '-1' in i['id']]:
-                new_item = dict(item)
-                new_item['id'] = item['id'][0]
-                new_item['type'] = 'Dual Channel Receiver'
-                new_item['assignedZones'] = [{'name': None}]
-                # TODO: 'outputOnOff' isn't same as dict(item)'s
-                new_item['state'] = {'outputOnOff': False}  # try this
-
-                item_list = [new_item] + item_list
-
         if self._client._verbose >= 2:
             return item_list
 
@@ -653,9 +645,9 @@ class GeniusHub(GeniusObject):
 
             return issue_dict['description'], None
 
-        for z in await self._get_zones:
+        for z in await self._get_zones_raw:
             _populate_zone(z)
-        for d in await self._get_devices:
+        for d in await self._get_devices_raw:
             _populate_device(d)
         for i in await self._get_issues:
             _populate_issue(i)
@@ -680,7 +672,7 @@ class GeniusHub(GeniusObject):
         return info
 
     @property
-    async def _get_zones(self) -> list:
+    async def _get_zones_raw(self) -> list:
         """Return a list (of dicts) of zones included in the system."""
         # getAllZonesData = x.get("/v3/zones", {username: e, password: t})
 
@@ -690,7 +682,7 @@ class GeniusHub(GeniusObject):
         else:
             self._zones_raw = _extract_zones_from_zones(raw_json['data'])
 
-        _LOGGER.debug("Hub()._get_zones(): len(self._zones_raw) = %s",
+        _LOGGER.debug("Hub()._get_zones_raw(): len(self._zones_raw) = %s",
                       len(self._zones_raw))
         return self._zones_raw
 
@@ -710,27 +702,19 @@ class GeniusHub(GeniusObject):
         return result
 
     @property
-    async def _get_devices(self) -> list:
+    async def _get_devices_raw(self) -> list:
         """Return a list (of dicts) of devices included in the system."""
         # getDeviceList = x.get("/v3/data_manager", {username: e, password: t})
 
-        if not self._api_v1:  # required for Dual Channel detection...
-            # WORKAROUND: There's a aiohttp.ServerDisconnectedError on 2nd HTTP
-            # method (2nd GET v3/zones or GET v3/zones & get /data_manager) if
-            # it is done the v1 way (above) for v3
-            self._devices_raw = _extract_devices_from_zones(
-                self._zones_raw)
-        # son = await self._request('GET', 'devices' if self._api_v1 else 'zones')
+        if self._api_v1:
+            raw_json = await self._request('GET', 'devices')
+            self._devices_raw = raw_json
         else:
-            raw_json = await self._request('GET',
-                                           'devices' if self._api_v1 else 'data_manager')
-            if self._api_v1:
-                self._devices_raw = raw_json
-            else:
-                self._devices_raw = _extract_devices_from_data_manager(
-                    raw_json['data'])
+            raw_json = await self._request('GET', 'data_manager')
+            self._devices_raw = _extract_devices_from_data_manager(
+                raw_json['data'])
 
-        _LOGGER.debug("Hub()._get_devices(): len(self._devices_raw) = %s",
+        _LOGGER.debug("Hub()._get_devices_raw(): len(self._devices_raw) = %s",
                       len(self._devices_raw))
         return self._devices_raw
 
