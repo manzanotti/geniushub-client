@@ -48,22 +48,22 @@ def _extract_zones_from_zones(raw_json) -> list:
 def _extract_devices_from_data_manager(raw_json) -> list:
     """Extract Devices from /v3/data_manager JSON.
 
-    This extracts a list of Devices from a nested list of Devices. Each
-    Zone may have multiple Devices.
+    This extracts a list of Devices from a nested list of Devices and Channels.
+    Each Zone may have 0-many Devices.
     """
     _LOGGER.debug("_devices_from_data_manager(): raw_json = %s", raw_json)
 
     result = []
-    for k1, v1 in raw_json['childNodes'].items():
-        if k1 != 'WeatherData':
-            for device_id, device in v1['childNodes'].items():
-                if device_id != '1':  # alternatively: device['addr'] != '1':
-                    result.append(device)
-                    for k2, v2 in device['childNodes'].items():
-                        if k2 != "_cfg":
-                            temp = dict(v2)
-                            temp['addr'] = '{}-{}'.format(device_id, k2)
-                            result.append(temp)
+    for site in [x for x in raw_json['childNodes'].values()
+                 if x['addr'] != 'WeatherData']:
+        for device in [x for x in site['childNodes'].values()
+                       if x['addr'] != '1']:
+            result.append(device)
+            for channel in [x for x in device['childNodes'].values()
+                            if x['addr'] != '_cfg']:
+                temp = dict(channel)
+                temp['addr'] = '{}-{}'.format(device['addr'], channel['addr'])
+                result.append(temp)
 
     return result
 
@@ -78,11 +78,9 @@ def _extract_devices_from_zones(raw_json) -> list:
 
     result = []
     for zone in raw_json:
-        # if 'nodes' in zone:
-        for device in zone['nodes']:
-            # if device['addr'] not in ['1', 'WeatherData']:
-            if device['addr'] not in ['WeatherData']:
-                result.append(device)
+        for device in [x for x in zone['nodes'].values()
+                       if x['addr'] not in ['WeatherData']]:  #  ['1', 'WeatherData']
+            result.append(device)
 
     return result
 
@@ -98,7 +96,7 @@ def _extract_issues_from_zones(raw_json) -> list:
     result = []
     for zone in raw_json:
         for issue in zone['lstIssues']:
-            # TODO: might better be as an ID
+            # TODO: might better be as an ID +/- convert to a comprehension
             issue['_zone_name'] = zone['strName']
             result.append(issue)
 
@@ -315,21 +313,21 @@ class GeniusObject(object):
 
         def _check_fingerprint(device, device_fingerprint):
             if not device['type']:
-                _LOGGER.debug("Device %s: Matched by fingerprint '%s'",
+                _LOGGER.debug("Device %s: Matched by Fingerprint '%s'",
                               device['id'], device_fingerprint)
                 device['type'] = device_fingerprint
 
             elif device['type'] == device_fingerprint:
-                _LOGGER.debug("Device %s: Type matches its fingerprint '%s'",
+                _LOGGER.debug("Device %s: Type matches its Fingerprint '%s'",
                               device['id'], device_fingerprint)
 
             elif device['type'][:21] == device_fingerprint:  # "Dual Channel Receiver"
-                _LOGGER.debug("Device %s: Type matches its fingerprint '%s'",
+                _LOGGER.debug("Device %s: Type matches its Fingerprint '%s'",
                               device['id'], device_fingerprint)
 
             else:  # device['type'] != device_type:
-                _LOGGER.error("Device %s: Type doesn't match fingerprint '%s'",
-                              device['id'], device_fingerprint)
+                _LOGGER.error("Device %s: Type '%s', doesn't match Fingerprint '%s'",
+                              device['id'], device['type'], device_fingerprint)
 
         result = {}
         # Determine Device Id...
@@ -344,29 +342,26 @@ class GeniusObject(object):
             result['_sku'] = node['sku']['val']
 
         node = raw_dict['childValues']
-        # try to find the Dual Channel Receiver
-        if 'SwitchBinary' in node and \
+        # Hack: find any Dual Channel Receiver(s), to give a type
+        if False and 'SwitchBinary' in node and \
                 node['SwitchBinary']['path'].count('/') == 3:
 
-            device_type = 'Dual Channel Receiver - Channel {}'
-            path = node['SwitchBinary']['path']
-
+            DEVICE_TYPE = 'Dual Channel Receiver - Channel {}'
             if result['type'] is None:
-                result['id'] = '{}-{}'.format(path[-3], path[-1])
-                result['type'] = device_type.format(path[-1])
+                _LOGGER.debug("Assigning Type for Device: %s", result['id'])
+                result['type'] = DEVICE_TYPE.format(result['id'][-1])
             else:
                 _LOGGER.error("Clash for Device type: "
                               "via Method 1: %s, via Method 2: %s",
-                              result['type'], device_type.format(path[-1]))
+                              result['type'],
+                              DEVICE_TYPE.format(result['id'][-1]))
 
         # try to 'fingerprint' the device type
         if 'SwitchBinary' in node:
             if 'TEMPERATURE' in node:
                 _check_fingerprint(result, "Electric Switch")
-
             elif 'SwitchAllMode' in node:
                 _check_fingerprint(result, "Smart Plug")
-
             else:
                 _check_fingerprint(result, "Dual Channel Receiver")
 
@@ -384,11 +379,11 @@ class GeniusObject(object):
 
         else:  # unknown device fingerprint
             if result['type']:
-                _LOGGER.debug("Device %s: Can't obtain a fingerprint",
-                              result['id'])
+                _LOGGER.debug("Device %s: Can't obtain a Fingerprint, ",
+                              "using Type: '%s'", result['id'], result['type'])
             else:
-                _LOGGER.error("Device %s: Can't obtain a fingerprint",
-                              result['id'])
+                _LOGGER.error("Device %s: Can't obtain a Fingerprint, ",
+                              "and has no Type.", result['id'])
 
         # Determine Device assignedZones...
         result['assignedZones'] = [{'name': None}]
@@ -406,6 +401,7 @@ class GeniusObject(object):
         # RADR = ['batteryLevel', 'setTemperature']
         # RADR = ['outputOnOff', 'measuredTemperature']
 
+        # This preserves the order too
         if 'SwitchBinary' in node:
             state['outputOnOff'] = bool(node['SwitchBinary']['val'])
         if 'Battery' in node:
@@ -475,9 +471,9 @@ class GeniusObject(object):
             return response
 
         except aiohttp.client_exceptions.ServerDisconnectedError as err:
-            _LOGGER.warning("_request(): 2nd try: method=%s url=%s data=%s. "
-                            "Exception was: ServerDisconnected, message: %s",
-                            method, url, data, err)
+            _LOGGER.debug("_request(): 2nd try: method=%s url=%s data=%s. "
+                          "Exception was: ServerDisconnected, message: %s",
+                          method, url, data, err)
             _session = aiohttp.ClientSession()
             async with http_method(
                 self._client._url_base + url,
@@ -645,12 +641,9 @@ class GeniusHub(GeniusObject):
 
             return issue_dict['description'], None
 
-        for z in await self._get_zones_raw:
-            _populate_zone(z)
-        for d in await self._get_devices_raw:
-            _populate_device(d)
-        for i in await self._get_issues:
-            _populate_issue(i)
+        [_populate_zone(z) for z in await self._get_zones_raw]
+        [_populate_device(d) for d in await self._get_devices_raw]
+        [_populate_issue(i) for i in await self._get_issues]
 
         _LOGGER.debug("Hub(%s).update(): len(hub.zone_objs) = %s",
                       self.id, len(self.zone_objs))
