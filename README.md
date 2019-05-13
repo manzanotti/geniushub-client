@@ -1,7 +1,7 @@
 [![CircleCI](https://circleci.com/gh/zxdavb/geniushub-client.svg?style=svg)](https://circleci.com/gh/zxdavb/geniushub-client)
 
 # geniushub-client
-This is a Python library to provide access to a **Genius Hub** via its [RESTful API](https://my.geniushub.co.uk/docs). It uses **aiohttp** and is therefore async-friendly.
+This is a Python library to provide access to a **Genius Hub** by abstracting its [RESTful API](https://my.geniushub.co.uk/docs). It uses **aiohttp** and is therefore async-friendly.
 
 This library can use either the **_offical_ v1 API** with a [hub token](https://my.geniushub.co.uk/tokens), or the **_latest_ v3 API** (using your own [username and password](https://www.geniushub.co.uk/app)). In either case, the library will return v1-compatible results wherever possible (this is not a trivial task).
 
@@ -9,7 +9,7 @@ If you use the v3 API, you can interrogate the hub directly, rather than via Hea
 
 It is a WIP, and is missing some functionality (e.g. schedules). In addition, there are some other limitations (see below).
 
-It is based upon work by @GeoffAtHome - thanks!
+It is based upon work by [@GeoffAtHome](https://github.com/zxdavb/geniushub-client/commits?author=GeoffAtHome) - thanks!
 
 ## Current limitations
 Current limitations & to-dos include:
@@ -109,3 +109,13 @@ print(hub.zone_by_id[3].temperature)
 await session.close()
 ```
 
+### QA/CI via CircleCI
+QA includes comparing JSON from **cURL** with output from this app using **diff**, for example:
+```bash
+(venv) root@hostname:~/$ curl -X GET https://my.geniushub.co.uk/v1/zones -H "authorization: Bearer ${HUB_TOKEN}" | \
+    python -c "import sys, json; print(json.load(sys.stdin))" > a.out
+    
+(venv) root@hostname:~/$ python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} zones -v > b.out
+
+(venv) root@hostname:~/$ diff a.out b.out
+```
