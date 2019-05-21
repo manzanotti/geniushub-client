@@ -53,15 +53,15 @@ jobs:
 
       - run:
           name: cURL v1/Issues
-          no_output_timeout: 300
+          no_output_timeout: 330
           command: |
             . venv/bin/activate
-            curl -X GET https://my.geniushub.co.uk/v1/issues -H "authorization: Bearer ${HUB_TOKEN}" | \
+            curl -X GET https://my.geniushub.co.uk/v1/issues -H "authorization: Bearer ${HUB_TOKEN}" --connect-timeout 300 | \
               python -c "import sys, json; print(json.load(sys.stdin))" | tee ${TEST_RESULTS}/issues_curl.json
 
       - run:
           name: ghclient v1/Issues
-          no_output_timeout: 300
+          no_output_timeout: 330
           command: |
             . venv/bin/activate
             python ghclient.py ${HUB_TOKEN} issues -v | tee ${TEST_RESULTS}/issues_v1.json
@@ -91,15 +91,15 @@ jobs:
 
       - run:
           name: cURL v1/Devices
-          no_output_timeout: 300
+          no_output_timeout: 330
           command: |
             . venv/bin/activate
-            curl -X GET https://my.geniushub.co.uk/v1/devices -H "authorization: Bearer ${HUB_TOKEN}" | \
+            curl -X GET https://my.geniushub.co.uk/v1/devices -H "authorization: Bearer ${HUB_TOKEN}" --connect-timeout 300 | \
               python -c "import sys, json; print(json.load(sys.stdin))" | tee ${TEST_RESULTS}/devices_curl.json
 
       - run:
           name: ghclient v1/Devices
-          no_output_timeout: 300
+          no_output_timeout: 330
           command: |
             . venv/bin/activate
             python ghclient.py ${HUB_TOKEN} devices -v | tee ${TEST_RESULTS}/devices_v1.json
@@ -136,15 +136,15 @@ jobs:
 
       - run:
           name: cURL v1/Zones
-          no_output_timeout: 300
+          no_output_timeout: 330
           command: |
             . venv/bin/activate
-            curl -X GET https://my.geniushub.co.uk/v1/zones -H "authorization: Bearer ${HUB_TOKEN}" | \
+            curl -X GET https://my.geniushub.co.uk/v1/zones -H "authorization: Bearer ${HUB_TOKEN}" --connect-timeout 300 | \
               python -c "import sys, json; print(json.load(sys.stdin))" | tee ${TEST_RESULTS}/zones_curl.json
 
       - run:
           name: ghclient v1/Zones
-          no_output_timeout: 300
+          no_output_timeout: 330
           command: |
             . venv/bin/activate
             python ghclient.py ${HUB_TOKEN} zones -v | tee ${TEST_RESULTS}/zones_v1.json
