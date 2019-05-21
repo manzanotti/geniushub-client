@@ -35,8 +35,6 @@ aliases:
             python3 -m venv venv
             . venv/bin/activate
             pip install -r requirements.txt
-            ls
-            ls ..
 
       - save_cache:
           paths:
@@ -48,9 +46,13 @@ aliases:
       - persist_to_workspace:
           root: .
           paths:
-              - venv
+              - working_directory
 
       - run: ls
+      - run: ls ~
+      - run: ls $TEST_RESULTS
+      - run: ls $TEST_RESULTS/..
+
       - run: ls ..
       - run: ls ../repo
       - run: ls ../workspace
