@@ -125,13 +125,13 @@ jobs:
 
       - run:
           name: Diff issues
-          no_output_timeout: 30
+          no_output_timeout: 60
           command: |
-            echo diff -s ${TEST_RESULTS}/issues-curl.json ${TEST_RESULTS}/issues-v3.json | tee -a ${TEST_RESULTS}/issues-results.txt
-                 diff -s ${TEST_RESULTS}/issues-curl.json ${TEST_RESULTS}/issues-v3.json | tee -a ${TEST_RESULTS}/issues-results.txt
+            echo diff -qs ${TEST_RESULTS}/issues-curl.json ${TEST_RESULTS}/issues-v3.json | tee -a ${TEST_RESULTS}/issues-results.txt
+                 diff -qs ${TEST_RESULTS}/issues-curl.json ${TEST_RESULTS}/issues-v3.json | tee -a ${TEST_RESULTS}/issues-results.txt
             echo                                                                         | tee -a ${TEST_RESULTS}/issues-results.txt
-            echo diff -s ${TEST_RESULTS}/issues-curl.json ${TEST_RESULTS}/issues-v1.json | tee -a ${TEST_RESULTS}/issues-results.txt
-                 diff -s ${TEST_RESULTS}/issues-curl.json ${TEST_RESULTS}/issues-v1.json | tee -a ${TEST_RESULTS}/issues-results.txt
+            echo diff -qs ${TEST_RESULTS}/issues-curl.json ${TEST_RESULTS}/issues-v1.json | tee -a ${TEST_RESULTS}/issues-results.txt
+                 diff -qs ${TEST_RESULTS}/issues-curl.json ${TEST_RESULTS}/issues-v1.json | tee -a ${TEST_RESULTS}/issues-results.txt
 
       - *store_artifacts
 
@@ -199,13 +199,10 @@ jobs:
           command: |
             sudo apt -y install wdiff colordiff> /dev/null
 
-            DIFF=$(diff -q ${TEST_RESULTS}/zones-curl.json ${TEST_RESULTS}/zones-v3.json)
-            if [ "$DIFF" == "" ]
+            diff -qs ${TEST_RESULTS}/zones-curl.json ${TEST_RESULTS}/zones-v3.json | tee ${TEST_RESULTS}/zones-results.txt
+            if [ $? -ne 0 ]
             then
-                diff -s ${TEST_RESULTS}/zones-curl.json ${TEST_RESULTS}/zones-v3.json | tee ${TEST_RESULTS}/zones-results.txt
-            else
                 wdiff ${TEST_RESULTS}/zones-curl.json ${TEST_RESULTS}/zones-v3.json | colordiff
-                echo "$DIFF" > ${TEST_RESULTS}/zones-results.txt
             fi
 
       - *store_artifacts
@@ -274,13 +271,10 @@ jobs:
           command: |
             sudo apt -y install wdiff colordiff > /dev/null
 
-            DIFF=$(diff -q ${TEST_RESULTS}/devices-curl.json ${TEST_RESULTS}/devices-v3.json)
-            if [ "$DIFF" == "" ]
+            diff -qs ${TEST_RESULTS}/devices-curl.json ${TEST_RESULTS}/devices-v3.json | tee ${TEST_RESULTS}/devices-results.txt
+            if [ $? -ne 0 ]
             then
-                diff -s ${TEST_RESULTS}/devices-curl.json ${TEST_RESULTS}/devices-v3.json | tee ${TEST_RESULTS}/devices-results.txt
-            else
                 wdiff ${TEST_RESULTS}/devices-curl.json ${TEST_RESULTS}/devices-v3.json | colordiff
-                echo "$DIFF" > ${TEST_RESULTS}/devices-results.txt
             fi
 
       - *store_artifacts
