@@ -26,9 +26,9 @@ aliases:
 
       - *attach_workspace
 
+      - run: pwd
       - run: ls ~
       - run: ls ~/workspace
-      - run: pwd
 
       - restore_cache:
           keys:
@@ -311,6 +311,10 @@ jobs:
     <<: *test_environment
     steps:
       - *attach_workspace
+
+      - run: pwd
+      - run: ls ~
+      - run: ls ~/workspace
 
       - run:
           name: cURL v1/Issues
