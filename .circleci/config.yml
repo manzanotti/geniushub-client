@@ -34,7 +34,7 @@ aliases:
 
       - run: pwd
       - run: ls .
-      - run: ls ./workspace
+      - run: ls /tmp/workspace
 
       - restore_cache:
           keys:
@@ -76,8 +76,7 @@ aliases:
       - run: ls ~
       - run: ls .
       - run: ls ..
-      - run: ls ../workspace
-      - run: ls ../working_directory
+      - run: ls /tmp/workspace
 
       - *persist_to_workspace
 
@@ -92,8 +91,8 @@ aliases:
       - run: ls ~
       - run: ls .
       - run: ls ..
-      - run: ls ../workspace
-      - run: ls ../working_directory
+      - run: ls /tmp/workspace
+
 
 
 jobs:
@@ -313,13 +312,13 @@ jobs:
     steps:
       - run: pwd
       - run: ls .
-      - run: ls ./workspace
+      - run: ls /tmp/workspace
 
       - *attach_workspace
 
       - run: pwd
       - run: ls .
-      - run: ls ./workspace
+      - run: ls /tmp/workspace
 
       - run:
           name: cURL v1/Issues
