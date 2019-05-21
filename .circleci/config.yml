@@ -52,21 +52,6 @@ jobs:
     <<: *test_environment
     steps: *dependencies
 
-  issues_v1_curl:
-    <<: *test_environment
-    steps:
-      - run:
-          name: cURL v1/Issues
-          no_output_timeout: 330
-          command: |
-            . venv/bin/activate
-            curl -X GET https://my.geniushub.co.uk/v1/issues -H "authorization: Bearer ${HUB_TOKEN}" --connect-timeout 300 | \
-              python -c "import sys, json; print(json.load(sys.stdin))" | tee ${TEST_RESULTS}/issues_curl.json
-
-      - store_artifacts:
-          path: /tmp/test-results
-          destination: devices_summary
-
   test_issues:
     <<: *test_environment
     steps:
@@ -274,14 +259,26 @@ jobs:
           path: /tmp/test-results
           destination: devices_summary
 
+  issues_v1_curl:
+    <<: *test_environment
+    steps:
+      - run:
+          name: cURL v1/Issues
+          no_output_timeout: 330
+          command: |
+            . venv/bin/activate
+            curl -X GET https://my.geniushub.co.uk/v1/issues -H "authorization: Bearer ${HUB_TOKEN}" --connect-timeout 300 | \
+              python -c "import sys, json; print(json.load(sys.stdin))" | tee ${TEST_RESULTS}/issues_curl.json
+
+      - store_artifacts:
+          path: /tmp/test-results
+          destination: devices_summary
+
 workflows:
   version: 2
   testing:
     jobs:
       - dependencies
-      - issues_v1_curl:
-          requires:
-            - dependencies
       - test_issues:
           requires:
             - dependencies
@@ -291,3 +288,7 @@ workflows:
       - test_zones:
           requires:
             - dependencies
+      - issues_v1_curl:
+          requires:
+            - dependencies
+            - test_issues
