@@ -267,6 +267,6 @@ workflows:
     jobs:
       - dependencies
       - test_issues
-        requires: dependencies
+        # requires: dependencies
       - test_devices
       - test_zones
