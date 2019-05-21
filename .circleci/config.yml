@@ -193,10 +193,10 @@ jobs:
 
       - run:
           name: Diff zones
-          no_output_timeout: 30
+          no_output_timeout: 60
           command: |
             sudo apt -y install wdiff colordiff
-            wdiff ${TEST_RESULTS}/zones-curl.json ${TEST_RESULTS}/zones-v3.json | colordiff
+                wdiff    ${TEST_RESULTS}/zones-curl.json ${TEST_RESULTS}/zones-v3.json | colordiff
             echo diff -s ${TEST_RESULTS}/zones-curl.json ${TEST_RESULTS}/zones-v3.json | tee -a ${TEST_RESULTS}/zones-results.txt
                  diff -s ${TEST_RESULTS}/zones-curl.json ${TEST_RESULTS}/zones-v3.json | tee -a ${TEST_RESULTS}/zones-results.txt
             echo                                                                       | tee -a ${TEST_RESULTS}/zones-results.txt
@@ -263,8 +263,10 @@ jobs:
 
       - run:
           name: Diff devices
-          no_output_timeout: 30
+          no_output_timeout: 60
           command: |
+            sudo apt -y install wdiff colordiff
+                wdiff    ${TEST_RESULTS}/devices-curl.json ${TEST_RESULTS}/devices-v3.json | colordiff
             echo diff -s ${TEST_RESULTS}/devices-curl.json ${TEST_RESULTS}/devices-v3.json | tee -a ${TEST_RESULTS}/devices-results.txt
                  diff -s ${TEST_RESULTS}/devices-curl.json ${TEST_RESULTS}/devices-v3.json | tee -a ${TEST_RESULTS}/devices-results.txt
             echo                                                                           | tee -a ${TEST_RESULTS}/devices-results.txt
