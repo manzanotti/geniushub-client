@@ -43,10 +43,11 @@ aliases:
             - ./venv
           key: v1-dependencies-{{ checksum "requirements.txt" }}
       - run: mkdir -p $TEST_RESULTS
-        - persist_to_workspace:
-            root: .
-            paths:
-                - vendor/bundle
+
+      - persist_to_workspace:
+          root: .
+          paths:
+              - vendor/bundle
 
 jobs:
   dependencies:
