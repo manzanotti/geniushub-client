@@ -195,7 +195,7 @@ jobs:
           name: Diff zones
           no_output_timeout: 30
           command: |
-            sudo apt -y update && sudo apt -y install wdiff colordiff
+            sudo apt -y install wdiff colordiff
             echo diff -s ${TEST_RESULTS}/zones-curl.json ${TEST_RESULTS}/zones-v3.json | tee -a ${TEST_RESULTS}/zones-results.txt
                  diff -s ${TEST_RESULTS}/zones-curl.json ${TEST_RESULTS}/zones-v3.json | tee -a ${TEST_RESULTS}/zones-results.txt
             echo                                                                       | tee -a ${TEST_RESULTS}/zones-results.txt
