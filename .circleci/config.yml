@@ -83,7 +83,6 @@ jobs:
               tee ${TEST_RESULTS}/issues-curl.json
 
       - *persist_to_workspace
-      - *store_artifacts
 
   issues_app_v3:
     <<: *testbed_environment
@@ -100,7 +99,6 @@ jobs:
             python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} issues -v | tee ${TEST_RESULTS}/issues-v3.json
 
       - *persist_to_workspace
-      - *store_artifacts
 
   issues_diff:
     <<: *testbed_environment
@@ -117,7 +115,6 @@ jobs:
                  diff -s ${TEST_RESULTS}/issues-curl.json ${TEST_RESULTS}/issues-v3.json | tee -a ${TEST_RESULTS}/issues-results.txt
             echo                                                                         | tee -a ${TEST_RESULTS}/issues-results.txt
 
-      - *persist_to_workspace
       - *store_artifacts
 
   zones_curl:
@@ -138,7 +135,6 @@ jobs:
               tee ${TEST_RESULTS}/zones-curl.json
 
       - *persist_to_workspace
-      - *store_artifacts
 
   zones_app_v3:
     <<: *testbed_environment
@@ -155,7 +151,6 @@ jobs:
             python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} zones -v | tee ${TEST_RESULTS}/issues-v3.json
 
       - *persist_to_workspace
-      - *store_artifacts
 
   zones_diff:
     <<: *testbed_environment
@@ -172,7 +167,6 @@ jobs:
                  diff -s ${TEST_RESULTS}/zones-curl.json ${TEST_RESULTS}/zones-v3.json | tee -a ${TEST_RESULTS}/zones-results.txt
             echo                                                                       | tee -a ${TEST_RESULTS}/zones-results.txt
 
-      - *persist_to_workspace
       - *store_artifacts
 
   devices_curl:
@@ -193,7 +187,6 @@ jobs:
               tee ${TEST_RESULTS}/devices-curl.json
 
       - *persist_to_workspace
-      - *store_artifacts
 
   devices_app_v3:
     <<: *testbed_environment
@@ -210,7 +203,6 @@ jobs:
             python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} devices -v | tee ${TEST_RESULTS}/issues-v3.json
 
       - *persist_to_workspace
-      - *store_artifacts
 
   devices_diff:
     <<: *testbed_environment
@@ -227,7 +219,6 @@ jobs:
                  diff -s ${TEST_RESULTS}/devices-curl.json ${TEST_RESULTS}/devices-v3.json | tee -a ${TEST_RESULTS}/devices-results.txt
             echo                                                                           | tee -a ${TEST_RESULTS}/devices-results.txt
 
-      - *persist_to_workspace
       - *store_artifacts
 
 workflows:
