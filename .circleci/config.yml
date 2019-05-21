@@ -274,7 +274,6 @@ jobs:
           path: /tmp/test-results
           destination: devices_summary
 
-version: 2.1
 workflows:
   version: 2
   testing:
