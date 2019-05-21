@@ -84,22 +84,6 @@ jobs:
 
       - *persist_to_workspace
 
-    issues_v3:
-    <<: *testbed_environment
-    steps:
-      - checkout
-      - *attach_workspace
-      - *restore_cache
-
-      - run:
-          name: ghclient v3/issues
-          no_output_timeout: 120
-          command: |
-            . venv/bin/activate
-            python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} issues -v | tee ${TEST_RESULTS}/issues-v3.json
-
-      - *persist_to_workspace
-
   issues_v3:
     <<: *testbed_environment
     steps:
