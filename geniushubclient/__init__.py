@@ -25,7 +25,7 @@ _LOGGER.setLevel(logging.WARNING)
 
 # pylint: disable=no-member, invalid-name, protected-access
 # pylint: disable=too-many-instance-attributes, too-few-public-methods,
-# pylint: disable=too-many-arguments, too-many-locals, too-many-branches, too-many-statements
+# pylint: disable=too-many-locals, too-many-branches, too-many-statements
 
 
 def _without_keys(dict_obj, keys) -> dict:
@@ -97,7 +97,7 @@ def _extract_issues_from_zones(raw_json) -> list:
     for zone in raw_json:
         for issue in zone['lstIssues']:
             # TODO: might better be as an ID +/- convert to a comprehension
-            issue['_zone_name'] = zone['strName']
+            issue['_zone_name'] = zone['strName']  # some issues wont have this data
             result.append(issue)
 
     return result
@@ -243,66 +243,76 @@ class GeniusObject(object):
         """
         result['schedule'] = {'timer': {}, 'footprint': {}}
 
-        if raw_dict['iType'] != ZONE_TYPES.Manager:
-            root = result['schedule']['timer'] = {'weekly': {}}
+        try:
+            if raw_dict['iType'] != ZONE_TYPES.Manager:
+                root = result['schedule']['timer'] = {'weekly': {}}
 
-            day = -1
-            for setpoint in raw_dict['objTimer']:
-                next_time = setpoint['iTm']
-                next_temp = setpoint['fSP']
-                if raw_dict['iType'] == ZONE_TYPES.OnOffTimer:
-                    next_temp = bool(setpoint['fSP'])
+                day = -1
+                for setpoint in raw_dict['objTimer']:
+                    next_time = setpoint['iTm']
+                    next_temp = setpoint['fSP']
+                    if raw_dict['iType'] == ZONE_TYPES.OnOffTimer:
+                        next_temp = bool(setpoint['fSP'])
 
-                if next_time == -1:  # i.e. default SP entry
-                    day += 1
-                    node = root['weekly'][IDAY_TO_DAY[day]] = {}
-                    node['defaultSetpoint'] = default_temp = next_temp
-                    node['heatingPeriods'] = []
+                    if next_time == -1:  # i.e. default SP entry
+                        day += 1
+                        node = root['weekly'][IDAY_TO_DAY[day]] = {}
+                        node['defaultSetpoint'] = default_temp = next_temp
+                        node['heatingPeriods'] = []
 
-                elif setpoint_temp != default_temp:                              # noqa: disable=F821; pylint: disable=used-before-assignment
-                    node['heatingPeriods'].append({
-                        'end': next_time,
-                        'start': setpoint_time,                                  # noqa: disable=F821; pylint: disable=used-before-assignment
-                        'setpoint': setpoint_temp                                # noqa: disable=F821; pylint: qisable=used-before-assignment
-                    })
+                    elif setpoint_temp != default_temp:                          # noqa: disable=F821; pylint: disable=used-before-assignment
+                        node['heatingPeriods'].append({
+                            'end': next_time,
+                            'start': setpoint_time,                              # noqa: disable=F821; pylint: disable=used-before-assignment
+                            'setpoint': setpoint_temp                            # noqa: disable=F821; pylint: qisable=used-before-assignment
+                        })
 
-                setpoint_time = next_time
-                setpoint_temp = next_temp
+                    setpoint_time = next_time
+                    setpoint_temp = next_temp
 
-        if raw_dict['iType'] in [ZONE_TYPES.ControlSP]:
-            root = result['schedule']['footprint'] = {'weekly': {}}
+        except:
+            _LOGGER.exception("_convert_zone(): Failed to convert Timer "
+                              "schedule for Zone %s",  result['id'])
 
-            away_temp = raw_dict['objFootprint']['fFootprintAwaySP']
-            night_temp = raw_dict['objFootprint']['fFootprintNightSP']
-            night_start = raw_dict['objFootprint']['iFootprintTmNightStart']
+        try:
+            if raw_dict['iType'] in [ZONE_TYPES.ControlSP]:
+                root = result['schedule']['footprint'] = {'weekly': {}}
 
-            day = -1
-            for setpoint in raw_dict['objFootprint']['lstSP']:
-                next_time = setpoint['iTm']
-                next_temp = setpoint['fSP']
+                away_temp = raw_dict['objFootprint']['fFootprintAwaySP']
+                night_temp = raw_dict['objFootprint']['fFootprintNightSP']
+                night_start = raw_dict['objFootprint']['iFootprintTmNightStart']
 
-                if next_time == 0:  # i.e. start of day
-                    day += 1
-                    node = root['weekly'][IDAY_TO_DAY[day]] = {}
-                    node['defaultSetpoint'] = away_temp
-                    node['heatingPeriods'] = []
+                day = -1
+                for setpoint in raw_dict['objFootprint']['lstSP']:
+                    next_time = setpoint['iTm']
+                    next_temp = setpoint['fSP']
 
-                elif setpoint_temp != away_temp:
-                    node['heatingPeriods'].append({
-                        'end': next_time,
-                        'start': setpoint_time,
-                        'setpoint': setpoint_temp
-                    })
+                    if next_time == 0:  # i.e. start of day
+                        day += 1
+                        node = root['weekly'][IDAY_TO_DAY[day]] = {}
+                        node['defaultSetpoint'] = away_temp
+                        node['heatingPeriods'] = []
 
-                if next_time == night_start:  # e.g. 11pm
-                    node['heatingPeriods'].append({
-                        'end': 86400,
-                        'start': night_start,
-                        'setpoint': night_temp
-                    })
+                    elif setpoint_temp != away_temp:
+                        node['heatingPeriods'].append({
+                            'end': next_time,
+                            'start': setpoint_time,
+                            'setpoint': setpoint_temp
+                        })
 
-                setpoint_time = next_time
-                setpoint_temp = next_temp
+                    if next_time == night_start:  # e.g. 11pm
+                        node['heatingPeriods'].append({
+                            'end': 86400,
+                            'start': night_start,
+                            'setpoint': night_temp
+                        })
+
+                    setpoint_time = next_time
+                    setpoint_temp = next_temp
+
+        except:
+            _LOGGER.exception("_convert_zone(): Failed to convert Footprint "
+                              "schedule for Zone %s",  result['id'])
 
         return result
 
@@ -379,10 +389,10 @@ class GeniusObject(object):
 
         else:  # unknown device fingerprint
             if result['type']:
-                _LOGGER.debug("Device %s: Can't obtain a Fingerprint, ",
+                _LOGGER.debug("Device %s: Can't obtain a Fingerprint, "
                               "using Type: '%s'", result['id'], result['type'])
             else:
-                _LOGGER.error("Device %s: Can't obtain a Fingerprint, ",
+                _LOGGER.error("Device %s: Can't obtain a Fingerprint, "
                               "and has no Type.", result['id'])
 
         # Determine Device assignedZones...
@@ -422,15 +432,17 @@ class GeniusObject(object):
         if self._api_v1:
             return raw_dict
 
-        description = DESCRIPTION_TO_TEXT.get(raw_dict['id'], raw_dict['id'])
+        description = DESCRIPTION_TO_TEXT.get(
+            raw_dict['id'], raw_dict['_zone_name'])
 
         if '{zone_name}' in description and '{device_type}' in description:
-            zone = raw_dict['data']['location']  # or: ['_zone_name']
+            zone = raw_dict['data']['location']  # or: raw_dict['_zone_name']
             device = self.device_by_id[raw_dict['data']['nodeID']].type
             description = description.format(zone_name=zone, device_type=device)
 
         elif '{zone_name}' in description:
-            zone = raw_dict['data']['location']  # or: ['_zone_name']
+            # raw_dict['data'] is not avalable as no device?
+            zone = raw_dict['_zone_name']
             description = description.format(zone_name=zone)
 
         elif '{device_type}' in description:
