@@ -288,6 +288,23 @@ jobs:
       - *persist_to_workspace
       - *store_artifacts
 
+  issues_app_v3:
+    <<: *testbed_environment
+    steps:
+      - checkout
+      - *attach_workspace
+      - *restore_cache
+
+      - run:
+          name: ghclient v3/issues
+          no_output_timeout: 120
+          command: |
+            . venv/bin/activate
+            python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} issues -v | tee ${TEST_RESULTS}/issues_v3.json
+
+      - *persist_to_workspace
+      - *store_artifacts
+
   zones_curl:
     <<: *testbed_environment
     steps:
@@ -302,6 +319,23 @@ jobs:
             . venv/bin/activate
             curl -X GET https://my.geniushub.co.uk/v1/zones -H "authorization: Bearer ${HUB_TOKEN}" --connect-timeout 300 | \
               python -c "import sys, json; print(json.load(sys.stdin))" | tee ${TEST_RESULTS}/zones_curl.json
+
+      - *persist_to_workspace
+      - *store_artifacts
+
+  zones_app_v3:
+    <<: *testbed_environment
+    steps:
+      - checkout
+      - *attach_workspace
+      - *restore_cache
+
+      - run:
+          name: ghclient v3/zones
+          no_output_timeout: 120
+          command: |
+            . venv/bin/activate
+            python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} zones -v | tee ${TEST_RESULTS}/issues_v3.json
 
       - *persist_to_workspace
       - *store_artifacts
@@ -324,6 +358,23 @@ jobs:
       - *persist_to_workspace
       - *store_artifacts
 
+  devices_app_v3:
+    <<: *testbed_environment
+    steps:
+      - checkout
+      - *attach_workspace
+      - *restore_cache
+
+      - run:
+          name: ghclient v3/devices
+          no_output_timeout: 120
+          command: |
+            . venv/bin/activate
+            python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} devices -v | tee ${TEST_RESULTS}/issues_v3.json
+
+      - *persist_to_workspace
+      - *store_artifacts
+
 workflows:
   version: 2
   test_output:
@@ -338,15 +389,12 @@ workflows:
       - devices_curl:
           requires:
             - make_testbed
-      - test_issues:
+      - issues_app_v3:
           requires:
             - make_testbed
-            - issues_curl
-      - test_devices:
+      - zones_app_v3:
           requires:
             - make_testbed
-            - issues_curl
-      - test_zones:
+      - devices_app_v3:
           requires:
             - make_testbed
-            - issues_curl
