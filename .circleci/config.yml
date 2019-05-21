@@ -11,7 +11,7 @@ aliases:
     working_directory: ~/working_directory
 
     environment:
-      TEST_RESULTS: ~/test-results
+      TEST_RESULTS: test-results
 
   - &attach_workspace
       attach_workspace:
