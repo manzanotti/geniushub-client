@@ -283,7 +283,9 @@ jobs:
           command: |
             . venv/bin/activate
             curl -X GET https://my.geniushub.co.uk/v1/issues -H "authorization: Bearer ${HUB_TOKEN}" --connect-timeout 300 | \
-              python -c "import sys, json; print(json.load(sys.stdin))" | tee ${TEST_RESULTS}/issues_curl.json
+              tee ${TEST_RESULTS}/issues_curl.json
+            cat ${TEST_RESULTS}/issues_curl.json | python -c "import sys, json; print(json.load(sys.stdin))" | \
+              tee ${TEST_RESULTS}/issues_curl.json
 
       - *persist_to_workspace
       - *store_artifacts
@@ -318,7 +320,9 @@ jobs:
           command: |
             . venv/bin/activate
             curl -X GET https://my.geniushub.co.uk/v1/zones -H "authorization: Bearer ${HUB_TOKEN}" --connect-timeout 300 | \
-              python -c "import sys, json; print(json.load(sys.stdin))" | tee ${TEST_RESULTS}/zones_curl.json
+              tee ${TEST_RESULTS}/zones_curl.json
+            cat ${TEST_RESULTS}/zones_curl.json | python -c "import sys, json; print(json.load(sys.stdin))" | \
+              tee ${TEST_RESULTS}/zones_curl.json
 
       - *persist_to_workspace
       - *store_artifacts
@@ -353,7 +357,9 @@ jobs:
           command: |
             . venv/bin/activate
             curl -X GET https://my.geniushub.co.uk/v1/devices -H "authorization: Bearer ${HUB_TOKEN}" --connect-timeout 300 | \
-              python -c "import sys, json; print(json.load(sys.stdin))" | tee ${TEST_RESULTS}/devices_curl.json
+              tee ${TEST_RESULTS}/devices_curl.json
+            cat ${TEST_RESULTS}/devices_curl.json | python -c "import sys, json; print(json.load(sys.stdin))" | \
+              tee ${TEST_RESULTS}/devices_curl.json
 
       - *persist_to_workspace
       - *store_artifacts
