@@ -4,7 +4,7 @@
 version: 2
 
 aliases:
-  - &test_environment
+  - &testbed_environment
     docker:
       - image: circleci/python:3.6.1
 
@@ -15,34 +15,26 @@ aliases:
 
   - &attach_workspace
       attach_workspace:
-        at: /tmp/workspace
+        at: /t/workspace
 
   - &persist_to_workspace
       persist_to_workspace:
+        keys:
+          - v4-dependencies-{{ checksum "requirements.txt" }}
         root: /tmp/workspace
         paths:
           - test-results
 
-  - &dependencies
-      - run: ls ~
+  - &save_cache
+      save_cache:
+        key: v4-dependencies-{{ checksum "requirements.txt" }}
+        paths:
+          - ./venv
 
+  - &create_testbed
       - checkout
 
-      - run: ls .
-
-      - *attach_workspace
-
-      - run: pwd
-      - run: ls .
-      - run: ls /tmp/workspace
-
-      - restore_cache:
-          keys:
-            - v4-dependencies-{{ checksum "requirements.txt" }}
-            # fallback to using the latest cache if no exact match is found
-            - v4-dependencies-
-
-      - run: ls .
+      - *restore_cache:
 
       - run:
           name: install dependencies
@@ -53,56 +45,19 @@ aliases:
             python -m pip install --upgrade pip # setuptools wheel
             pip install -r requirements.txt
 
-      - run: ls .
-
-      - save_cache:
-          paths:
-            - ./venv
-          key: v4-dependencies-{{ checksum "requirements.txt" }}
-
-      - run: ls .
+      - *save_cache:
 
       - run: mkdir -p $TEST_RESULTS
 
-      - run: ls .
-
-      - run:
-          name: list folders 1
-          command: |
-            echo $TEST_RESULTS
-            ls $TEST_RESULTS
-            ls $TEST_RESULTS/..
-
-      - run: ls
-      - run: ls ~
-      - run: ls .
-      - run: ls ..
-      - run: ls /tmp/workspace
-
       - *persist_to_workspace
 
-      - run:
-          name: list folders 1
-          command: |
-            echo $TEST_RESULTS
-            ls $TEST_RESULTS
-            ls $TEST_RESULTS/..
-
-      - run: ls
-      - run: ls ~
-      - run: ls .
-      - run: ls ..
-      - run: ls /tmp/workspace
-
-
-
 jobs:
-  dependencies:
-    <<: *test_environment
-    steps: *dependencies
+  make_testbed:
+    <<: *testbed_environment
+    steps: *create_testbed
 
   test_issues:
-    <<: *test_environment
+    <<: *testbed_environment
     steps:
       - checkout
 
@@ -171,7 +126,7 @@ jobs:
           destination: devices_summary
 
   test_devices:
-    <<: *test_environment
+    <<: *testbed_environment
     steps:
       - checkout
 
@@ -240,7 +195,7 @@ jobs:
           destination: devices_summary
 
   test_zones:
-    <<: *test_environment
+    <<: *testbed_environment
     steps:
       - checkout
 
@@ -309,17 +264,15 @@ jobs:
           destination: devices_summary
 
   issues_curl:
-    <<: *test_environment
+    <<: *testbed_environment
     steps:
-      - run: pwd
-      - run: ls .
-      - run: ls /tmp
+      - restore_cache:
+          keys:
+            - v4-dependencies-{{ checksum "requirements.txt" }}
+            # fallback to using the latest cache if no exact match is found
+            - v4-dependencies-
 
       - *attach_workspace
-
-      - run: pwd
-      - run: ls .
-      - run: ls /tmp/workspace
 
       - run:
           name: cURL v1/Issues
@@ -337,19 +290,19 @@ workflows:
   version: 2
   test_output:
     jobs:
-      - dependencies
+      - make_testbed
       - issues_curl:
           requires:
-            - dependencies
+            - make_testbed
       - test_issues:
           requires:
-            - dependencies
+            - make_testbed
             - issues_curl
       - test_devices:
           requires:
-            - dependencies
+            - make_testbed
             - issues_curl
       - test_zones:
           requires:
-            - dependencies
+            - make_testbed
             - issues_curl
