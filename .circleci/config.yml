@@ -13,6 +13,17 @@ aliases:
     environment:
       TEST_RESULTS: /tmp/workspace/test-results
 
+  - &restore_cache
+      restore_cache:
+        keys:
+          - v4-dependencies-{{ checksum "requirements.txt" }}
+
+  - &save_cache
+      save_cache:
+        key: v4-dependencies-{{ checksum "requirements.txt" }}
+        paths:
+          - ./venv
+
   - &attach_workspace
       attach_workspace:
         at: /t/workspace
@@ -25,11 +36,10 @@ aliases:
         paths:
           - test-results
 
-  - &save_cache
-      save_cache:
-        key: v4-dependencies-{{ checksum "requirements.txt" }}
-        paths:
-          - ./venv
+  - &store_artifacts
+      store_artifacts:
+        path: /tmp/test-results
+        destination: test_results
 
   - &create_testbed
       - checkout
@@ -39,10 +49,9 @@ aliases:
       - run:
           name: install dependencies
           command: |
-            pwd
             python3 -m venv venv
             . venv/bin/activate
-            python -m pip install --upgrade pip # setuptools wheel
+            pip install --upgrade pip  # setuptools wheel
             pip install -r requirements.txt
 
       - *save_cache
@@ -65,8 +74,6 @@ jobs:
       - restore_cache:
           keys:
             - v4-dependencies-{{ checksum "requirements.txt" }}
-            # fallback to using the latest cache if no exact match is found
-            - v4-dependencies-
 
       - run:
           name: install dependencies
@@ -266,13 +273,9 @@ jobs:
   issues_curl:
     <<: *testbed_environment
     steps:
-      - restore_cache:
-          keys:
-            - v4-dependencies-{{ checksum "requirements.txt" }}
-            # fallback to using the latest cache if no exact match is found
-            - v4-dependencies-
-
       - *attach_workspace
+
+      - *restore_cache
 
       - run:
           name: cURL v1/Issues
@@ -282,9 +285,8 @@ jobs:
             curl -X GET https://my.geniushub.co.uk/v1/issues -H "authorization: Bearer ${HUB_TOKEN}" --connect-timeout 300 | \
               python -c "import sys, json; print(json.load(sys.stdin))" | tee ${TEST_RESULTS}/issues_curl.json
 
-      - store_artifacts:
-          path: /tmp/test-results
-          destination: devices_summary
+      - *persist_to_workspace
+      - *store_artifacts
 
 workflows:
   version: 2
