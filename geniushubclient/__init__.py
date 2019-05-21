@@ -211,15 +211,15 @@ class GeniusObject(object):
         # l = parseInt(i.iFlagExpectedKit) & e.equipmentTypes.Kit_PIR
         if raw_dict['iFlagExpectedKit'] & KIT_TYPES.PIR:
             # = parseInt(i.iMode) === e.zoneModes.Mode_Footprint
-            u = raw_dict['iMode'] == ZONE_MODES.Footprint                        # pylint: disable=invalid-name
+            u = raw_dict['iMode'] == ZONE_MODES.Footprint                        # noqa; pylint: disable=invalid-name
             # = null != (s = i.zoneReactive) ? s.bTriggerOn : void 0,
-            d = raw_dict['objFootprint']['objReactive']['bTriggerOn']            # pylint: disable=invalid-name
+            d = raw_dict['objFootprint']['objReactive']['bTriggerOn']            # noqa; pylint: disable=invalid-name
             # = parseInt(i.iActivity) || 0,
-            # c = raw_dict['iActivity'] | 0                                      # pylint: disable=invalid-name
+            c = raw_dict['iActivity'] | 0                                        # noqa; pylint: disable=invalid-name
             # o = t.isInFootprintNightMode(i)
-            o = raw_dict['objFootprint']['bIsNight']                             # pylint: disable=invalid-name
+            o = raw_dict['objFootprint']['bIsNight']                             # noqa; pylint: disable=invalid-name
             # u && l && d && !o ? True : False
-            result['occupied'] = u and d and not o
+            result['occupied'] = u and d and c and not o
 
         if raw_dict['iType'] in [ZONE_TYPES.OnOffTimer,
                                  ZONE_TYPES.ControlSP,
