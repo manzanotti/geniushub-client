@@ -28,7 +28,7 @@ aliases:
 
       - run: ls ~
       - run: ls ~/workspace
-      - rum: pwd
+      - run: pwd
 
       - restore_cache:
           keys:
