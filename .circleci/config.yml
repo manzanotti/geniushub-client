@@ -287,18 +287,22 @@ workflows:
       - issues_curl:
           requires:
             - make_testbed
+      - issues_v1:
+          requires:
+            - make_testbed
       - issues_v3:
           requires:
             - make_testbed
       - issues_diff:
           requires:
             - issues_curl
+            - issues_v1
             - issues_v3
-      - issues_v1:
-          requires:
-            - make_testbed
 
       - zones_curl:
+          requires:
+            - make_testbed
+      - zones_v1:
           requires:
             - make_testbed
       - zones_v3:
@@ -307,12 +311,13 @@ workflows:
       - zones_diff:
           requires:
             - zones_curl
+            - zones_v1
             - zones_v3
-      - zones_v1:
-          requires:
-            - make_testbed
 
       - devices_curl:
+          requires:
+            - make_testbed
+      - devices_v1:
           requires:
             - make_testbed
       - devices_v3:
@@ -321,7 +326,5 @@ workflows:
       - devices_diff:
           requires:
             - devices_curl
+            - devices_v1
             - devices_v3
-      - devices_v1:
-          requires:
-            - make_testbed
