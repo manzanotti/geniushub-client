@@ -26,7 +26,7 @@ aliases:
 
   - &attach_workspace
       attach_workspace:
-        at: /t/workspace
+        at: /tmp/workspace
 
   - &persist_to_workspace
       persist_to_workspace:
@@ -274,7 +274,6 @@ jobs:
     <<: *testbed_environment
     steps:
       - *attach_workspace
-
       - *restore_cache
 
       - run:
