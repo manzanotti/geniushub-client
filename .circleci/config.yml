@@ -279,16 +279,7 @@ workflows:
     test-output:
       jobs:
           - dependencies
-          - issues_v1_curl:
-            requires:
-                - dependencies
-          - test_issues:
-              requires:
-                  - dependencies
-                  - issues_v1_curl
-          - test_devices:
-              requires:
-                 - dependencies
-          - test_zones:
-              requires:
-                  - dependencies
+          - issues_v1_curl
+          - test_issues
+          - test_devices
+          - test_zones
