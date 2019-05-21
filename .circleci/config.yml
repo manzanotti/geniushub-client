@@ -15,39 +15,44 @@ aliases:
       # documented at https://circleci.com/docs/2.0/circleci-images/
       # - image: circleci/postgres:9.4
 
-    working_directory: ~/repo
+    working_directory: ~/working_directory
 
     environment:
       TEST_RESULTS: /tmp/test-results
 
   - &attach_workspace
       attach_workspace:
-        at: ~/workspace
+        at: ~/working_directory
 
   - &dependencies
       - checkout
+
       - *attach_workspace
+
       - restore_cache:
           keys:
             - v1-dependencies-{{ checksum "requirements.txt" }}
             # fallback to using the latest cache if no exact match is found
             - v1-dependencies-
+
       - run:
           name: install dependencies
           command: |
             python3 -m venv venv
             . venv/bin/activate
             pip install -r requirements.txt
+
       - save_cache:
           paths:
             - ./venv
           key: v1-dependencies-{{ checksum "requirements.txt" }}
+
       - run: mkdir -p $TEST_RESULTS
 
       - persist_to_workspace:
           root: .
           paths:
-              - ~/workspace
+              - ~/working_directory
 
 jobs:
   dependencies:
@@ -111,13 +116,13 @@ jobs:
             . venv/bin/activate
             python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} issues -v | tee ${TEST_RESULTS}/issues_v3.json
 
-      - run:
-          name: Diff Issues v1 Vs v3
-          no_output_timeout: 30
-          command: |
-            echo diff -s ${TEST_RESULTS}/issues_v1.json ${TEST_RESULTS}/issues_v3.json | tee -a ${TEST_RESULTS}/test-results.txt
-                 diff -s ${TEST_RESULTS}/issues_v1.json ${TEST_RESULTS}/issues_v3.json | tee -a ${TEST_RESULTS}/test-results.txt
-            echo                                                                       | tee -a ${TEST_RESULTS}/test-results.txt
+      # - run:
+      #     name: Diff Issues v1 Vs v3
+      #     no_output_timeout: 30
+      #     command: |
+      #       echo diff -s ${TEST_RESULTS}/issues_v1.json ${TEST_RESULTS}/issues_v3.json | tee -a ${TEST_RESULTS}/test-results.txt
+      #            diff -s ${TEST_RESULTS}/issues_v1.json ${TEST_RESULTS}/issues_v3.json | tee -a ${TEST_RESULTS}/test-results.txt
+      #       echo                                                                       | tee -a ${TEST_RESULTS}/test-results.txt
 
       - store_artifacts:
           path: /tmp/test-results
@@ -180,13 +185,13 @@ jobs:
             . venv/bin/activate
             python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} devices -v | sed -e s/\"/\'/g | tee ${TEST_RESULTS}/devices_v3.json
 
-      - run:
-          name: Diff Devices v1 Vs v3
-          no_output_timeout: 30
-          command: |
-            echo diff -s ${TEST_RESULTS}/devices_v1.json ${TEST_RESULTS}/devices_v3.json | tee -a ${TEST_RESULTS}/test-results.txt
-                 diff -s ${TEST_RESULTS}/devices_v1.json ${TEST_RESULTS}/devices_v3.json | tee -a ${TEST_RESULTS}/test-results.txt
-            echo                                                                         | tee -a ${TEST_RESULTS}/test-results.txt
+      # - run:
+      #     name: Diff Devices v1 Vs v3
+      #     no_output_timeout: 30
+      #     command: |
+      #       echo diff -s ${TEST_RESULTS}/devices_v1.json ${TEST_RESULTS}/devices_v3.json | tee -a ${TEST_RESULTS}/test-results.txt
+      #            diff -s ${TEST_RESULTS}/devices_v1.json ${TEST_RESULTS}/devices_v3.json | tee -a ${TEST_RESULTS}/test-results.txt
+      #       echo                                                                         | tee -a ${TEST_RESULTS}/test-results.txt
 
       - store_artifacts:
           path: /tmp/test-results
@@ -249,13 +254,13 @@ jobs:
             . venv/bin/activate
             python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} zones -v | tee ${TEST_RESULTS}/zones_v3.json
 
-      - run:
-          name: Diff Zones v1 Vs v3
-          no_output_timeout: 30
-          command: |
-            echo diff -s ${TEST_RESULTS}/zones_v1.json ${TEST_RESULTS}/zones_v3.json | tee -a ${TEST_RESULTS}/test-results.txt
-                 diff -s ${TEST_RESULTS}/zones_v1.json ${TEST_RESULTS}/zones_v3.json | tee -a ${TEST_RESULTS}/test-results.txt
-            echo                                                                     | tee -a ${TEST_RESULTS}/test-results.txt
+      # - run:
+      #     name: Diff Zones v1 Vs v3
+      #     no_output_timeout: 30
+      #     command: |
+      #       echo diff -s ${TEST_RESULTS}/zones_v1.json ${TEST_RESULTS}/zones_v3.json | tee -a ${TEST_RESULTS}/test-results.txt
+      #            diff -s ${TEST_RESULTS}/zones_v1.json ${TEST_RESULTS}/zones_v3.json | tee -a ${TEST_RESULTS}/test-results.txt
+      #       echo                                                                     | tee -a ${TEST_RESULTS}/test-results.txt
 
       - store_artifacts:
           path: /tmp/test-results
