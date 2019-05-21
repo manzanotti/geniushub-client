@@ -43,6 +43,22 @@ aliases:
 
       - run: mkdir -p $TEST_RESULTS
 
+      - run:
+          name: list folders 1
+          command: |
+            ls
+            ls ~
+            ls $TEST_RESULTS
+            ls $TEST_RESULTS/..
+
+      - run:
+          name: list folders 1
+          command: |
+            ls ..
+            ls ../repo
+            ls ../workspace
+            ls ../working_directory
+
       - persist_to_workspace:
           root: .
           paths:
