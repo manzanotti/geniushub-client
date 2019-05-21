@@ -1,5 +1,4 @@
 # Python CircleCI 2.0 configuration file
-#
 # Check https://circleci.com/docs/2.0/language-python/ for more details
 #
 version: 2
@@ -15,33 +14,39 @@ aliases:
       # CircleCI maintains a library of pre-built images
       # documented at https://circleci.com/docs/2.0/circleci-images/
       # - image: circleci/postgres:9.4
+
     working_directory: ~/repo
+
     environment:
       TEST_RESULTS: /tmp/test-results
 
   - &dependencies
       - checkout
-
+      - *attach_workspace
       - restore_cache:
           keys:
             - v1-dependencies-{{ checksum "requirements.txt" }}
             # fallback to using the latest cache if no exact match is found
             - v1-dependencies-
-
       - run:
           name: install dependencies
           command: |
             python3 -m venv venv
             . venv/bin/activate
             pip install -r requirements.txt
-
       - save_cache:
           paths:
             - ./venv
           key: v1-dependencies-{{ checksum "requirements.txt" }}
-
       - run: mkdir -p $TEST_RESULTS
+        - persist_to_workspace:
+            root: .
+            paths:
+                - vendor/bundle
 
+  - &attach_workspace
+      attach_workspace:
+        at: ~/data
 
 jobs:
   dependencies:
@@ -50,7 +55,6 @@ jobs:
 
   test_issues:
     <<: *test_environment
-
     steps:
       - checkout
 
@@ -120,7 +124,6 @@ jobs:
 
   test_devices:
     <<: *test_environment
-
     steps:
       - checkout
 
@@ -190,7 +193,6 @@ jobs:
 
   test_zones:
     <<: *test_environment
-
     steps:
       - checkout
 
@@ -264,6 +266,6 @@ workflows:
     jobs:
       - dependencies
       - test_issues
-#       requires: *dependencies
+        requires: dependencies
       - test_devices
       - test_zones
