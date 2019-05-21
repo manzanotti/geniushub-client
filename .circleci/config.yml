@@ -109,7 +109,7 @@ jobs:
 
       - run:
           name: ghclient v1/issues
-          no_output_timeout: 120
+          no_output_timeout: 330
           command: |
             . venv/bin/activate
             python ghclient.py ${HUB_TOKEN} issues -v | tee ${TEST_RESULTS}/issues-v3.json
@@ -168,6 +168,22 @@ jobs:
 
       - *persist_to_workspace
 
+  zones_v1:
+    <<: *testbed_environment
+    steps:
+      - checkout
+      - *attach_workspace
+      - *restore_cache
+
+      - run:
+          name: ghclient v1/zones
+          no_output_timeout: 330
+          command: |
+            . venv/bin/activate
+            python ghclient.py ${HUB_TOKEN} zones -v | tee ${TEST_RESULTS}/zones-v3.json
+
+      - *persist_to_workspace
+
   zones_diff:
     <<: *testbed_environment
     steps:
@@ -220,6 +236,22 @@ jobs:
 
       - *persist_to_workspace
 
+  devices_v1:
+    <<: *testbed_environment
+    steps:
+      - checkout
+      - *attach_workspace
+      - *restore_cache
+
+      - run:
+          name: ghclient v1/devices
+          no_output_timeout: 330
+          command: |
+            . venv/bin/activate
+            python ghclient.py ${HUB_TOKEN} devices -v | tee ${TEST_RESULTS}/devices-v3.json
+
+      - *persist_to_workspace
+
   devices_diff:
     <<: *testbed_environment
     steps:
@@ -248,13 +280,13 @@ workflows:
       - issues_v3:
           requires:
             - make_testbed
-      - issues_v1:
-          requires:
-            - make_testbed
       - issues_diff:
           requires:
             - issues_curl
             - issues_v3
+      - issues_v1:
+          requires:
+            - make_testbed
 
       - zones_curl:
           requires:
@@ -266,7 +298,9 @@ workflows:
           requires:
             - zones_curl
             - zones_v3
-
+      - zones_v1:
+          requires:
+            - make_testbed
 
       - devices_curl:
           requires:
@@ -278,3 +312,6 @@ workflows:
           requires:
             - devices_curl
             - devices_v3
+      - devices_v1:
+          requires:
+            - make_testbed
