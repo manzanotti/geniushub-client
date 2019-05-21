@@ -280,16 +280,18 @@ workflows:
   test_output:
     jobs:
       - dependencies
-      - test_issues:
-          requires:
-            - dependencies
-      - test_devices:
-          requires:
-            - dependencies
-      - test_zones:
-          requires:
-            - dependencies
       - issues_curl:
           requires:
             - dependencies
-            - test_issues
+      - test_issues:
+          requires:
+            - dependencies
+            - issues_curl
+      - test_devices:
+          requires:
+            - dependencies
+            - issues_curl
+      - test_zones:
+          requires:
+            - dependencies
+            - issues_curl
