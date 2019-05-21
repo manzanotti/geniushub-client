@@ -45,12 +45,16 @@ aliases:
 
       - run: mkdir -p $TEST_RESULTS
 
-      - run: ls
-
       - persist_to_workspace:
           root: .
           paths:
               - venv
+
+      - run: ls
+      - run: ls ..
+      - run: ls ../repo
+      - run: ls ../workspace
+      - run: ls ../working_directory
 
 jobs:
   dependencies:
