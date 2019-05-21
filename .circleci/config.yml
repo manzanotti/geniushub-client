@@ -279,8 +279,20 @@ workflows:
   master:
     jobs:
       - dependencies
+
       - issues_v1_curl
+        requires:
+          - dependencies
 
       - test_issues
-      - test_devices
-      - test_zones
+        requires:
+          - dependencies
+          - issues_v1_curl
+
+          - test_devices
+        requires:
+          - dependencies
+
+          - test_zones
+        requires:
+          - dependencies
