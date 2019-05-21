@@ -15,7 +15,7 @@ aliases:
 
   - &attach_workspace
       attach_workspace:
-        at: ~/working_directory
+        at: ~/workspace
 
   - &dependencies
       - checkout
@@ -31,9 +31,11 @@ aliases:
       - run:
           name: install dependencies
           command: |
+            pwd
             python3 -m venv venv
             . venv/bin/activate
             pip install -r requirements.txt
+            ls
 
       - save_cache:
           paths:
@@ -42,10 +44,10 @@ aliases:
 
       - run: mkdir -p $TEST_RESULTS
 
-      # - persist_to_workspace:
-      #     root: .
-      #     paths:
-      #         - ~/working_directory
+      - persist_to_workspace:
+          root: .
+          paths:
+              - venv
 
 jobs:
   dependencies:
