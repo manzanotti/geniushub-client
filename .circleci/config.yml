@@ -278,12 +278,48 @@ jobs:
       - *restore_cache
 
       - run:
-          name: cURL v1/Issues
+          name: cURL v1/issues
           no_output_timeout: 330
           command: |
             . venv/bin/activate
             curl -X GET https://my.geniushub.co.uk/v1/issues -H "authorization: Bearer ${HUB_TOKEN}" --connect-timeout 300 | \
               python -c "import sys, json; print(json.load(sys.stdin))" | tee ${TEST_RESULTS}/issues_curl.json
+
+      - *persist_to_workspace
+      - *store_artifacts
+
+  zones_curl:
+    <<: *testbed_environment
+    steps:
+      - checkout
+      - *attach_workspace
+      - *restore_cache
+
+      - run:
+          name: cURL v1/zones
+          no_output_timeout: 330
+          command: |
+            . venv/bin/activate
+            curl -X GET https://my.geniushub.co.uk/v1/zones -H "authorization: Bearer ${HUB_TOKEN}" --connect-timeout 300 | \
+              python -c "import sys, json; print(json.load(sys.stdin))" | tee ${TEST_RESULTS}/zones_curl.json
+
+      - *persist_to_workspace
+      - *store_artifacts
+
+  devices_curl:
+    <<: *testbed_environment
+    steps:
+      - checkout
+      - *attach_workspace
+      - *restore_cache
+
+      - run:
+          name: cURL v1/devices
+          no_output_timeout: 330
+          command: |
+            . venv/bin/activate
+            curl -X GET https://my.geniushub.co.uk/v1/devices -H "authorization: Bearer ${HUB_TOKEN}" --connect-timeout 300 | \
+              python -c "import sys, json; print(json.load(sys.stdin))" | tee ${TEST_RESULTS}/devices_curl.json
 
       - *persist_to_workspace
       - *store_artifacts
@@ -294,6 +330,12 @@ workflows:
     jobs:
       - make_testbed
       - issues_curl:
+          requires:
+            - make_testbed
+      - zones_curl:
+          requires:
+            - make_testbed
+      - devices_curl:
           requires:
             - make_testbed
       - test_issues:
