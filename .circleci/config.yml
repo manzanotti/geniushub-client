@@ -198,13 +198,15 @@ jobs:
           no_output_timeout: 60
           command: |
             sudo apt -y install wdiff colordiff
-                wdiff    ${TEST_RESULTS}/zones-curl.json ${TEST_RESULTS}/zones-v3.json | colordiff
-            echo diff -s ${TEST_RESULTS}/zones-curl.json ${TEST_RESULTS}/zones-v3.json | tee -a ${TEST_RESULTS}/zones-results.txt
-                 diff -s ${TEST_RESULTS}/zones-curl.json ${TEST_RESULTS}/zones-v3.json | tee -a ${TEST_RESULTS}/zones-results.txt
-            echo                                                                       | tee -a ${TEST_RESULTS}/zones-results.txt
-                wdiff    ${TEST_RESULTS}/zones-curl.json ${TEST_RESULTS}/zones-v1.json | colordiff
-            echo diff -s ${TEST_RESULTS}/zones-curl.json ${TEST_RESULTS}/zones-v1.json | tee -a ${TEST_RESULTS}/zones-results.txt
-                 diff -s ${TEST_RESULTS}/zones-curl.json ${TEST_RESULTS}/zones-v1.json | tee -a ${TEST_RESULTS}/zones-results.txt
+
+            DIFF=$(diff -q ${TEST_RESULTS}/zones-curl.json ${TEST_RESULTS}/zones-v3.json)
+            if [ "$DIFF" == "" ]
+            then
+                diff -s ${TEST_RESULTS}/zones-curl.json ${TEST_RESULTS}/zones-v3.json | tee ${TEST_RESULTS}/zones-results.txt
+            else
+                wdiff ${TEST_RESULTS}/zones-curl.json ${TEST_RESULTS}/zones-v3.json | colordiff
+                echo "$DIFF" > ${TEST_RESULTS}/zones-results.txt
+            fi
 
       - *store_artifacts
 
@@ -271,14 +273,15 @@ jobs:
           no_output_timeout: 60
           command: |
             sudo apt -y install wdiff colordiff
-                wdiff    ${TEST_RESULTS}/devices-curl.json ${TEST_RESULTS}/devices-v3.json | colordiff
-            echo diff -s ${TEST_RESULTS}/devices-curl.json ${TEST_RESULTS}/devices-v3.json | tee -a ${TEST_RESULTS}/devices-results.txt
-                 diff -s ${TEST_RESULTS}/devices-curl.json ${TEST_RESULTS}/devices-v3.json | tee -a ${TEST_RESULTS}/devices-results.txt
-            echo                                                                           | tee -a ${TEST_RESULTS}/devices-results.txt
-                wdiff    ${TEST_RESULTS}/devices-curl.json ${TEST_RESULTS}/devices-v1.json | colordiff
-            echo diff -s ${TEST_RESULTS}/devices-curl.json ${TEST_RESULTS}/devices-v1.json | tee -a ${TEST_RESULTS}/devices-results.txt
-                 diff -s ${TEST_RESULTS}/devices-curl.json ${TEST_RESULTS}/devices-v1.json | tee -a ${TEST_RESULTS}/devices-results.txt
-            echo                                                                           | tee -a ${TEST_RESULTS}/devices-results.txt
+
+            DIFF=$(diff -q ${TEST_RESULTS}/devices-curl.json ${TEST_RESULTS}/devices-v3.json)
+            if [ "$DIFF" == "" ]
+            then
+                diff -s ${TEST_RESULTS}/devices-curl.json ${TEST_RESULTS}/devices-v3.json | tee ${TEST_RESULTS}/devices-results.txt
+            else
+                wdiff ${TEST_RESULTS}/devices-curl.json ${TEST_RESULTS}/devices-v3.json | colordiff
+                echo "$DIFF" > ${TEST_RESULTS}/devices-results.txt
+            fi
 
       - *store_artifacts
 
