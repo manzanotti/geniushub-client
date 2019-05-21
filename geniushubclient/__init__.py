@@ -20,9 +20,13 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 _LOGGER.setLevel(logging.WARNING)
 
-# pylint: disable=no-member, invalid-name, protected-access
-# pylint: disable=too-many-instance-attributes, too-few-public-methods,
+# pylint3 --max-line-length=120
+# pylint: disable=fixme, missing-docstring
+# pylint: disable=no-member, protected-access
+# pylint: disable=too-many-instance-attributes, too-few-public-methods
 # pylint: disable=too-many-locals, too-many-branches, too-many-statements
+# pylint: disable=too-many-arguments
+
 
 
 def _without_keys(dict_obj, keys) -> dict:
@@ -161,8 +165,9 @@ class GeniusHubClient(object):
 class GeniusObject(object):
     """The base class for Genius Hub, Zone & Device."""
     def __init__(self, client, obj_dict, hub=None, assignedZone=None):
+        self.id = None  # avoids no-member,                                      # pylint: disable=invalid-name
 
-        self.__dict__.update(obj_dict)
+        self.__dict__.update(obj_dict)  # create self.id, etc.
 
         self._client = client
         self._api_v1 = client._api_v1
@@ -183,7 +188,7 @@ class GeniusObject(object):
 
         elif isinstance(self, GeniusDevice):
             self.hub = hub
-            self.assignedZone = assignedZone
+            self.assignedZone = assignedZone                                     # pylint: disable=invalid-name
 
     def _convert_zone(self, raw_dict) -> dict:
         """Convert a v3 zone's dict/json to the v1 schema."""
@@ -207,16 +212,16 @@ class GeniusObject(object):
         # l = parseInt(i.iFlagExpectedKit) & e.equipmentTypes.Kit_PIR
         if raw_dict['iFlagExpectedKit'] & KIT_TYPES.PIR:
             # = parseInt(i.iMode) === e.zoneModes.Mode_Footprint
-            u = raw_dict['iMode'] == ZONE_MODES.Footprint
+            u = raw_dict['iMode'] == ZONE_MODES.Footprint                        # pylint: disable=invalid-name
 
             # = null != (s = i.zoneReactive) ? s.bTriggerOn : void 0,
-            d = raw_dict['objFootprint']['objReactive']['bTriggerOn']
+            d = raw_dict['objFootprint']['objReactive']['bTriggerOn']            # pylint: disable=invalid-name
 
             # = parseInt(i.iActivity) || 0,
             # c = raw_dict['iActivity'] | 0
 
             # o = t.isInFootprintNightMode(i)
-            o = raw_dict['objFootprint']['bIsNight']
+            o = raw_dict['objFootprint']['bIsNight']                             # pylint: disable=invalid-name
 
             # u && l && d && !o ? True : False
             result['occupied'] = u and d and not o
@@ -231,6 +236,7 @@ class GeniusObject(object):
             else:
                 result['override']['setpoint'] = raw_dict['fBoostSP']
 
+        # pylint: disable=pointless-string-statement
         """Schedules - What is known:
              timer={} if: Manager
              footprint={} if: Manager, OnOffTimer, TPI
@@ -259,7 +265,7 @@ class GeniusObject(object):
                         node['heatingPeriods'].append({
                             'end': next_time,
                             'start': setpoint_time,                              # noqa: disable=F821; pylint: disable=used-before-assignment
-                            'setpoint': setpoint_temp                            # noqa: disable=F821; pylint: qisable=used-before-assignment
+                            'setpoint': setpoint_temp                            # noqa: disable=F821; pylint: disable=used-before-assignment
                         })
 
                     setpoint_time = next_time
@@ -267,7 +273,7 @@ class GeniusObject(object):
 
         except:
             _LOGGER.exception("_convert_zone(): Failed to convert Timer "
-                              "schedule for Zone %s",  result['id'])
+                              "schedule for Zone %s", result['id'])
 
         try:
             if raw_dict['iType'] in [ZONE_TYPES.ControlSP]:
@@ -307,7 +313,7 @@ class GeniusObject(object):
 
         except:
             _LOGGER.exception("_convert_zone(): Failed to convert Footprint "
-                              "schedule for Zone %s",  result['id'])
+                              "schedule for Zone %s", result['id'])
 
         return result
 
@@ -351,15 +357,15 @@ class GeniusObject(object):
         if 'SwitchBinary' in node and \
                 node['SwitchBinary']['path'].count('/') == 3:
 
-            DEVICE_TYPE = 'Dual Channel Receiver - Channel {}'
+            device_type = 'Dual Channel Receiver - Channel {}'
             if result['type'] is None:
                 _LOGGER.debug("Assigning Type for Device: %s", result['id'])
-                result['type'] = DEVICE_TYPE.format(result['id'][-1])
+                result['type'] = device_type.format(result['id'][-1])
             else:
                 _LOGGER.error("Clash for Device type: "
                               "via Method 1: %s, via Method 2: %s",
                               result['type'],
-                              DEVICE_TYPE.format(result['id'][-1]))
+                              device_type.format(result['id'][-1]))
 
         # try to 'fingerprint' the device type
         if 'SwitchBinary' in node:
@@ -402,7 +408,7 @@ class GeniusObject(object):
 
         # DCCR, PLUG = ['outputOnOff']
         # VALV, ROMT = ['batteryLevel', 'setTemperature', 'measuredTemperature']
-        # ROMS =  ['batteryLevel',  'measuredTemperature', 'luminance',  'occupancyTrigger']
+        # ROMS =  ['batteryLevel', 'measuredTemperature', 'luminance', 'occupancyTrigger']
         # RADR = ['batteryLevel', 'setTemperature']
         # RADR = ['outputOnOff', 'measuredTemperature']
 
@@ -429,8 +435,7 @@ class GeniusObject(object):
 
         _LOGGER.warn("_convert_issue(): raw_dict=%s", raw_dict)
 
-        description = DESCRIPTION_TO_TEXT.get(
-            raw_dict['id'], raw_dict['_zone_name'])
+        description = DESCRIPTION_TO_TEXT.get(raw_dict['id'], raw_dict)
 
         if '{zone_name}' in description and '{device_type}' in description:
             zone = raw_dict['data']['location']  # or: raw_dict['_zone_name']
@@ -503,7 +508,7 @@ class GeniusObject(object):
         # except concurrent.futures._base.TimeoutError as err:
 
     def _subset_list(self, item_list_raw, _convert_to_v1,
-                     summary_keys=[], detail_keys=[]) -> list:
+                     summary_keys, detail_keys) -> list:
         if self._client._verbose >= 3:
             return item_list_raw
 
@@ -523,7 +528,7 @@ class GeniusObject(object):
         return result
 
     def _subset_dict(self, item_dict_raw, _convert_to_v1,
-                     summary_keys=[], detail_keys=[]):
+                     summary_keys, detail_keys):
         if self._client._verbose >= 3:
             return item_dict_raw
 
@@ -650,9 +655,9 @@ class GeniusHub(GeniusObject):
 
             return issue_dict['description'], None
 
-        [_populate_zone(z) for z in await self._get_zones_raw]
-        [_populate_device(d) for d in await self._get_devices_raw]
-        [_populate_issue(i) for i in await self._get_issues]
+        [_populate_zone(z) for z in await self._get_zones_raw]                   # noqa; pylint: disable=expression-not-assigned
+        [_populate_device(d) for d in await self._get_devices_raw]               # noqa; pylint: disable=expression-not-assigned
+        [_populate_issue(i) for i in await self._get_issues]                     # noqa; pylint: disable=expression-not-assigned
 
         _LOGGER.debug("Hub(%s).update(): len(hub.zone_objs) = %s",
                       self.id, len(self.zone_objs))
@@ -811,7 +816,7 @@ class GeniusZone(GeniusObject):
         """Return a list of Issues known to the Zone."""
 
         self._issues = [self._convert_issue(i) for i in self.hub._issues_raw
-                         if i['_zone_name'] == self.name]
+                        if i['_zone_name'] == self.name]
 
         _LOGGER.debug("Hub().devices: len(self._devices) = %s",
                       len(self._devices))
@@ -829,15 +834,15 @@ class GeniusZone(GeniusObject):
         """
         # TODO: device-specific logic to prevent placing into an invalid mode
         # TODO: e.g. zones only support footprint if they have a PIR
-        ALLOWED_MODES = [ZONE_MODES.Off, ZONE_MODES.Override, ZONE_MODES.Timer]
+        allowed_modes = [ZONE_MODES.Off, ZONE_MODES.Override, ZONE_MODES.Timer]
 
         if hasattr(self, 'occupied'):
-            ALLOWED_MODES += [ZONE_MODES.Footprint]
-        ALLOWED_MODE_STRS = [IMODE_TO_MODE[i] for i in ALLOWED_MODES]
+            allowed_modes += [ZONE_MODES.Footprint]
+        allowed_mode_strs = [IMODE_TO_MODE[i] for i in allowed_modes]
 
-        if isinstance(mode, int) and mode in ALLOWED_MODES:
+        if isinstance(mode, int) and mode in allowed_modes:
             mode_str = IMODE_TO_MODE[mode]
-        elif isinstance(mode, str) and mode in ALLOWED_MODE_STRS:
+        elif isinstance(mode, str) and mode in allowed_mode_strs:
             mode_str = mode
             mode = MODE_TO_IMODE[mode_str]
         else:
