@@ -8,27 +8,27 @@ aliases:
     docker:
       - image: circleci/python:3.6.1
 
-    working_directory: ~/working_directory
+    working_directory: ./working_directory
 
     environment:
-      TEST_RESULTS: test-results
+      TEST_RESULTS: ./test-results
 
   - &attach_workspace
       attach_workspace:
-        at: ~/workspace
+        at: ./workspace
 
   - &dependencies
-      - run: ls ~
+      - run: ls .
 
       - checkout
 
-      - run: ls ~
+      - run: ls .
 
       - *attach_workspace
 
       - run: pwd
-      - run: ls ~
-      - run: ls ~/workspace
+      - run: ls .
+      - run: ls ./workspace
 
       - restore_cache:
           keys:
@@ -36,7 +36,7 @@ aliases:
             # fallback to using the latest cache if no exact match is found
             - v1-dependencies-
 
-      - run: ls ~
+      - run: ls .
 
       - run:
           name: install dependencies
@@ -46,18 +46,18 @@ aliases:
             . venv/bin/activate
             pip install -r requirements.txt
 
-      - run: ls ~
+      - run: ls .
 
       - save_cache:
           paths:
             - ./venv
           key: v1-dependencies-{{ checksum "requirements.txt" }}
 
-      - run: ls ~
+      - run: ls .
 
       - run: mkdir -p $TEST_RESULTS
 
-      - run: ls ~
+      - run: ls .
 
       - run:
           name: list folders 1
@@ -68,6 +68,7 @@ aliases:
 
       - run: ls
       - run: ls ~
+      - run: ls .
       - run: ls ..
       - run: ls ../repo
       - run: ls ../workspace
@@ -76,8 +77,6 @@ aliases:
       - persist_to_workspace:
           root: .
           paths:
-              - venv
-              - $TEST_RESULTS
               - test-results
 
       - run:
@@ -89,6 +88,7 @@ aliases:
 
       - run: ls
       - run: ls ~
+      - run: ls .
       - run: ls ..
       - run: ls ../repo
       - run: ls ../workspace
@@ -310,11 +310,15 @@ jobs:
   issues_curl:
     <<: *test_environment
     steps:
+      - run: pwd
+      - run: ls .
+      - run: ls ./workspace
+
       - *attach_workspace
 
       - run: pwd
-      - run: ls ~
-      - run: ls ~/workspace
+      - run: ls .
+      - run: ls ./workspace
 
       - run:
           name: cURL v1/Issues
