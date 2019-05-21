@@ -196,10 +196,10 @@ jobs:
           no_output_timeout: 30
           command: |
             sudo apt -y install wdiff colordiff
+            wdiff ${TEST_RESULTS}/zones-curl.json ${TEST_RESULTS}/zones-v3.json | colordiff
             echo diff -s ${TEST_RESULTS}/zones-curl.json ${TEST_RESULTS}/zones-v3.json | tee -a ${TEST_RESULTS}/zones-results.txt
                  diff -s ${TEST_RESULTS}/zones-curl.json ${TEST_RESULTS}/zones-v3.json | tee -a ${TEST_RESULTS}/zones-results.txt
             echo                                                                       | tee -a ${TEST_RESULTS}/zones-results.txt
-            wdiff ${TEST_RESULTS}/zones-curl.json ${TEST_RESULTS}/zones-v3.json | colordiff
 
       - *store_artifacts
 
