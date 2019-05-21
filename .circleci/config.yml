@@ -280,6 +280,8 @@ workflows:
       jobs:
           - dependencies
           - issues_v1_curl
+              requires:
+                - dependencies
           - test_issues
           - test_devices
           - test_zones
