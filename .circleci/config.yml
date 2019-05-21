@@ -78,9 +78,9 @@ jobs:
           command: |
             . venv/bin/activate
             curl -X GET https://my.geniushub.co.uk/v1/issues -H "authorization: Bearer ${HUB_TOKEN}" --connect-timeout 300 | \
-              tee ${TEST_RESULTS}/issues_curl.json
-            cat ${TEST_RESULTS}/issues_curl.json | python -c "import sys, json; print(json.load(sys.stdin))" | \
-              tee ${TEST_RESULTS}/issues_curl.json
+              tee ${TEST_RESULTS}/issues-curl.json
+            cat ${TEST_RESULTS}/issues-curl.json | python -c "import sys, json; print(json.load(sys.stdin))" | \
+              tee ${TEST_RESULTS}/issues-curl.json
 
       - *persist_to_workspace
       - *store_artifacts
@@ -97,7 +97,7 @@ jobs:
           no_output_timeout: 120
           command: |
             . venv/bin/activate
-            python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} issues -v | tee ${TEST_RESULTS}/issues_v3.json
+            python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} issues -v | tee ${TEST_RESULTS}/issues-v3.json
 
       - *persist_to_workspace
       - *store_artifacts
@@ -113,8 +113,8 @@ jobs:
           name: Diff issues
           no_output_timeout: 30
           command: |
-            echo diff -s ${TEST_RESULTS}/issues_curl.json ${TEST_RESULTS}/issues_v3.json | tee -a ${TEST_RESULTS}/issues-results.txt
-                 diff -s ${TEST_RESULTS}/issues_curl.json ${TEST_RESULTS}/issues_v3.json | tee -a ${TEST_RESULTS}/issues-results.txt
+            echo diff -s ${TEST_RESULTS}/issues-curl.json ${TEST_RESULTS}/issues-v3.json | tee -a ${TEST_RESULTS}/issues-results.txt
+                 diff -s ${TEST_RESULTS}/issues-curl.json ${TEST_RESULTS}/issues-v3.json | tee -a ${TEST_RESULTS}/issues-results.txt
             echo                                                                         | tee -a ${TEST_RESULTS}/issues-results.txt
 
       - *persist_to_workspace
@@ -133,9 +133,9 @@ jobs:
           command: |
             . venv/bin/activate
             curl -X GET https://my.geniushub.co.uk/v1/zones -H "authorization: Bearer ${HUB_TOKEN}" --connect-timeout 300 | \
-              tee ${TEST_RESULTS}/zones_curl.json
-            cat ${TEST_RESULTS}/zones_curl.json | python -c "import sys, json; print(json.load(sys.stdin))" | \
-              tee ${TEST_RESULTS}/zones_curl.json
+              tee ${TEST_RESULTS}/zones-curl.json
+            cat ${TEST_RESULTS}/zones-curl.json | python -c "import sys, json; print(json.load(sys.stdin))" | \
+              tee ${TEST_RESULTS}/zones-curl.json
 
       - *persist_to_workspace
       - *store_artifacts
@@ -152,7 +152,7 @@ jobs:
           no_output_timeout: 120
           command: |
             . venv/bin/activate
-            python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} zones -v | tee ${TEST_RESULTS}/issues_v3.json
+            python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} zones -v | tee ${TEST_RESULTS}/issues-v3.json
 
       - *persist_to_workspace
       - *store_artifacts
@@ -168,8 +168,8 @@ jobs:
           name: Diff zones
           no_output_timeout: 30
           command: |
-            echo diff -s ${TEST_RESULTS}/zones_curl.json ${TEST_RESULTS}/zones_v3.json | tee -a ${TEST_RESULTS}/zones-results.txt
-                 diff -s ${TEST_RESULTS}/zones_curl.json ${TEST_RESULTS}/zones_v3.json | tee -a ${TEST_RESULTS}/zones-results.txt
+            echo diff -s ${TEST_RESULTS}/zones-curl.json ${TEST_RESULTS}/zones-v3.json | tee -a ${TEST_RESULTS}/zones-results.txt
+                 diff -s ${TEST_RESULTS}/zones-curl.json ${TEST_RESULTS}/zones-v3.json | tee -a ${TEST_RESULTS}/zones-results.txt
             echo                                                                       | tee -a ${TEST_RESULTS}/zones-results.txt
 
       - *persist_to_workspace
@@ -188,9 +188,9 @@ jobs:
           command: |
             . venv/bin/activate
             curl -X GET https://my.geniushub.co.uk/v1/devices -H "authorization: Bearer ${HUB_TOKEN}" --connect-timeout 300 | \
-              tee ${TEST_RESULTS}/devices_curl.json
-            cat ${TEST_RESULTS}/devices_curl.json | python -c "import sys, json; print(json.load(sys.stdin))" | \
-              tee ${TEST_RESULTS}/devices_curl.json
+              tee ${TEST_RESULTS}/devices-curl.json
+            cat ${TEST_RESULTS}/devices-curl.json | python -c "import sys, json; print(json.load(sys.stdin))" | \
+              tee ${TEST_RESULTS}/devices-curl.json
 
       - *persist_to_workspace
       - *store_artifacts
@@ -207,7 +207,7 @@ jobs:
           no_output_timeout: 120
           command: |
             . venv/bin/activate
-            python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} devices -v | tee ${TEST_RESULTS}/issues_v3.json
+            python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} devices -v | tee ${TEST_RESULTS}/issues-v3.json
 
       - *persist_to_workspace
       - *store_artifacts
@@ -223,8 +223,8 @@ jobs:
           name: Diff devices
           no_output_timeout: 30
           command: |
-            echo diff -s ${TEST_RESULTS}/devices_curl.json ${TEST_RESULTS}/devices_v3.json | tee -a ${TEST_RESULTS}/devices-results.txt
-                 diff -s ${TEST_RESULTS}/devices_curl.json ${TEST_RESULTS}/devices_v3.json | tee -a ${TEST_RESULTS}/devices-results.txt
+            echo diff -s ${TEST_RESULTS}/devices-curl.json ${TEST_RESULTS}/devices-v3.json | tee -a ${TEST_RESULTS}/devices-results.txt
+                 diff -s ${TEST_RESULTS}/devices-curl.json ${TEST_RESULTS}/devices-v3.json | tee -a ${TEST_RESULTS}/devices-results.txt
             echo                                                                           | tee -a ${TEST_RESULTS}/devices-results.txt
 
       - *persist_to_workspace
