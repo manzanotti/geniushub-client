@@ -197,7 +197,7 @@ jobs:
           name: Diff zones
           no_output_timeout: 60
           command: |
-            sudo apt -y install wdiff colordiff> /dev/null
+            sudo apt -y install wdiff colordiff >/dev/null 2>&1
 
             diff -qs ${TEST_RESULTS}/zones-curl.json ${TEST_RESULTS}/zones-v3.json | tee ${TEST_RESULTS}/zones-results.txt
             if [ $? -ne 0 ]
@@ -269,7 +269,7 @@ jobs:
           name: Diff devices
           no_output_timeout: 60
           command: |
-            sudo apt -y install wdiff colordiff > /dev/null
+            sudo apt -y install wdiff colordiff >/dev/null 2>&1
 
             diff -qs ${TEST_RESULTS}/devices-curl.json ${TEST_RESULTS}/devices-v3.json | tee ${TEST_RESULTS}/devices-results.txt
             if [ $? -ne 0 ]
