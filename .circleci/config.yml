@@ -205,6 +205,12 @@ jobs:
                 wdiff ${TEST_RESULTS}/zones-curl.json ${TEST_RESULTS}/zones-v3.json | colordiff
             fi
 
+            diff -qs ${TEST_RESULTS}/zones-curl.json ${TEST_RESULTS}/zones-v1.json | tee ${TEST_RESULTS}/zones-results.txt
+            if [ $? -ne 0 ]
+            then
+                wdiff ${TEST_RESULTS}/zones-curl.json ${TEST_RESULTS}/zones-v1.json | colordiff
+            fi
+
       - *store_artifacts
 
   devices_curl:
@@ -277,6 +283,11 @@ jobs:
                 wdiff ${TEST_RESULTS}/devices-curl.json ${TEST_RESULTS}/devices-v3.json | colordiff
             fi
 
+            diff -qs ${TEST_RESULTS}/devices-curl.json ${TEST_RESULTS}/devices-v1.json | tee ${TEST_RESULTS}/devices-results.txt
+            if [ $? -ne 0 ]
+            then
+                wdiff ${TEST_RESULTS}/devices-curl.json ${TEST_RESULTS}/devices-v1.json | colordiff
+            fi
       - *store_artifacts
 
 workflows:
