@@ -28,7 +28,6 @@ _LOGGER.setLevel(logging.WARNING)
 # pylint: disable=too-many-arguments
 
 
-
 def _without_keys(dict_obj, keys) -> dict:
     _info = dict(dict_obj)
     _info = {k: v for k, v in _info.items() if k[:1] != '_'}
@@ -213,16 +212,12 @@ class GeniusObject(object):
         if raw_dict['iFlagExpectedKit'] & KIT_TYPES.PIR:
             # = parseInt(i.iMode) === e.zoneModes.Mode_Footprint
             u = raw_dict['iMode'] == ZONE_MODES.Footprint                        # pylint: disable=invalid-name
-
             # = null != (s = i.zoneReactive) ? s.bTriggerOn : void 0,
             d = raw_dict['objFootprint']['objReactive']['bTriggerOn']            # pylint: disable=invalid-name
-
             # = parseInt(i.iActivity) || 0,
-            # c = raw_dict['iActivity'] | 0
-
+            # c = raw_dict['iActivity'] | 0                                      # pylint: disable=invalid-name
             # o = t.isInFootprintNightMode(i)
             o = raw_dict['objFootprint']['bIsNight']                             # pylint: disable=invalid-name
-
             # u && l && d && !o ? True : False
             result['occupied'] = u and d and not o
 
@@ -433,7 +428,7 @@ class GeniusObject(object):
         if self._api_v1:
             return raw_dict
 
-        _LOGGER.warn("_convert_issue(): raw_dict=%s", raw_dict)
+        _LOGGER.debug("_convert_issue(): raw_dict=%s", raw_dict)
 
         description = DESCRIPTION_TO_TEXT.get(raw_dict['id'], raw_dict)
 
@@ -701,9 +696,8 @@ class GeniusHub(GeniusObject):
           v1/zones:         id, name, type, mode, temperature, setpoint,
           occupied, override, schedule
         """
-        kwargs = ATTRS_ZONE
         result = self._subset_list(
-            self._zones_raw, self._convert_zone, **kwargs)
+            self._zones_raw, self._convert_zone, **ATTRS_ZONE)
 
         _LOGGER.debug("Hub().zones, count = %s", len(result))
         return result
@@ -732,9 +726,8 @@ class GeniusHub(GeniusObject):
           v1/devices/summary: id, type
           v1/devices: id, type, assignedZones, state
         """
-        kwargs = ATTRS_DEVICE
         result = self._subset_list(
-            self._devices_raw, self._convert_device, **kwargs)
+            self._devices_raw, self._convert_device, **ATTRS_DEVICE)
 
         if not self._api_v1 and self._client._verbose != 3:                      # TODO: is this needed?
             result = natural_sort(result, 'id')
@@ -762,13 +755,12 @@ class GeniusHub(GeniusObject):
 
           v1/issues: description, level
         """
-        _LOGGER.warn("Hub().issues...")
+        # _LOGGER.warn("Hub().issues...")
 
-        kwargs = ATTRS_ISSUE
         result = self._subset_list(
-            self._issues_raw, self._convert_issue, **kwargs)
+            self._issues_raw, self._convert_issue, **ATTRS_ISSUE)
 
-        _LOGGER.warn("Hub().issues = %s", result)
+        _LOGGER.debug("Hub().issues = %s", result)
         return result
 
 

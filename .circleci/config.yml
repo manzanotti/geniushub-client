@@ -3,8 +3,9 @@
 # Check https://circleci.com/docs/2.0/language-python/ for more details
 #
 version: 2
-jobs:
-  test_issues:
+
+aliases:
+  - &test_environment
     docker:
       # specify the version you desire here
       # use `-browsers` prefix for selenium tests, e.g. `3.6.1-browsers`
@@ -19,6 +20,11 @@ jobs:
 
     environment:
       TEST_RESULTS: /tmp/test-results
+
+
+jobs:
+  test_issues:
+    <<: *test_environment
 
     steps:
       - checkout
@@ -86,7 +92,6 @@ jobs:
       - store_artifacts:
           path: /tmp/test-results
           destination: devices_summary
-
 
   test_devices:
     docker:
@@ -163,7 +168,6 @@ jobs:
       - store_artifacts:
           path: /tmp/test-results
           destination: devices_summary
-
 
   test_zones:
     docker:
@@ -243,7 +247,7 @@ jobs:
 
 workflows:
     version: 2
-    build:
+    master:
         jobs:
             - test_issues
             - test_devices
