@@ -18,6 +18,28 @@ aliases:
         at: ./workspace
 
   - &dependencies
+      - run:
+          name: test 1
+          command: |
+            pwd
+            ls
+
+      - run:
+          name: test 2
+          command: |
+            pwd
+            cd .
+            pwd
+            ls
+
+      - run:
+          name: test 3
+          command: |
+            pwd
+            cd ~
+            pwd
+            ls
+
       - run: ls .
 
       - checkout
@@ -34,7 +56,7 @@ aliases:
           keys:
             - v2-dependencies-{{ checksum "requirements.txt" }}
             # fallback to using the latest cache if no exact match is found
-            - v21-dependencies-
+            - v2-dependencies-
 
       - run: ls .
 
@@ -70,7 +92,6 @@ aliases:
       - run: ls ~
       - run: ls .
       - run: ls ..
-      - run: ls ../repo
       - run: ls ../workspace
       - run: ls ../working_directory
 
@@ -90,7 +111,6 @@ aliases:
       - run: ls ~
       - run: ls .
       - run: ls ..
-      - run: ls ../repo
       - run: ls ../workspace
       - run: ls ../working_directory
 
