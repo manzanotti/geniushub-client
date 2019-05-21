@@ -22,7 +22,7 @@ aliases:
 
   - &attach_workspace
       attach_workspace:
-        at: ~/data
+        at: ~/workspace
 
   - &dependencies
       - checkout
@@ -47,7 +47,7 @@ aliases:
       - persist_to_workspace:
           root: .
           paths:
-              - vendor/bundle
+              - ~/workspace
 
 jobs:
   dependencies:
