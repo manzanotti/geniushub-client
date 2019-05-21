@@ -36,6 +36,7 @@ aliases:
             . venv/bin/activate
             pip install -r requirements.txt
             ls
+            ls ..
 
       - save_cache:
           paths:
@@ -43,6 +44,8 @@ aliases:
           key: v1-dependencies-{{ checksum "requirements.txt" }}
 
       - run: mkdir -p $TEST_RESULTS
+
+      - run: ls
 
       - persist_to_workspace:
           root: .
