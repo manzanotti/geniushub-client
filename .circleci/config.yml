@@ -276,23 +276,23 @@ jobs:
 
 workflows:
   version: 2
-  master:
+  test-output:
     jobs:
       - dependencies
 
-      - issues_v1_curl
+      - issues_v1_curl:
         requires:
           - dependencies
 
-      - test_issues
+      - test_issues:
         requires:
           - dependencies
           - issues_v1_curl
 
-          - test_devices
+      - test_devices:
         requires:
           - dependencies
 
-          - test_zones
+      - test_zones:
         requires:
           - dependencies
