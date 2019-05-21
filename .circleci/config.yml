@@ -46,18 +46,16 @@ aliases:
       - run:
           name: list folders 1
           command: |
-            ls
-            ls ~
+            echo $TEST_RESULTS
             ls $TEST_RESULTS
             ls $TEST_RESULTS/..
 
-      - run:
-          name: list folders 2
-          command: |
-            ls ..
-            ls ../repo
-            ls ../workspace
-            ls ../working_directory
+      - run: ls
+      - run: ls ~
+      - run: ls ..
+      - run: ls ../repo
+      - run: ls ../workspace
+      - run: ls ../working_directory
 
       - persist_to_workspace:
           root: .
@@ -68,18 +66,17 @@ aliases:
       - run:
           name: list folders 1
           command: |
-            ls
-            ls ~
+            echo $TEST_RESULTS
             ls $TEST_RESULTS
             ls $TEST_RESULTS/..
 
-      - run:
-          name: list folders 2
-          command: |
-            ls ..
-            ls ../repo
-            ls ../workspace
-            ls ../working_directory
+      - run: ls
+      - run: ls ~
+      - run: ls ..
+      - run: ls ../repo
+      - run: ls ../workspace
+      - run: ls ../working_directory
+
 
 jobs:
   dependencies:
