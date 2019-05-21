@@ -79,7 +79,7 @@ aliases:
       - run: ls ../workspace
       - run: ls ../working_directory
 
-      - *persist_to_workspace:
+      - *persist_to_workspace
 
       - run:
           name: list folders 1
