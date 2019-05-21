@@ -38,7 +38,7 @@ aliases:
 
   - &store_artifacts
       store_artifacts:
-        path: /tmp/test-results
+        path: /tmp/workspace/test-results
         destination: test_results
 
   - &create_testbed
