@@ -293,6 +293,8 @@ jobs:
   issues_curl:
     <<: *test_environment
     steps:
+      - *attach_workspace
+
       - run:
           name: cURL v1/Issues
           no_output_timeout: 330
