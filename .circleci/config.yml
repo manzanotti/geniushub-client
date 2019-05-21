@@ -197,7 +197,7 @@ jobs:
           name: Diff zones
           no_output_timeout: 60
           command: |
-            sudo apt -y install wdiff colordiff
+            sudo apt -y install wdiff colordiff> /dev/null
 
             DIFF=$(diff -q ${TEST_RESULTS}/zones-curl.json ${TEST_RESULTS}/zones-v3.json)
             if [ "$DIFF" == "" ]
@@ -272,7 +272,7 @@ jobs:
           name: Diff devices
           no_output_timeout: 60
           command: |
-            sudo apt -y install wdiff colordiff
+            sudo apt -y install wdiff colordiff > /dev/null
 
             DIFF=$(diff -q ${TEST_RESULTS}/devices-curl.json ${TEST_RESULTS}/devices-v3.json)
             if [ "$DIFF" == "" ]
