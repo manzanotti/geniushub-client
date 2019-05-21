@@ -18,7 +18,11 @@ aliases:
         at: ~/workspace
 
   - &dependencies
+      - run: ls ../repo
+
       - checkout
+
+      - run: ls ../repo
 
       - *attach_workspace
 
