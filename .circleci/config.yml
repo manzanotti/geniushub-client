@@ -130,6 +130,8 @@ jobs:
             echo diff -s ${TEST_RESULTS}/issues-curl.json ${TEST_RESULTS}/issues-v3.json | tee -a ${TEST_RESULTS}/issues-results.txt
                  diff -s ${TEST_RESULTS}/issues-curl.json ${TEST_RESULTS}/issues-v3.json | tee -a ${TEST_RESULTS}/issues-results.txt
             echo                                                                         | tee -a ${TEST_RESULTS}/issues-results.txt
+            echo diff -s ${TEST_RESULTS}/issues-curl.json ${TEST_RESULTS}/issues-v1.json | tee -a ${TEST_RESULTS}/issues-results.txt
+                 diff -s ${TEST_RESULTS}/issues-curl.json ${TEST_RESULTS}/issues-v1.json | tee -a ${TEST_RESULTS}/issues-results.txt
 
       - *store_artifacts
 
@@ -200,6 +202,9 @@ jobs:
             echo diff -s ${TEST_RESULTS}/zones-curl.json ${TEST_RESULTS}/zones-v3.json | tee -a ${TEST_RESULTS}/zones-results.txt
                  diff -s ${TEST_RESULTS}/zones-curl.json ${TEST_RESULTS}/zones-v3.json | tee -a ${TEST_RESULTS}/zones-results.txt
             echo                                                                       | tee -a ${TEST_RESULTS}/zones-results.txt
+                wdiff    ${TEST_RESULTS}/zones-curl.json ${TEST_RESULTS}/zones-v1.json | colordiff
+            echo diff -s ${TEST_RESULTS}/zones-curl.json ${TEST_RESULTS}/zones-v1.json | tee -a ${TEST_RESULTS}/zones-results.txt
+                 diff -s ${TEST_RESULTS}/zones-curl.json ${TEST_RESULTS}/zones-v1.json | tee -a ${TEST_RESULTS}/zones-results.txt
 
       - *store_artifacts
 
@@ -269,6 +274,10 @@ jobs:
                 wdiff    ${TEST_RESULTS}/devices-curl.json ${TEST_RESULTS}/devices-v3.json | colordiff
             echo diff -s ${TEST_RESULTS}/devices-curl.json ${TEST_RESULTS}/devices-v3.json | tee -a ${TEST_RESULTS}/devices-results.txt
                  diff -s ${TEST_RESULTS}/devices-curl.json ${TEST_RESULTS}/devices-v3.json | tee -a ${TEST_RESULTS}/devices-results.txt
+            echo                                                                           | tee -a ${TEST_RESULTS}/devices-results.txt
+                wdiff    ${TEST_RESULTS}/devices-curl.json ${TEST_RESULTS}/devices-v1.json | colordiff
+            echo diff -s ${TEST_RESULTS}/devices-curl.json ${TEST_RESULTS}/devices-v1.json | tee -a ${TEST_RESULTS}/devices-results.txt
+                 diff -s ${TEST_RESULTS}/devices-curl.json ${TEST_RESULTS}/devices-v1.json | tee -a ${TEST_RESULTS}/devices-results.txt
             echo                                                                           | tee -a ${TEST_RESULTS}/devices-results.txt
 
       - *store_artifacts
