@@ -34,7 +34,7 @@ aliases:
   - &create_testbed
       - checkout
 
-      - *restore_cache:
+      - *restore_cache
 
       - run:
           name: install dependencies
@@ -45,7 +45,7 @@ aliases:
             python -m pip install --upgrade pip # setuptools wheel
             pip install -r requirements.txt
 
-      - *save_cache:
+      - *save_cache
 
       - run: mkdir -p $TEST_RESULTS
 
