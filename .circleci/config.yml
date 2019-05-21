@@ -4,7 +4,7 @@
 #
 version: 2
 jobs:
-  test_zones:
+  test_issues:
     docker:
       # specify the version you desire here
       # use `-browsers` prefix for selenium tests, e.g. `3.6.1-browsers`
@@ -44,12 +44,7 @@ jobs:
             - ./venv
           key: v1-dependencies-{{ checksum "requirements.txt" }}
 
-      # run tests!
-      # this example uses Django's built-in test-runner
-      # other common Python testing frameworks include pytest and nose
-      # https://pytest.org
-      # https://nose.readthedocs.io
-
+      # Run tests
       - run: mkdir -p $TEST_RESULTS
 
       - run:
@@ -90,6 +85,47 @@ jobs:
                  diff -s ${TEST_RESULTS}/issues_v1.json ${TEST_RESULTS}/issues_v3.json | tee -a ${TEST_RESULTS}/test-results.txt
             echo                                                                       | tee -a ${TEST_RESULTS}/test-results.txt
 
+      - store_artifacts:
+          path: /tmp/test-results
+          destination: devices_summary
+
+
+  test_devices:
+    docker:
+      - image: circleci/python:3.6.1
+
+    parallelism: 4
+
+    working_directory: ~/repo
+
+    environment:
+      TEST_RESULTS: /tmp/test-results
+
+    steps:
+      - checkout
+
+      # Download and cache dependencies
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "requirements.txt" }}
+            # fallback to using the latest cache if no exact match is found
+            - v1-dependencies-
+
+      - run:
+          name: install dependencies
+          command: |
+            python3 -m venv venv
+            . venv/bin/activate
+            pip install -r requirements.txt
+
+      - save_cache:
+          paths:
+            - ./venv
+          key: v1-dependencies-{{ checksum "requirements.txt" }}
+
+      # Run tests!
+      - run: mkdir -p $TEST_RESULTS
+
       - run:
           name: cURL v1/Devices
           no_output_timeout: 330
@@ -128,12 +164,46 @@ jobs:
                  diff -s ${TEST_RESULTS}/devices_v1.json ${TEST_RESULTS}/devices_v3.json | tee -a ${TEST_RESULTS}/test-results.txt
             echo                                                                         | tee -a ${TEST_RESULTS}/test-results.txt
 
+      - store_artifacts:
+          path: /tmp/test-results
+          destination: devices_summary
+
+
+  test_zones:
+    docker:
+      - image: circleci/python:3.6.1
+
+    parallelism: 4
+
+    working_directory: ~/repo
+
+    environment:
+      TEST_RESULTS: /tmp/test-results
+
+    steps:
+      - checkout
+
+      # Download and cache dependencies
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "requirements.txt" }}
+            # fallback to using the latest cache if no exact match is found
+            - v1-dependencies-
+
       - run:
-          name: ghclient v3/Devices/Raw
-          no_output_timeout: 120
+          name: install dependencies
           command: |
+            python3 -m venv venv
             . venv/bin/activate
-            python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} devices -v | tee ${TEST_RESULTS}/devices_v3_raw.json
+            pip install -r requirements.txt
+
+      - save_cache:
+          paths:
+            - ./venv
+          key: v1-dependencies-{{ checksum "requirements.txt" }}
+
+      # Run tests!
+      - run: mkdir -p $TEST_RESULTS
 
       - run:
           name: cURL v1/Zones
