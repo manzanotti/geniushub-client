@@ -260,7 +260,7 @@ jobs:
           path: /tmp/test-results
           destination: devices_summary
 
-  issues_v1_curl:
+  issues_curl:
     <<: *test_environment
     steps:
       - run:
