@@ -20,7 +20,9 @@ aliases:
   - &dependencies
       - checkout
 
-      # Download and cache dependencies
+      - attach_workspace:
+          at: ~/working_directory
+
       - restore_cache:
           keys:
             - v1-dependencies-{{ checksum "requirements.txt" }}
@@ -40,9 +42,6 @@ aliases:
           key: v1-dependencies-{{ checksum "requirements.txt" }}
 
       - run: mkdir -p $TEST_RESULTS
-
-
-#     - *attach_workspace
 
       - restore_cache:
           keys:
@@ -298,7 +297,7 @@ jobs:
 
 workflows:
   version: 2
-  testing:
+  test_output:
     jobs:
       - dependencies
       - test_issues:
@@ -310,7 +309,7 @@ workflows:
       - test_zones:
           requires:
             - dependencies
-      - issues_v1_curl:
+      - issues_curl:
           requires:
             - dependencies
             - test_issues
