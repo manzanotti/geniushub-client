@@ -27,7 +27,7 @@ aliases:
   - &dependencies
       - checkout
 
-      - *attach_workspace
+#     - *attach_workspace
 
       - restore_cache:
           keys:
@@ -49,10 +49,10 @@ aliases:
 
       - run: mkdir -p $TEST_RESULTS
 
-      - persist_to_workspace:
-          root: .
-          paths:
-              - ~/working_directory
+      # - persist_to_workspace:
+      #     root: .
+      #     paths:
+      #         - ~/working_directory
 
 jobs:
   dependencies:
