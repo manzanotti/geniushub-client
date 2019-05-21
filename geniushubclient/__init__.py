@@ -12,13 +12,10 @@ import aiohttp
 
 from .const import (
     ATTRS_DEVICE, ATTRS_ISSUE, ATTRS_ZONE,
-    DEFAULT_INTERVAL_V1, DEFAULT_INTERVAL_V3,
     DEFAULT_TIMEOUT_V1, DEFAULT_TIMEOUT_V3,
     ITYPE_TO_TYPE, IMODE_TO_MODE, MODE_TO_IMODE, IDAY_TO_DAY,
     LEVEL_TO_TEXT, DESCRIPTION_TO_TEXT,
     ZONE_TYPES, ZONE_MODES, KIT_TYPES)
-
-HTTP_OK = 200  # cheaper than: from http import HTTPStatus.OK
 
 _LOGGER = logging.getLogger(__name__)
 _LOGGER.setLevel(logging.WARNING)
@@ -79,7 +76,7 @@ def _extract_devices_from_zones(raw_json) -> list:
     result = []
     for zone in raw_json:
         for device in [x for x in zone['nodes'].values()
-                       if x['addr'] not in ['WeatherData']]:  #  ['1', 'WeatherData']
+                       if x['addr'] not in ['WeatherData']]:  # ['1', 'WeatherData']
             result.append(device)
 
     return result
@@ -133,7 +130,6 @@ class GeniusHubClient(object):
             self._url_base = 'https://my.geniushub.co.uk/v1/'
             self._headers = {'authorization': "Bearer " + hub_id}
             self._timeout = aiohttp.ClientTimeout(total=DEFAULT_TIMEOUT_V1)
-            self._poll_interval = DEFAULT_INTERVAL_V1
         else:  # using API ver3
             sha = sha256()
             sha.update((username + password).encode('utf-8'))
@@ -142,7 +138,6 @@ class GeniusHubClient(object):
             self._url_base = 'http://{}:1223/v3/'.format(hub_id)
             self._headers = {"Connection": "close"}
             self._timeout = aiohttp.ClientTimeout(total=DEFAULT_TIMEOUT_V3)
-            self._poll_interval = DEFAULT_INTERVAL_V3
 
         self._verbose = 1
         hub_id = hub_id[:8] + "..." if len(hub_id) > 20 else hub_id
@@ -432,6 +427,8 @@ class GeniusObject(object):
         if self._api_v1:
             return raw_dict
 
+        _LOGGER.warn("_convert_issue(): raw_dict=%s", raw_dict)
+
         description = DESCRIPTION_TO_TEXT.get(
             raw_dict['id'], raw_dict['_zone_name'])
 
@@ -472,9 +469,9 @@ class GeniusObject(object):
                 json=data,
                 headers=self._client._headers,
                 auth=self._client._auth,
-                timeout=self._client._timeout
+                timeout=self._client._timeout,
+                raise_for_status=True
             ) as resp:
-                assert resp.status == HTTP_OK
                 response = await resp.json(content_type=None)
             if method != 'GET':
                 _LOGGER.debug(
@@ -492,9 +489,9 @@ class GeniusObject(object):
                 json=data,
                 headers=self._client._headers,
                 auth=self._client._auth,
-                timeout=self._client._timeout
+                timeout=self._client._timeout,
+                raise_for_status=True
             ) as resp:
-                assert resp.status == HTTP_OK
                 response = await resp.json(content_type=None)
             if method != 'GET':
                 _LOGGER.debug(
@@ -734,7 +731,7 @@ class GeniusHub(GeniusObject):
         result = self._subset_list(
             self._devices_raw, self._convert_device, **kwargs)
 
-        if not self._api_v1 and self._client._verbose != 3:
+        if not self._api_v1 and self._client._verbose != 3:                      # TODO: is this needed?
             result = natural_sort(result, 'id')
 
         _LOGGER.debug("Hub().devices, count = %s", len(result))
@@ -760,11 +757,13 @@ class GeniusHub(GeniusObject):
 
           v1/issues: description, level
         """
+        _LOGGER.warn("Hub().issues...")
+
         kwargs = ATTRS_ISSUE
         result = self._subset_list(
             self._issues_raw, self._convert_issue, **kwargs)
 
-        _LOGGER.debug("Hub().issues = %s", result)
+        _LOGGER.warn("Hub().issues = %s", result)
         return result
 
 

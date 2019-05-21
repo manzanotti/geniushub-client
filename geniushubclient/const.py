@@ -4,9 +4,6 @@ from types import SimpleNamespace
 DEFAULT_TIMEOUT_V1 = 300
 DEFAULT_TIMEOUT_V3 = 20
 
-DEFAULT_INTERVAL_V1 = 300
-DEFAULT_INTERVAL_V3 = 30
-
 API_STATUS_ERROR = {
     400: "The request body or request parameters are invalid.",
     401: "The authorization information is missing or invalid.",
@@ -155,7 +152,8 @@ IDAY_TO_DAY = {
 
 ATTRS_ZONE = {
     'summary_keys': ['id', 'name'],
-    'detail_keys': ['type', 'mode', 'temperature', 'setpoint', 'occupied', 'override', 'schedule']  # also: 'schedule'
+    'detail_keys': ['type', 'mode', 'temperature', 'setpoint', 'occupied',
+                    'override', 'schedule']
 }
 ATTRS_DEVICE = {
     'summary_keys': ['id', 'type'],
