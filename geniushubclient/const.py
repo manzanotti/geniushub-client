@@ -1,8 +1,8 @@
 """Python client library for the Genius Hub API."""
 from types import SimpleNamespace
 
-DEFAULT_TIMEOUT_V1 = 30
-DEFAULT_TIMEOUT_V3 = 10
+DEFAULT_TIMEOUT_V1 = 300
+DEFAULT_TIMEOUT_V3 = 20
 
 DEFAULT_INTERVAL_V1 = 300
 DEFAULT_INTERVAL_V3 = 30
