@@ -52,7 +52,7 @@ aliases:
             ls $TEST_RESULTS/..
 
       - run:
-          name: list folders 1
+          name: list folders 2
           command: |
             ls ..
             ls ../repo
@@ -62,17 +62,24 @@ aliases:
       - persist_to_workspace:
           root: .
           paths:
-              - working_directory
+              - venv
+              - $TEST_RESULTS
 
-      - run: ls
-      - run: ls ~
-      - run: ls $TEST_RESULTS
-      - run: ls $TEST_RESULTS/..
+      - run:
+          name: list folders 1
+          command: |
+            ls
+            ls ~
+            ls $TEST_RESULTS
+            ls $TEST_RESULTS/..
 
-      - run: ls ..
-      - run: ls ../repo
-      - run: ls ../workspace
-      - run: ls ../working_directory
+      - run:
+          name: list folders 2
+          command: |
+            ls ..
+            ls ../repo
+            ls ../workspace
+            ls ../working_directory
 
 jobs:
   dependencies:
