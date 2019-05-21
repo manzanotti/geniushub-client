@@ -15,14 +15,39 @@ aliases:
       # CircleCI maintains a library of pre-built images
       # documented at https://circleci.com/docs/2.0/circleci-images/
       # - image: circleci/postgres:9.4
-
     working_directory: ~/repo
-
     environment:
       TEST_RESULTS: /tmp/test-results
 
+  - &dependencies
+      - checkout
+
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "requirements.txt" }}
+            # fallback to using the latest cache if no exact match is found
+            - v1-dependencies-
+
+      - run:
+          name: install dependencies
+          command: |
+            python3 -m venv venv
+            . venv/bin/activate
+            pip install -r requirements.txt
+
+      - save_cache:
+          paths:
+            - ./venv
+          key: v1-dependencies-{{ checksum "requirements.txt" }}
+
+      - run: mkdir -p $TEST_RESULTS
+
 
 jobs:
+  dependencies:
+    <<: *test_environment
+    steps: *dependencies
+
   test_issues:
     <<: *test_environment
 
@@ -94,13 +119,7 @@ jobs:
           destination: devices_summary
 
   test_devices:
-    docker:
-      - image: circleci/python:3.6.1
-
-    working_directory: ~/repo
-
-    environment:
-      TEST_RESULTS: /tmp/test-results
+    <<: *test_environment
 
     steps:
       - checkout
@@ -170,13 +189,7 @@ jobs:
           destination: devices_summary
 
   test_zones:
-    docker:
-      - image: circleci/python:3.6.1
-
-    working_directory: ~/repo
-
-    environment:
-      TEST_RESULTS: /tmp/test-results
+    <<: *test_environment
 
     steps:
       - checkout
@@ -246,9 +259,11 @@ jobs:
           destination: devices_summary
 
 workflows:
-    version: 2
-    master:
-        jobs:
-            - test_issues
-            - test_devices
-            - test_zones
+  version: 2
+  master:
+    jobs:
+      - dependencies
+      - test_issues
+#       requires: *dependencies
+      - test_devices
+      - test_zones
