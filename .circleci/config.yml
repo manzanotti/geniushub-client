@@ -50,7 +50,7 @@ aliases:
 
       - save_cache:
           paths:
-            - ./venv
+            - ~/venv
           key: v1-dependencies-{{ checksum "requirements.txt" }}
 
       - run: ls .
