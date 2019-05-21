@@ -312,7 +312,7 @@ jobs:
     steps:
       - run: pwd
       - run: ls .
-      - run: ls /tmp/workspace
+      - run: ls /tmp
 
       - *attach_workspace
 
