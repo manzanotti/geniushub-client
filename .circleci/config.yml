@@ -4,273 +4,338 @@
 version: 2
 
 aliases:
-  - &test_environment
+  - &testbed_environment
     docker:
-      # specify the version you desire here
-      # use `-browsers` prefix for selenium tests, e.g. `3.6.1-browsers`
       - image: circleci/python:3.6.1
-
-      # Specify service dependencies here if necessary
-      # CircleCI maintains a library of pre-built images
-      # documented at https://circleci.com/docs/2.0/circleci-images/
-      # - image: circleci/postgres:9.4
 
     working_directory: ~/working_directory
 
     environment:
-      TEST_RESULTS: /tmp/test-results
+      TEST_RESULTS: /tmp/workspace/test-results
+
+  - &restore_cache
+      restore_cache:
+        keys:
+          - v4-dependencies-{{ checksum "requirements.txt" }}
+
+  - &save_cache
+      save_cache:
+        key: v4-dependencies-{{ checksum "requirements.txt" }}
+        paths:
+          - ./venv
 
   - &attach_workspace
       attach_workspace:
-        at: ~/working_directory
+        at: /tmp/workspace
 
-  - &dependencies
+  - &persist_to_workspace
+      persist_to_workspace:
+        keys:
+          - v4-dependencies-{{ checksum "requirements.txt" }}
+        root: /tmp/workspace
+        paths:
+          - test-results
+
+  - &store_artifacts
+      store_artifacts:
+        path: /tmp/workspace/test-results
+        destination: test_results
+
+  - &create_testbed
       - checkout
 
-#     - *attach_workspace
-
-      - restore_cache:
-          keys:
-            - v1-dependencies-{{ checksum "requirements.txt" }}
-            # fallback to using the latest cache if no exact match is found
-            - v1-dependencies-
+      - *restore_cache
 
       - run:
           name: install dependencies
           command: |
             python3 -m venv venv
             . venv/bin/activate
+            pip install --upgrade pip  # setuptools wheel
             pip install -r requirements.txt
 
-      - save_cache:
-          paths:
-            - ./venv
-          key: v1-dependencies-{{ checksum "requirements.txt" }}
+      - *save_cache
 
       - run: mkdir -p $TEST_RESULTS
 
-      # - persist_to_workspace:
-      #     root: .
-      #     paths:
-      #         - ~/working_directory
+      - *persist_to_workspace
 
 jobs:
-  dependencies:
-    <<: *test_environment
-    steps: *dependencies
+  make_testbed:
+    <<: *testbed_environment
+    steps: *create_testbed
 
-  test_issues:
-    <<: *test_environment
+  issues_curl:
+    <<: *testbed_environment
     steps:
       - checkout
-
-      # Download and cache dependencies
-      - restore_cache:
-          keys:
-            - v1-dependencies-{{ checksum "requirements.txt" }}
-            # fallback to using the latest cache if no exact match is found
-            - v1-dependencies-
+      - *attach_workspace
+      - *restore_cache
 
       - run:
-          name: install dependencies
-          command: |
-            python3 -m venv venv
-            . venv/bin/activate
-            pip install -r requirements.txt
-
-      - save_cache:
-          paths:
-            - ./venv
-          key: v1-dependencies-{{ checksum "requirements.txt" }}
-
-      # Run tests
-      - run: mkdir -p $TEST_RESULTS
-
-      - run:
-          name: cURL v1/Issues
+          name: cURL v1/issues
           no_output_timeout: 330
           command: |
             . venv/bin/activate
             curl -X GET https://my.geniushub.co.uk/v1/issues -H "authorization: Bearer ${HUB_TOKEN}" --connect-timeout 300 | \
-              python -c "import sys, json; print(json.load(sys.stdin))" | tee ${TEST_RESULTS}/issues_curl.json
+              tee ${TEST_RESULTS}/issues-curl.json
+            cat ${TEST_RESULTS}/issues-curl.json | python -c "import sys, json; print(json.load(sys.stdin))" | \
+              tee ${TEST_RESULTS}/issues-curl.json
 
-      # - run:
-      #     name: ghclient v1/Issues
-      #     no_output_timeout: 330
-      #     command: |
-      #       . venv/bin/activate
-      #       python ghclient.py ${HUB_TOKEN} issues -v | tee ${TEST_RESULTS}/issues_v1.json
+      - *persist_to_workspace
 
-      # - run:
-      #     name: Diff Issues v1 Vs cURL
-      #     no_output_timeout: 30
-      #     command: |
-      #       echo diff -s ${TEST_RESULTS}/issues_v1.json ${TEST_RESULTS}/issues_curl.json | tee -a ${TEST_RESULTS}/test-results.txt
-      #            diff -s ${TEST_RESULTS}/issues_v1.json ${TEST_RESULTS}/issues_curl.json | tee -a ${TEST_RESULTS}/test-results.txt
-      #       echo                                                                         | tee -a ${TEST_RESULTS}/test-results.txt
+  issues_v3:
+    <<: *testbed_environment
+    steps:
+      - checkout
+      - *attach_workspace
+      - *restore_cache
 
       - run:
-          name: ghclient v3/Issues
+          name: ghclient v3/issues
           no_output_timeout: 120
           command: |
             . venv/bin/activate
-            python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} issues -v | tee ${TEST_RESULTS}/issues_v3.json
+            python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} issues -v | tee ${TEST_RESULTS}/issues-v3.json
 
-      # - run:
-      #     name: Diff Issues v1 Vs v3
-      #     no_output_timeout: 30
-      #     command: |
-      #       echo diff -s ${TEST_RESULTS}/issues_v1.json ${TEST_RESULTS}/issues_v3.json | tee -a ${TEST_RESULTS}/test-results.txt
-      #            diff -s ${TEST_RESULTS}/issues_v1.json ${TEST_RESULTS}/issues_v3.json | tee -a ${TEST_RESULTS}/test-results.txt
-      #       echo                                                                       | tee -a ${TEST_RESULTS}/test-results.txt
+      - *persist_to_workspace
 
-      - store_artifacts:
-          path: /tmp/test-results
-          destination: devices_summary
-
-  test_devices:
-    <<: *test_environment
+  issues_v1:
+    <<: *testbed_environment
     steps:
       - checkout
-
-      # Download and cache dependencies
-      - restore_cache:
-          keys:
-            - v1-dependencies-{{ checksum "requirements.txt" }}
-            # fallback to using the latest cache if no exact match is found
-            - v1-dependencies-
+      - *attach_workspace
+      - *restore_cache
 
       - run:
-          name: install dependencies
-          command: |
-            python3 -m venv venv
-            . venv/bin/activate
-            pip install -r requirements.txt
-
-      - save_cache:
-          paths:
-            - ./venv
-          key: v1-dependencies-{{ checksum "requirements.txt" }}
-
-      # Run tests!
-      - run: mkdir -p $TEST_RESULTS
-
-      - run:
-          name: cURL v1/Devices
+          name: ghclient v1/issues
           no_output_timeout: 330
           command: |
             . venv/bin/activate
-            curl -X GET https://my.geniushub.co.uk/v1/devices -H "authorization: Bearer ${HUB_TOKEN}" --connect-timeout 300 | \
-              python -c "import sys, json; print(json.load(sys.stdin))" | tee ${TEST_RESULTS}/devices_curl.json
+            python ghclient.py ${HUB_TOKEN} issues -v | tee ${TEST_RESULTS}/issues-v1.json
 
-      # - run:
-      #     name: ghclient v1/Devices
-      #     no_output_timeout: 330
-      #     command: |
-      #       . venv/bin/activate
-      #       python ghclient.py ${HUB_TOKEN} devices -v | tee ${TEST_RESULTS}/devices_v1.json
+      - *persist_to_workspace
 
-      # - run:
-      #     name: Diff Devices v1 Vs cURL
-      #     no_output_timeout: 30
-      #     command: |
-      #       echo diff -s ${TEST_RESULTS}/devices_v1.json ${TEST_RESULTS}/devices_curl.json | tee -a ${TEST_RESULTS}/test-results.txt
-      #            diff -s ${TEST_RESULTS}/devices_v1.json ${TEST_RESULTS}/devices_curl.json | tee -a ${TEST_RESULTS}/test-results.txt
-      #       echo                                                                           | tee -a ${TEST_RESULTS}/test-results.txt
-
-      - run:
-          name: ghclient v3/Devices
-          no_output_timeout: 120
-          command: |
-            . venv/bin/activate
-            python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} devices -v | sed -e s/\"/\'/g | tee ${TEST_RESULTS}/devices_v3.json
-
-      # - run:
-      #     name: Diff Devices v1 Vs v3
-      #     no_output_timeout: 30
-      #     command: |
-      #       echo diff -s ${TEST_RESULTS}/devices_v1.json ${TEST_RESULTS}/devices_v3.json | tee -a ${TEST_RESULTS}/test-results.txt
-      #            diff -s ${TEST_RESULTS}/devices_v1.json ${TEST_RESULTS}/devices_v3.json | tee -a ${TEST_RESULTS}/test-results.txt
-      #       echo                                                                         | tee -a ${TEST_RESULTS}/test-results.txt
-
-      - store_artifacts:
-          path: /tmp/test-results
-          destination: devices_summary
-
-  test_zones:
-    <<: *test_environment
+  issues_diff:
+    <<: *testbed_environment
     steps:
       - checkout
-
-      # Download and cache dependencies
-      - restore_cache:
-          keys:
-            - v1-dependencies-{{ checksum "requirements.txt" }}
-            # fallback to using the latest cache if no exact match is found
-            - v1-dependencies-
+      - *attach_workspace
+      - *restore_cache
 
       - run:
-          name: install dependencies
+          name: Diff issues
+          no_output_timeout: 60
           command: |
-            python3 -m venv venv
-            . venv/bin/activate
-            pip install -r requirements.txt
+            echo diff -qs ${TEST_RESULTS}/issues-curl.json ${TEST_RESULTS}/issues-v3.json | tee -a ${TEST_RESULTS}/issues-results.txt
+                 diff -qs ${TEST_RESULTS}/issues-curl.json ${TEST_RESULTS}/issues-v3.json | tee -a ${TEST_RESULTS}/issues-results.txt
+            echo                                                                         | tee -a ${TEST_RESULTS}/issues-results.txt
+            echo diff -qs ${TEST_RESULTS}/issues-curl.json ${TEST_RESULTS}/issues-v1.json | tee -a ${TEST_RESULTS}/issues-results.txt
+                 diff -qs ${TEST_RESULTS}/issues-curl.json ${TEST_RESULTS}/issues-v1.json | tee -a ${TEST_RESULTS}/issues-results.txt
 
-      - save_cache:
-          paths:
-            - ./venv
-          key: v1-dependencies-{{ checksum "requirements.txt" }}
+      - *store_artifacts
 
-      # Run tests!
-      - run: mkdir -p $TEST_RESULTS
+  zones_curl:
+    <<: *testbed_environment
+    steps:
+      - checkout
+      - *attach_workspace
+      - *restore_cache
 
       - run:
-          name: cURL v1/Zones
+          name: cURL v1/zones
           no_output_timeout: 330
           command: |
             . venv/bin/activate
             curl -X GET https://my.geniushub.co.uk/v1/zones -H "authorization: Bearer ${HUB_TOKEN}" --connect-timeout 300 | \
-              python -c "import sys, json; print(json.load(sys.stdin))" | tee ${TEST_RESULTS}/zones_curl.json
+              tee ${TEST_RESULTS}/zones-curl.json
+            cat ${TEST_RESULTS}/zones-curl.json | python -c "import sys, json; print(json.load(sys.stdin))" | \
+              tee ${TEST_RESULTS}/zones-curl.json
 
-      # - run:
-      #     name: ghclient v1/Zones
-      #     no_output_timeout: 330
-      #     command: |
-      #       . venv/bin/activate
-      #       python ghclient.py ${HUB_TOKEN} zones -v | tee ${TEST_RESULTS}/zones_v1.json
+      - *persist_to_workspace
 
-      # - run:
-      #     name: Diff Zones v1 Vs cURL
-      #     no_output_timeout: 30
-      #     command: |
-      #       echo diff -s ${TEST_RESULTS}/zones_v1.json ${TEST_RESULTS}/zones_curl.json | tee -a ${TEST_RESULTS}/test-results.txt
-      #            diff -s ${TEST_RESULTS}/zones_v1.json ${TEST_RESULTS}/zones_curl.json | tee -a ${TEST_RESULTS}/test-results.txt
-      #       echo                                                                       | tee -a ${TEST_RESULTS}/test-results.txt
+  zones_v3:
+    <<: *testbed_environment
+    steps:
+      - checkout
+      - *attach_workspace
+      - *restore_cache
 
       - run:
-          name: ghclient v3/Zones
+          name: ghclient v3/zones
           no_output_timeout: 120
           command: |
             . venv/bin/activate
-            python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} zones -v | tee ${TEST_RESULTS}/zones_v3.json
+            python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} zones -v | tee ${TEST_RESULTS}/zones-v3.json
 
-      # - run:
-      #     name: Diff Zones v1 Vs v3
-      #     no_output_timeout: 30
-      #     command: |
-      #       echo diff -s ${TEST_RESULTS}/zones_v1.json ${TEST_RESULTS}/zones_v3.json | tee -a ${TEST_RESULTS}/test-results.txt
-      #            diff -s ${TEST_RESULTS}/zones_v1.json ${TEST_RESULTS}/zones_v3.json | tee -a ${TEST_RESULTS}/test-results.txt
-      #       echo                                                                     | tee -a ${TEST_RESULTS}/test-results.txt
+      - *persist_to_workspace
 
-      - store_artifacts:
-          path: /tmp/test-results
-          destination: devices_summary
+  zones_v1:
+    <<: *testbed_environment
+    steps:
+      - checkout
+      - *attach_workspace
+      - *restore_cache
+
+      - run:
+          name: ghclient v1/zones
+          no_output_timeout: 330
+          command: |
+            . venv/bin/activate
+            python ghclient.py ${HUB_TOKEN} zones -v | tee ${TEST_RESULTS}/zones-v1.json
+
+      - *persist_to_workspace
+
+  zones_diff:
+    <<: *testbed_environment
+    steps:
+      - checkout
+      - *attach_workspace
+      - *restore_cache
+
+      - run:
+          name: Diff zones
+          no_output_timeout: 60
+          command: |
+            sudo apt -y install wdiff colordiff >/dev/null 2>&1
+
+            diff -qs ${TEST_RESULTS}/zones-curl.json ${TEST_RESULTS}/zones-v3.json | tee ${TEST_RESULTS}/zones-results.txt
+            if [ $? -ne 0 ]
+            then
+                wdiff ${TEST_RESULTS}/zones-curl.json ${TEST_RESULTS}/zones-v3.json | colordiff
+            fi
+
+            diff -qs ${TEST_RESULTS}/zones-curl.json ${TEST_RESULTS}/zones-v1.json | tee ${TEST_RESULTS}/zones-results.txt
+            if [ $? -ne 0 ]
+            then
+                wdiff ${TEST_RESULTS}/zones-curl.json ${TEST_RESULTS}/zones-v1.json | colordiff
+            fi
+
+      - *store_artifacts
+
+  devices_curl:
+    <<: *testbed_environment
+    steps:
+      - checkout
+      - *attach_workspace
+      - *restore_cache
+
+      - run:
+          name: cURL v1/devices
+          no_output_timeout: 330
+          command: |
+            . venv/bin/activate
+            curl -X GET https://my.geniushub.co.uk/v1/devices -H "authorization: Bearer ${HUB_TOKEN}" --connect-timeout 300 | \
+              tee ${TEST_RESULTS}/devices-curl.json
+            cat ${TEST_RESULTS}/devices-curl.json | python -c "import sys, json; print(json.load(sys.stdin))" | \
+              tee ${TEST_RESULTS}/devices-curl.json
+
+      - *persist_to_workspace
+
+  devices_v3:
+    <<: *testbed_environment
+    steps:
+      - checkout
+      - *attach_workspace
+      - *restore_cache
+
+      - run:
+          name: ghclient v3/devices
+          no_output_timeout: 120
+          command: |
+            . venv/bin/activate
+            python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} devices -v | tee ${TEST_RESULTS}/devices-v3.json
+
+      - *persist_to_workspace
+
+  devices_v1:
+    <<: *testbed_environment
+    steps:
+      - checkout
+      - *attach_workspace
+      - *restore_cache
+
+      - run:
+          name: ghclient v1/devices
+          no_output_timeout: 330
+          command: |
+            . venv/bin/activate
+            python ghclient.py ${HUB_TOKEN} devices -v | tee ${TEST_RESULTS}/devices-v1.json
+
+      - *persist_to_workspace
+
+  devices_diff:
+    <<: *testbed_environment
+    steps:
+      - checkout
+      - *attach_workspace
+      - *restore_cache
+
+      - run:
+          name: Diff devices
+          no_output_timeout: 60
+          command: |
+            sudo apt -y install wdiff colordiff >/dev/null 2>&1
+
+            diff -qs ${TEST_RESULTS}/devices-curl.json ${TEST_RESULTS}/devices-v3.json | tee ${TEST_RESULTS}/devices-results.txt
+            if [ $? -ne 0 ]
+            then
+                wdiff ${TEST_RESULTS}/devices-curl.json ${TEST_RESULTS}/devices-v3.json | colordiff
+            fi
+
+            diff -qs ${TEST_RESULTS}/devices-curl.json ${TEST_RESULTS}/devices-v1.json | tee ${TEST_RESULTS}/devices-results.txt
+            if [ $? -ne 0 ]
+            then
+                wdiff ${TEST_RESULTS}/devices-curl.json ${TEST_RESULTS}/devices-v1.json | colordiff
+            fi
+      - *store_artifacts
 
 workflows:
   version: 2
-  master:
+  test_output:
     jobs:
-      - dependencies
-      - test_issues
-      - test_devices
-      - test_zones
+      - make_testbed
+      - issues_curl:
+          requires:
+            - make_testbed
+      - issues_v1:
+          requires:
+            - make_testbed
+      - issues_v3:
+          requires:
+            - make_testbed
+      - issues_diff:
+          requires:
+            - issues_curl
+            - issues_v1
+            - issues_v3
+
+      - zones_curl:
+          requires:
+            - make_testbed
+      - zones_v1:
+          requires:
+            - make_testbed
+      - zones_v3:
+          requires:
+            - make_testbed
+      - zones_diff:
+          requires:
+            - zones_curl
+            - zones_v1
+            - zones_v3
+
+      - devices_curl:
+          requires:
+            - make_testbed
+      - devices_v1:
+          requires:
+            - make_testbed
+      - devices_v3:
+          requires:
+            - make_testbed
+      - devices_diff:
+          requires:
+            - devices_curl
+            - devices_v1
+            - devices_v3
