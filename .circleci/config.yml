@@ -8,7 +8,7 @@ aliases:
     docker:
       - image: circleci/python:3.6.1
 
-    working_directory: ./working_directory
+    working_directory: ~/working_directory
 
     environment:
       TEST_RESULTS: ./test-results
