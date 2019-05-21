@@ -17,7 +17,7 @@ aliases:
       attach_workspace:
         at: /tmp/workspace
 
-    &persist_to_workspace
+  - &persist_to_workspace
       persist_to_workspace:
         root: /tmp/workspace
         paths:
