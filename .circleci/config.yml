@@ -20,6 +20,10 @@ aliases:
     environment:
       TEST_RESULTS: /tmp/test-results
 
+  - &attach_workspace
+      attach_workspace:
+        at: ~/data
+
   - &dependencies
       - checkout
       - *attach_workspace
@@ -43,10 +47,6 @@ aliases:
             root: .
             paths:
                 - vendor/bundle
-
-  - &attach_workspace
-      attach_workspace:
-        at: ~/data
 
 jobs:
   dependencies:
