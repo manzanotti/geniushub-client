@@ -252,7 +252,7 @@ workflows:
       - zones_app_v3:
           requires:
             - make_testbed
-      - issues_diff:
+      - zones_diff:
           requires:
             - zones_curl
             - zones_app_v3
@@ -264,7 +264,7 @@ workflows:
       - devices_app_v3:
           requires:
             - make_testbed
-      - issues_diff:
+      - devices_diff:
           requires:
             - devices_curl
             - devices_app_v3
