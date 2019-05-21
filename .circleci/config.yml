@@ -112,7 +112,7 @@ jobs:
           no_output_timeout: 330
           command: |
             . venv/bin/activate
-            python ghclient.py ${HUB_TOKEN} issues -v | tee ${TEST_RESULTS}/issues-v3.json
+            python ghclient.py ${HUB_TOKEN} issues -v | tee ${TEST_RESULTS}/issues-v1.json
 
       - *persist_to_workspace
 
@@ -182,7 +182,7 @@ jobs:
           no_output_timeout: 330
           command: |
             . venv/bin/activate
-            python ghclient.py ${HUB_TOKEN} zones -v | tee ${TEST_RESULTS}/zones-v3.json
+            python ghclient.py ${HUB_TOKEN} zones -v | tee ${TEST_RESULTS}/zones-v1.json
 
       - *persist_to_workspace
 
@@ -255,7 +255,7 @@ jobs:
           no_output_timeout: 330
           command: |
             . venv/bin/activate
-            python ghclient.py ${HUB_TOKEN} devices -v | tee ${TEST_RESULTS}/devices-v3.json
+            python ghclient.py ${HUB_TOKEN} devices -v | tee ${TEST_RESULTS}/devices-v1.json
 
       - *persist_to_workspace
 
