@@ -84,7 +84,7 @@ jobs:
 
       - *persist_to_workspace
 
-  issues_app_v3:
+    issues_v3:
     <<: *testbed_environment
     steps:
       - checkout
@@ -97,6 +97,38 @@ jobs:
           command: |
             . venv/bin/activate
             python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} issues -v | tee ${TEST_RESULTS}/issues-v3.json
+
+      - *persist_to_workspace
+
+issues_v3:
+    <<: *testbed_environment
+    steps:
+      - checkout
+      - *attach_workspace
+      - *restore_cache
+
+      - run:
+          name: ghclient v3/issues
+          no_output_timeout: 120
+          command: |
+            . venv/bin/activate
+            python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} issues -v | tee ${TEST_RESULTS}/issues-v3.json
+
+      - *persist_to_workspace
+
+  issues_v1:
+    <<: *testbed_environment
+    steps:
+      - checkout
+      - *attach_workspace
+      - *restore_cache
+
+      - run:
+          name: ghclient v1/issues
+          no_output_timeout: 120
+          command: |
+            . venv/bin/activate
+            python ghclient.py ${HUB_TOKEN} issues -v | tee ${TEST_RESULTS}/issues-v3.json
 
       - *persist_to_workspace
 
@@ -136,7 +168,7 @@ jobs:
 
       - *persist_to_workspace
 
-  zones_app_v3:
+  zones_v3:
     <<: *testbed_environment
     steps:
       - checkout
@@ -188,7 +220,7 @@ jobs:
 
       - *persist_to_workspace
 
-  devices_app_v3:
+  devices_v3:
     <<: *testbed_environment
     steps:
       - checkout
@@ -229,33 +261,36 @@ workflows:
       - issues_curl:
           requires:
             - make_testbed
-      - issues_app_v3:
+      - issues_v3:
+          requires:
+            - make_testbed
+      - issues_v1:
           requires:
             - make_testbed
       - issues_diff:
           requires:
             - issues_curl
-            - issues_app_v3
+            - issues_v3
 
       - zones_curl:
           requires:
             - make_testbed
-      - zones_app_v3:
+      - zones_v3:
           requires:
             - make_testbed
       - zones_diff:
           requires:
             - zones_curl
-            - zones_app_v3
+            - zones_v3
 
 
       - devices_curl:
           requires:
             - make_testbed
-      - devices_app_v3:
+      - devices_v3:
           requires:
             - make_testbed
       - devices_diff:
           requires:
             - devices_curl
-            - devices_app_v3
+            - devices_v3
