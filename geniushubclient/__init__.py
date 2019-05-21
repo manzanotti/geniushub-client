@@ -215,7 +215,7 @@ class GeniusObject(object):
             # = null != (s = i.zoneReactive) ? s.bTriggerOn : void 0,
             d = raw_dict['objFootprint']['objReactive']['bTriggerOn']            # noqa; pylint: disable=invalid-name
             # = parseInt(i.iActivity) || 0,
-            c = raw_dict['iActivity'] | 0                                        # noqa; pylint: disable=invalid-name
+            c = bool(raw_dict['iActivity'] | 0)                                  # noqa; pylint: disable=invalid-name
             # o = t.isInFootprintNightMode(i)
             o = raw_dict['objFootprint']['bIsNight']                             # noqa; pylint: disable=invalid-name
             # u && l && d && !o ? True : False
