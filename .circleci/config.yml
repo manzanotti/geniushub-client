@@ -100,7 +100,7 @@ jobs:
 
       - *persist_to_workspace
 
-issues_v3:
+  issues_v3:
     <<: *testbed_environment
     steps:
       - checkout
