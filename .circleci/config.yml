@@ -15,8 +15,6 @@ jobs:
       # documented at https://circleci.com/docs/2.0/circleci-images/
       # - image: circleci/postgres:9.4
 
-    parallelism: 4
-
     working_directory: ~/repo
 
     environment:
@@ -93,8 +91,6 @@ jobs:
   test_devices:
     docker:
       - image: circleci/python:3.6.1
-
-    parallelism: 4
 
     working_directory: ~/repo
 
@@ -173,8 +169,6 @@ jobs:
     docker:
       - image: circleci/python:3.6.1
 
-    parallelism: 4
-
     working_directory: ~/repo
 
     environment:
@@ -246,3 +240,11 @@ jobs:
       - store_artifacts:
           path: /tmp/test-results
           destination: devices_summary
+
+workflows:
+    version: 2
+    build:
+        jobs:
+            - test_issues
+            - test_devices
+            - test_zones
