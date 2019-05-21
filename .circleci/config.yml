@@ -4,7 +4,7 @@
 #
 version: 2
 jobs:
-  build:
+  test_zones:
     docker:
       # specify the version you desire here
       # use `-browsers` prefix for selenium tests, e.g. `3.6.1-browsers`
@@ -15,10 +15,11 @@ jobs:
       # documented at https://circleci.com/docs/2.0/circleci-images/
       # - image: circleci/postgres:9.4
 
+    parallelism: 4
+
     working_directory: ~/repo
 
     environment:
-      # TEST_RESULTS=/tmp/test-results; mkdir -p ${TEST_RESULTS}
       TEST_RESULTS: /tmp/test-results
 
     steps:
