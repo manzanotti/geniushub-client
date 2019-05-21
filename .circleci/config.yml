@@ -307,6 +307,24 @@ jobs:
       - *persist_to_workspace
       - *store_artifacts
 
+  issues_diff:
+    <<: *testbed_environment
+    steps:
+      - checkout
+      - *attach_workspace
+      - *restore_cache
+
+      - run:
+          name: Diff Issues v1 Vs v3
+          no_output_timeout: 30
+          command: |
+            echo diff -s ${TEST_RESULTS}/issues_curl.json ${TEST_RESULTS}/issues_v3.json | tee -a ${TEST_RESULTS}/test-results.txt
+                 diff -s ${TEST_RESULTS}/issues_curl.json ${TEST_RESULTS}/issues_v3.json | tee -a ${TEST_RESULTS}/test-results.txt
+            echo                                                                         | tee -a ${TEST_RESULTS}/test-results.txt
+
+      - *persist_to_workspace
+      - *store_artifacts
+
   zones_curl:
     <<: *testbed_environment
     steps:
@@ -389,16 +407,20 @@ workflows:
       - issues_curl:
           requires:
             - make_testbed
+      - issues_app_v3:
+          requires:
+            - make_testbed
+      - issues_diff:
+          requires:
+            - issues_curl
+            - issues_app_v3
+      - zones_app_v3:
+          requires:
+            - make_testbed
       - zones_curl:
           requires:
             - make_testbed
       - devices_curl:
-          requires:
-            - make_testbed
-      - issues_app_v3:
-          requires:
-            - make_testbed
-      - zones_app_v3:
           requires:
             - make_testbed
       - devices_app_v3:
