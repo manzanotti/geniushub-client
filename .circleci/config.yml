@@ -139,14 +139,12 @@ jobs:
     <<: *testbed_environment
     steps:
       - *attach_workspace
-
       - run:
           name: cURL v1/zones
           no_output_timeout: 330
           command: |
             cat ${TEST_RESULTS}/zones-curl.json | python -c "import sys, json; print(json.load(sys.stdin))" | \
               tee ${TEST_RESULTS}/zones-curl.json
-
       - *persist_to_workspace
 
   zones_v3:
@@ -184,7 +182,6 @@ jobs:
   zones_diff:
     <<: *testbed_environment
     steps:
-      - checkout
       - *attach_workspace
       - *restore_cache
 
@@ -230,14 +227,12 @@ jobs:
     <<: *testbed_environment
     steps:
       - *attach_workspace
-
       - run:
           name: cURL v1/devices
           no_output_timeout: 330
           command: |
             curl -X GET https://my.geniushub.co.uk/v1/devices -H "authorization: Bearer ${HUB_TOKEN}" --connect-timeout 300 | \
               tee ${TEST_RESULTS}/devices-curl.json
-
       - *persist_to_workspace
 
   devices_v3:
@@ -275,7 +270,6 @@ jobs:
   devices_diff:
     <<: *testbed_environment
     steps:
-      - checkout
       - *attach_workspace
       - *restore_cache
 
