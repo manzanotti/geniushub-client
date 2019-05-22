@@ -138,9 +138,7 @@ jobs:
   zones_curl:
     <<: *testbed_environment
     steps:
-      - checkout
       - *attach_workspace
-      - *restore_cache
 
       - run:
           name: cURL v1/zones
@@ -231,7 +229,6 @@ jobs:
   devices_curl:
     <<: *testbed_environment
     steps:
-      - checkout
       - *attach_workspace
 
       - run:
