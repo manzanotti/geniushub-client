@@ -146,9 +146,6 @@ jobs:
           name: cURL v1/zones
           no_output_timeout: 330
           command: |
-            . venv/bin/activate
-            curl -X GET https://my.geniushub.co.uk/v1/zones -H "authorization: Bearer ${HUB_TOKEN}" --connect-timeout 300 | \
-              tee ${TEST_RESULTS}/zones-curl.json
             cat ${TEST_RESULTS}/zones-curl.json | python -c "import sys, json; print(json.load(sys.stdin))" | \
               tee ${TEST_RESULTS}/zones-curl.json
 
@@ -194,32 +191,40 @@ jobs:
       - *restore_cache
 
       - run:
-          name: Diff zones v3
+          name: cURL zones prep
           no_output_timeout: 60
           command: |
-            diff -qs ${TEST_RESULTS}/zones-curl.json ${TEST_RESULTS}/zones-v3.json | tee ${TEST_RESULTS}/zones-results.txt
-
-      - run:
-          name: Diff zones v3
-          no_output_timeout: 60
-          when: on_fail
-          command: |
-            sudo apt -y install wdiff colordiff >/dev/null 2>&1
-            wdiff ${TEST_RESULTS}/zones-curl.json ${TEST_RESULTS}/zones-v3.json | colordiff
+            . venv/bin/activate
+            cat ${TEST_RESULTS}/zones-curl.json | python -c "import sys, json; print(json.load(sys.stdin))" | \
+              tee ${TEST_RESULTS}/zones-curl.json
 
       - run:
           name: Diff zones v1
           no_output_timeout: 60
           command: |
-            diff -qs ${TEST_RESULTS}/zones-curl.json ${TEST_RESULTS}/zones-v1.json | tee ${TEST_RESULTS}/zones-results.txt
+            diff -qs ${TEST_RESULTS}/zones-curl.json ${TEST_RESULTS}/zones-v1.json | tee -a ${TEST_RESULTS}/zones-results.txt
 
       - run:
-          name: Diff zones v1
+          name: Diff zones v1 diff
           no_output_timeout: 60
           when: on_fail
           command: |
             sudo apt -y install wdiff colordiff >/dev/null 2>&1
             wdiff ${TEST_RESULTS}/zones-curl.json ${TEST_RESULTS}/zones-v1.json | colordiff
+
+      - run:
+          name: Diff zones v3
+          no_output_timeout: 60
+          command: |
+            diff -qs ${TEST_RESULTS}/zones-curl.json ${TEST_RESULTS}/zones-v3.json | tee -a ${TEST_RESULTS}/zones-results.txt
+
+      - run:
+          name: Diff zones v3 diff
+          no_output_timeout: 60
+          when: on_fail
+          command: |
+            sudo apt -y install wdiff colordiff >/dev/null 2>&1
+            wdiff ${TEST_RESULTS}/zones-curl.json ${TEST_RESULTS}/zones-v3.json | colordiff
 
       - *store_artifacts
 
@@ -228,16 +233,12 @@ jobs:
     steps:
       - checkout
       - *attach_workspace
-      - *restore_cache
 
       - run:
           name: cURL v1/devices
           no_output_timeout: 330
           command: |
-            . venv/bin/activate
             curl -X GET https://my.geniushub.co.uk/v1/devices -H "authorization: Bearer ${HUB_TOKEN}" --connect-timeout 300 | \
-              tee ${TEST_RESULTS}/devices-curl.json
-            cat ${TEST_RESULTS}/devices-curl.json | python -c "import sys, json; print(json.load(sys.stdin))" | \
               tee ${TEST_RESULTS}/devices-curl.json
 
       - *persist_to_workspace
@@ -282,32 +283,40 @@ jobs:
       - *restore_cache
 
       - run:
-          name: Diff devices v3
+          name: cURL devices prep
           no_output_timeout: 60
           command: |
-            diff -qs ${TEST_RESULTS}/devices-curl.json ${TEST_RESULTS}/devices-v3.json | tee ${TEST_RESULTS}/devices-results.txt
-
-      - run:
-          name: Diff devices v3
-          no_output_timeout: 60
-          when: on_fail
-          command: |
-            sudo apt -y install wdiff colordiff >/dev/null 2>&1
-            wdiff ${TEST_RESULTS}/devices-curl.json ${TEST_RESULTS}/devices-v3.json | colordiff
+            . venv/bin/activate
+            cat ${TEST_RESULTS}/devices-curl.json | python -c "import sys, json; print(json.load(sys.stdin))" | \
+              tee ${TEST_RESULTS}/devices-curl.json
 
       - run:
           name: Diff devices v1
           no_output_timeout: 60
           command: |
-            diff -qs ${TEST_RESULTS}/devices-curl.json ${TEST_RESULTS}/devices-v1.json | tee ${TEST_RESULTS}/devices-results.txt
+            diff -qs ${TEST_RESULTS}/devices-curl.json ${TEST_RESULTS}/devices-v1.json | tee -a ${TEST_RESULTS}/devices-results.txt
 
       - run:
-          name: Diff devices v1
+          name: Diff devices v1 diff
           no_output_timeout: 60
           when: on_fail
           command: |
             sudo apt -y install wdiff colordiff >/dev/null 2>&1
             wdiff ${TEST_RESULTS}/devices-curl.json ${TEST_RESULTS}/devices-v1.json | colordiff
+
+      - run:
+          name: Diff devices v3
+          no_output_timeout: 60
+          command: |
+            diff -qs ${TEST_RESULTS}/devices-curl.json ${TEST_RESULTS}/devices-v3.json | tee -a ${TEST_RESULTS}/devices-results.txt
+
+      - run:
+          name: Diff devices v3 diff
+          no_output_timeout: 60
+          when: on_fail
+          command: |
+            sudo apt -y install wdiff colordiff >/dev/null 2>&1
+            wdiff ${TEST_RESULTS}/devices-curl.json ${TEST_RESULTS}/devices-v3.json | colordiff
 
       - *store_artifacts
 
