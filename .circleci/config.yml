@@ -120,7 +120,7 @@ commands:
       - *persist_to_workspace
 
   diff_files_prep:
-    description: "compare outputs"
+    description: "compare outputs (prepare)"
     parameters:
       test_type:
         type: string
@@ -141,35 +141,33 @@ commands:
             cat ${TEST_RESULTS}/<< parameters.test_type >>/curl.json | python -c "import sys, json; print(json.load(sys.stdin))" | \
               tee ${TEST_RESULTS}/<< parameters.test_type >>/curl.json
 
+
+  diff_files:
+    description: "compare outputs"
+    parameters:
+      test_type:
+        type: string
+        default: "issues"
+      api_ver:
+        type: string
+        default: "issues"
+    steps:
+      - *attach_workspace
+
       - run:
-          name: diff v1 files
+          name: diff files
           no_output_timeout: 60
           command: |
-            diff -qs ${TEST_RESULTS}/<< parameters.test_type >>/curl.json ${TEST_RESULTS}/<< parameters.test_type >>/v1.json | \
+            diff -qs ${TEST_RESULTS}/<< parameters.test_type >>/curl.json ${TEST_RESULTS}/<< parameters.test_type >>/<< parameters.api_ver >>.json | \
               tee -a ${TEST_RESULTS}/<< parameters.test_type >>/results.txt
 
       - run:
-          name: display v1 differences
+          name: display differences
           no_output_timeout: 60
           when: on_fail
           command: |
             sudo apt -y install wdiff colordiff >/dev/null 2>&1
-            wdiff ${TEST_RESULTS}/<< parameters.test_type >>/curl.json ${TEST_RESULTS}/<< parameters.test_type >>/v1.json | colordiff
-
-      - run:
-          name: diff v3 files
-          no_output_timeout: 60
-          command: |
-            diff -qs ${TEST_RESULTS}/<< parameters.test_type >>/curl.json ${TEST_RESULTS}/<< parameters.test_type >>/v3.json | \
-              tee -a ${TEST_RESULTS}/<< parameters.test_type >>/results.txt
-
-      - run:
-          name: display v1 differences
-          no_output_timeout: 60
-          when: on_fail
-          command: |
-            sudo apt -y install wdiff colordiff >/dev/null 2>&1
-            wdiff ${TEST_RESULTS}/<< parameters.test_type >>/curl.json ${TEST_RESULTS}/<< parameters.test_type >>/v3.json | colordiff
+            wdiff ${TEST_RESULTS}/<< parameters.test_type >>/curl.json ${TEST_RESULTS}/<< parameters.test_type >>/<< parameters.api_ver >>.json | colordiff
 
       - *store_artifacts
 
@@ -202,6 +200,20 @@ jobs:
     steps:
       - diff_files_prep:
           test_type: "issues"
+
+  issues_diff_v1:
+    <<: *testbed_environment
+    steps:
+      - diff_files:
+          test_type: "issues"
+          api_ver: "v1"
+
+  issues_diff_v3:
+    <<: *testbed_environment
+    steps:
+      - diff_files:
+          test_type: "issues"
+          api_ver: "v3"
 
   zones_curl:
     <<: *testbed_environment
@@ -272,41 +284,47 @@ workflows:
             - issues_curl
             - issues_v1
             - issues_v3
+      - issues_diff_v1:
+          requires:
+            - issues_diff_prep
+      - issues_diff_v3:
+          requires:
+            - issues_diff_prep
 
-  test_zones:
-    jobs:
-      - make_testbed
+  # test_zones:
+  #   jobs:
+  #     - make_testbed
 
-      - zones_curl:
-          requires:
-            - make_testbed
-      - zones_v1:
-          requires:
-            - make_testbed
-      - zones_v3:
-          requires:
-            - make_testbed
-      - zones_diff_prep:
-          requires:
-            - zones_curl
-            - zones_v1
-            - zones_v3
+  #     - zones_curl:
+  #         requires:
+  #           - make_testbed
+  #     - zones_v1:
+  #         requires:
+  #           - make_testbed
+  #     - zones_v3:
+  #         requires:
+  #           - make_testbed
+  #     - zones_diff_prep:
+  #         requires:
+  #           - zones_curl
+  #           - zones_v1
+  #           - zones_v3
 
-  test_devices:
-    jobs:
-      - make_testbed
+  # test_devices:
+  #   jobs:
+  #     - make_testbed
 
-      - devices_curl:
-          requires:
-            - make_testbed
-      - devices_v1:
-          requires:
-            - make_testbed
-      - devices_v3:
-          requires:
-            - make_testbed
-      - devices_diff_prep:
-          requires:
-            - devices_curl
-            - devices_v1
-            - devices_v3
+  #     - devices_curl:
+  #         requires:
+  #           - make_testbed
+  #     - devices_v1:
+  #         requires:
+  #           - make_testbed
+  #     - devices_v3:
+  #         requires:
+  #           - make_testbed
+  #     - devices_diff_prep:
+  #         requires:
+  #           - devices_curl
+  #           - devices_v1
+  #           - devices_v3
