@@ -368,7 +368,7 @@ workflows:
             - make_testbed
       - issues_diff:
           requires:
-            - issues_curl
+            - get_curl
             - issues_v1
             - issues_v3
 
