@@ -74,7 +74,7 @@ commands:
     steps:
       - *attach_workspace
       - run:
-          name: cURL v1/issues
+          name: get v1 response via cURL
           no_output_timeout: 330
           command: |
             curl -X GET https://my.geniushub.co.uk/v1/<< parameters.test_type >> -H "authorization: Bearer ${HUB_TOKEN}" --connect-timeout 300 | \
@@ -92,7 +92,7 @@ commands:
       - *attach_workspace
       - *restore_cache
       - run:
-          name: ghclient v1/issues
+          name: get v1 response via app
           no_output_timeout: 330
           command: |
             . venv/bin/activate
@@ -111,7 +111,7 @@ commands:
       - *attach_workspace
       - *restore_cache
       - run:
-          name: ghclient v3/issues
+          name: get v3 response via app
           no_output_timeout: 120
           command: |
             . venv/bin/activate
@@ -119,19 +119,22 @@ commands:
               tee ${TEST_RESULTS}/<< parameters.test_type >>/v3.json
       - *persist_to_workspace
 
-  diff_files:
+  diff_files_prep:
     description: "compare outputs"
     parameters:
       test_type:
         type: string
         default: "issues"
+      # api_ver:
+      #   type: string
+      #   default: "issues"
     steps:
       - checkout
       - *attach_workspace
       - *restore_cache
 
       - run:
-          name: cURL issues prep
+          name: prepare cURL response
           no_output_timeout: 60
           command: |
             . venv/bin/activate
@@ -139,14 +142,14 @@ commands:
               tee ${TEST_RESULTS}/<< parameters.test_type >>/curl.json
 
       - run:
-          name: Diff v1/issues
+          name: diff v1 files
           no_output_timeout: 60
           command: |
             diff -qs ${TEST_RESULTS}/<< parameters.test_type >>/curl.json ${TEST_RESULTS}/<< parameters.test_type >>/v1.json | \
               tee -a ${TEST_RESULTS}/<< parameters.test_type >>/results.txt
 
       - run:
-          name: Diff v1/issues display
+          name: display v1 differences
           no_output_timeout: 60
           when: on_fail
           command: |
@@ -154,14 +157,14 @@ commands:
             wdiff ${TEST_RESULTS}/<< parameters.test_type >>/curl.json ${TEST_RESULTS}/<< parameters.test_type >>/v1.json | colordiff
 
       - run:
-          name: Diff v3/issues
+          name: diff v3 files
           no_output_timeout: 60
           command: |
             diff -qs ${TEST_RESULTS}/<< parameters.test_type >>/curl.json ${TEST_RESULTS}/<< parameters.test_type >>/v3.json | \
               tee -a ${TEST_RESULTS}/<< parameters.test_type >>/results.txt
 
       - run:
-          name: Diff v3/issues display
+          name: display v1 differences
           no_output_timeout: 60
           when: on_fail
           command: |
@@ -194,10 +197,10 @@ jobs:
       - get_v3_app:
           test_type: "issues"
 
-  issues_diff:
+  issues_diff_prep:
     <<: *testbed_environment
     steps:
-      - diff_files:
+      - diff_files_prep:
           test_type: "issues"
 
   zones_curl:
@@ -218,10 +221,10 @@ jobs:
       - get_v3_app:
           test_type: "zones"
 
-  zones_diff:
+  zones_diff_prep:
     <<: *testbed_environment
     steps:
-      - diff_files:
+      - diff_files_prep:
           test_type: "zones"
 
   devices_curl:
@@ -242,10 +245,10 @@ jobs:
       - get_v3_app:
           test_type: "devices"
 
-  devices_diff:
+  devices_diff_prep:
     <<: *testbed_environment
     steps:
-      - diff_files:
+      - diff_files_prep:
           test_type: "devices"
 
 
@@ -264,7 +267,7 @@ workflows:
       - issues_v3:
           requires:
             - make_testbed
-      - issues_diff:
+      - issues_diff_prep:
           requires:
             - issues_curl
             - issues_v1
@@ -283,7 +286,7 @@ workflows:
       - zones_v3:
           requires:
             - make_testbed
-      - zones_diff:
+      - zones_diff_prep:
           requires:
             - zones_curl
             - zones_v1
@@ -302,7 +305,7 @@ workflows:
       - devices_v3:
           requires:
             - make_testbed
-      - devices_diff:
+      - devices_diff_prep:
           requires:
             - devices_curl
             - devices_v1
