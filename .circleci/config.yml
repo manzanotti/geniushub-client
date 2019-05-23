@@ -119,15 +119,15 @@ commands:
               tee ${TEST_RESULTS}/<< parameters.test_type >>/v3.json
       - *persist_to_workspace
 
-  diff_files_prep:
-    description: "compare outputs (prepare)"
+  diff_files:
+    description: "compare outputs"
     parameters:
       test_type:
         type: string
         default: "issues"
-      # api_ver:
-      #   type: string
-      #   default: "issues"
+      api_ver:
+        type: string
+        default: "issues"
     steps:
       - checkout
       - *attach_workspace
@@ -140,19 +140,6 @@ commands:
             . venv/bin/activate
             cat ${TEST_RESULTS}/<< parameters.test_type >>/curl.json | python -c "import sys, json; print(json.load(sys.stdin))" | \
               tee ${TEST_RESULTS}/<< parameters.test_type >>/curl.json
-
-
-  diff_files:
-    description: "compare outputs"
-    parameters:
-      test_type:
-        type: string
-        default: "issues"
-      api_ver:
-        type: string
-        default: "issues"
-    steps:
-      - *attach_workspace
 
       - run:
           name: diff files
@@ -193,12 +180,6 @@ jobs:
     <<: *testbed_environment
     steps:
       - get_v3_app:
-          test_type: "issues"
-
-  issues_diff_prep:
-    <<: *testbed_environment
-    steps:
-      - diff_files_prep:
           test_type: "issues"
 
   issues_diff_v1:
@@ -279,17 +260,16 @@ workflows:
       - issues_v3:
           requires:
             - make_testbed
-      - issues_diff_prep:
+      - issues_diff_v1:
           requires:
             - issues_curl
             - issues_v1
             - issues_v3
-      - issues_diff_v1:
-          requires:
-            - issues_diff_prep
       - issues_diff_v3:
           requires:
-            - issues_diff_prep
+            - issues_curl
+            - issues_v1
+            - issues_v3
 
   # test_zones:
   #   jobs:
