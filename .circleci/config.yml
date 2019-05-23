@@ -68,7 +68,8 @@ commands:
     description: "get via curl using v1 api"
     parameters:
       test_type:
-          type: string
+        type: string
+        default: "issues"
     steps:
       - *attach_workspace
       - run:
@@ -359,7 +360,6 @@ workflows:
       - make_testbed
 
       - get_curl:
-          test_type: "issues"
           requires:
             - make_testbed
       - get_v1:
