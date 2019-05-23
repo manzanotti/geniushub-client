@@ -193,46 +193,20 @@ jobs:
   zones_curl:
     <<: *testbed_environment
     steps:
-      - *attach_workspace
-      - run:
-          name: cURL v1/zones
-          no_output_timeout: 330
-          command: |
-            curl -X GET https://my.geniushub.co.uk/v1/zones -H "authorization: Bearer ${HUB_TOKEN}" --connect-timeout 300 | \
-              tee ${TEST_RESULTS}/zones/curl.json
-      - *persist_to_workspace
+      - get_v1_curl:
+          test_type: "zones"
 
   zones_v1:
     <<: *testbed_environment
     steps:
-      - checkout
-      - *attach_workspace
-      - *restore_cache
-
-      - run:
-          name: ghclient v1/zones
-          no_output_timeout: 330
-          command: |
-            . venv/bin/activate
-            python ghclient.py ${HUB_TOKEN} zones -v | tee ${TEST_RESULTS}/zones/v1.json
-
-      - *persist_to_workspace
+      - get_v1_app:
+          test_type: "zones"
 
   zones_v3:
     <<: *testbed_environment
     steps:
-      - checkout
-      - *attach_workspace
-      - *restore_cache
-
-      - run:
-          name: ghclient v3/zones
-          no_output_timeout: 120
-          command: |
-            . venv/bin/activate
-            python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} zones -v | tee ${TEST_RESULTS}/zones/v3.json
-
-      - *persist_to_workspace
+      - get_v3_app:
+          test_type: "zones"
 
   zones_diff:
     <<: *testbed_environment
@@ -282,46 +256,20 @@ jobs:
   devices_curl:
     <<: *testbed_environment
     steps:
-      - *attach_workspace
-      - run:
-          name: cURL v1/devices
-          no_output_timeout: 330
-          command: |
-            curl -X GET https://my.geniushub.co.uk/v1/devices -H "authorization: Bearer ${HUB_TOKEN}" --connect-timeout 300 | \
-              tee ${TEST_RESULTS}/devices/curl.json
-      - *persist_to_workspace
+      - get_v1_curl:
+          test_type: "devices"
 
   devices_v1:
     <<: *testbed_environment
     steps:
-      - checkout
-      - *attach_workspace
-      - *restore_cache
-
-      - run:
-          name: ghclient v1/devices
-          no_output_timeout: 330
-          command: |
-            . venv/bin/activate
-            python ghclient.py ${HUB_TOKEN} devices -v | tee ${TEST_RESULTS}/devices/v1.json
-
-      - *persist_to_workspace
+      - get_v1_app:
+          test_type: "devices"
 
   devices_v3:
     <<: *testbed_environment
     steps:
-      - checkout
-      - *attach_workspace
-      - *restore_cache
-
-      - run:
-          name: ghclient v3/devices
-          no_output_timeout: 120
-          command: |
-            . venv/bin/activate
-            python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} devices -v | tee ${TEST_RESULTS}/devices/v3.json
-
-      - *persist_to_workspace
+      - get_v3_app:
+          test_type: "devices"
 
   devices_diff:
     <<: *testbed_environment
