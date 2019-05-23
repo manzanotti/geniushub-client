@@ -100,7 +100,7 @@ jobs:
               tee ${TEST_RESULTS}/<< parameters.test_type >>/v3.json
       - *persist_to_workspace
 
-  issues_v1:
+  get_v1:
     <<: *testbed_environment
     parameters:
       test_type:
