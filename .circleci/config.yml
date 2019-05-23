@@ -131,16 +131,16 @@ jobs:
       - get_v1_curl:
           test_type: "issues"
 
-  get_v1_app:
+  issues_v1:
     <<: *testbed_environment
     steps:
-      - get_curl_command:
+      - get_v1_app:
           test_type: "issues"
 
-  get_v3_app:
+  issues_v3:
     <<: *testbed_environment
     steps:
-      - get_curl_command:
+      - get_v3_app:
           test_type: "issues"
 
   issues_diff:
