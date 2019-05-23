@@ -270,6 +270,10 @@ workflows:
             - issues_v1
             - issues_v3
 
+  test_output_zones:
+    jobs:
+      - make_testbed
+
       - zones_curl:
           requires:
             - make_testbed
@@ -284,6 +288,10 @@ workflows:
             - zones_curl
             - zones_v1
             - zones_v3
+
+  test_output_devices:
+    jobs:
+      - make_testbed
 
       - devices_curl:
           requires:
