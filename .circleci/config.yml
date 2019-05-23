@@ -67,6 +67,22 @@ jobs:
     <<: *testbed_environment
     steps: *create_testbed
 
+  get_curl:
+    <<: *testbed_environment
+    parameters:
+      test_type:
+          type: string
+          default: "issues"
+    steps:
+      - *attach_workspace
+      - run:
+          name: cURL v1/issues
+          no_output_timeout: 330
+          command: |
+            curl -X GET https://my.geniushub.co.uk/v1/<< parameters.test_type >> -H "authorization: Bearer ${HUB_TOKEN}" --connect-timeout 300 | \
+              tee ${TEST_RESULTS}/<< parameters.test_type >>/curl.json
+      - *persist_to_workspace
+
   issues_curl:
     <<: *testbed_environment
     steps:
@@ -335,12 +351,13 @@ jobs:
       - *store_artifacts
 
 workflows:
-  version: 2
+  version: 2.1
   test_output:
     jobs:
       - make_testbed
 
-      - issues_curl:
+      - get_curl:
+          test_type: "issues"
           requires:
             - make_testbed
       - issues_v1:
