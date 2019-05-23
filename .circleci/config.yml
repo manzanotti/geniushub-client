@@ -66,16 +66,16 @@ commands:
   get_curl:
     parameters:
       test_type:
-        type: string
+      type: string
 
     steps:
       - *attach_workspace
       - run:
-          name: cURL v1/<< parameters.test_type >>
-          no_output_timeout: 330
-          command: |
-            curl -X GET https://my.geniushub.co.uk/v1/<< parameters.test_type >> -H "authorization: Bearer ${HUB_TOKEN}" --connect-timeout 300 | \
-              tee ${TEST_RESULTS}/<< parameters.test_type >>/curl.json
+        name: cURL v1/<< parameters.test_type >>
+        no_output_timeout: 330
+        command: |
+          curl -X GET https://my.geniushub.co.uk/v1/<< parameters.test_type >> -H "authorization: Bearer ${HUB_TOKEN}" --connect-timeout 300 | \
+            tee ${TEST_RESULTS}/<< parameters.test_type >>/curl.json
       - *persist_to_workspace
 
 jobs:
