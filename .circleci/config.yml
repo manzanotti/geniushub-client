@@ -112,6 +112,7 @@ jobs:
   issues_diff:
     <<: *testbed_environment
     steps:
+      - checkout
       - *attach_workspace
       - *restore_cache
 
@@ -200,6 +201,7 @@ jobs:
   zones_diff:
     <<: *testbed_environment
     steps:
+      - checkout
       - *attach_workspace
       - *restore_cache
 
@@ -288,6 +290,7 @@ jobs:
   devices_diff:
     <<: *testbed_environment
     steps:
+      - checkout
       - *attach_workspace
       - *restore_cache
 
