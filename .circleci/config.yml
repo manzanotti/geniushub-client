@@ -355,14 +355,13 @@ workflows:
 
       - zones_curl:
           requires:
-            - make_testbed
             - issues_diff
       - zones_v1:
           requires:
-            - make_testbed
+            - issues_diff
       - zones_v3:
           requires:
-            - make_testbed
+            - issues_diff
       - zones_diff:
           requires:
             - zones_curl
@@ -371,14 +370,13 @@ workflows:
 
       - devices_curl:
           requires:
-            - make_testbed
             - zones_diff
       - devices_v1:
           requires:
-            - make_testbed
+            - zones_diff
       - devices_v3:
           requires:
-            - make_testbed
+            - zones_diff
       - devices_diff:
           requires:
             - devices_curl
