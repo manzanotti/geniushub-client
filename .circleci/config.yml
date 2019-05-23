@@ -62,22 +62,124 @@ aliases:
 
       - *persist_to_workspace
 
-jobs:
+commands:
   make_testbed:
     <<: *testbed_environment
     steps: *create_testbed
 
-  issues_curl:
+  get_curl:
     <<: *testbed_environment
+    parameters:
+      test_type:
+        type: string
+
     steps:
       - *attach_workspace
       - run:
-          name: cURL v1/issues
+          name: cURL v1/<< parameters.test_type >>
           no_output_timeout: 330
           command: |
-            curl -X GET https://my.geniushub.co.uk/v1/issues -H "authorization: Bearer ${HUB_TOKEN}" --connect-timeout 300 | \
-              tee ${TEST_RESULTS}/issues/curl.json
+            curl -X GET https://my.geniushub.co.uk/v1/<< parameters.test_type >> -H "authorization: Bearer ${HUB_TOKEN}" --connect-timeout 300 | \
+              tee ${TEST_RESULTS}/<< parameters.test_type >>/curl.json
       - *persist_to_workspace
+
+  get_v3:
+    <<: *testbed_environment
+    parameters:
+      test_type:
+        type: string
+
+    steps:
+      - checkout
+      - *attach_workspace
+      - *restore_cache
+
+      - run:
+          name: ghclient v3/<< parameters.test_type >>
+          no_output_timeout: 120
+          command: |
+            . venv/bin/activate
+            python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} << parameters.test_type >> -v | tee ${TEST_RESULTS}/issues/v3.json
+
+      - *persist_to_workspace
+
+  get_v1:
+    <<: *testbed_environment
+    parameters:
+      test_type:
+        type: string
+
+    steps:
+      - checkout
+      - *attach_workspace
+      - *restore_cache
+
+      - run:
+          name: ghclient v1/<< parameters.test_type >>
+          no_output_timeout: 330
+          command: |
+            . venv/bin/activate
+            python ghclient.py ${HUB_TOKEN} << parameters.test_type >> -v | tee ${TEST_RESULTS}/issues/v1.json
+
+      - *persist_to_workspace
+
+  diff_files:
+    <<: *testbed_environment
+    parameters:
+      test_type:
+        type: string
+
+    steps:
+      - checkout
+      - *attach_workspace
+      - *restore_cache
+
+      - run:
+          name: cURL << parameters.test_type >> prep
+          no_output_timeout: 60
+          command: |
+            . venv/bin/activate
+            cat ${TEST_RESULTS}/<< parameters.test_type >>/curl.json | python -c "import sys, json; print(json.load(sys.stdin))" | \
+              tee ${TEST_RESULTS}/<< parameters.test_type >>/curl.json
+
+      - run:
+          name: Diff v1/<< parameters.test_type >>
+          no_output_timeout: 60
+          command: |
+            diff -qs ${TEST_RESULTS}/<< parameters.test_type >>/curl.json ${TEST_RESULTS}/<< parameters.test_type >>/v1.json | \
+              tee -a ${TEST_RESULTS}/<< parameters.test_type >>/results.txt
+
+      - run:
+          name: Diff v1/issues display
+          no_output_timeout: 60
+          when: on_fail
+          command: |
+            sudo apt -y install wdiff colordiff >/dev/null 2>&1
+            wdiff ${TEST_RESULTS}/<< parameters.test_type >>/curl.json ${TEST_RESULTS}/<< parameters.test_type >>/v1.json | colordiff
+
+      - run:
+          name: Diff v3/issues
+          no_output_timeout: 60
+          command: |
+            diff -qs ${TEST_RESULTS}/<< parameters.test_type >>/curl.json ${TEST_RESULTS}/<< parameters.test_type >>/v3.json |
+              tee -a ${TEST_RESULTS}/<< parameters.test_type >>/results.txt
+
+      - run:
+          name: Diff v3/issues display
+          no_output_timeout: 60
+          when: on_fail
+          command: |
+            sudo apt -y install wdiff colordiff >/dev/null 2>&1
+            wdiff ${TEST_RESULTS}/<< parameters.test_type >>/curl.json ${TEST_RESULTS}/<< parameters.test_type >>/v3.json | colordiff
+
+      - *store_artifacts
+
+jobs:
+  issues_curl:
+    <<: *testbed_environment
+    steps:
+      - get_curl
+        test_type: issues
 
   issues_v3:
     <<: *testbed_environment
