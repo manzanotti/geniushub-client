@@ -92,25 +92,7 @@ jobs:
       - get_curl_command:
           test_type: "issue"
 
-  get_v3:
-    <<: *testbed_environment
-    parameters:
-      test_type:
-          type: string
-    steps:
-      - checkout
-      - *attach_workspace
-      - *restore_cache
-      - run:
-          name: ghclient v3/issues
-          no_output_timeout: 120
-          command: |
-            . venv/bin/activate
-            python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} << parameters.test_type >> -v | \
-              tee ${TEST_RESULTS}/<< parameters.test_type >>/v3.json
-      - *persist_to_workspace
-
-  get_v1:
+  issues_v1:
     <<: *testbed_environment
     parameters:
       test_type:
@@ -126,6 +108,24 @@ jobs:
             . venv/bin/activate
             python ghclient.py ${HUB_TOKEN} << parameters.test_type >> -v | \
               tee ${TEST_RESULTS}/<< parameters.test_type >>/v1.json
+      - *persist_to_workspace
+
+  issues_v3:
+    <<: *testbed_environment
+    parameters:
+      test_type:
+          type: string
+    steps:
+      - checkout
+      - *attach_workspace
+      - *restore_cache
+      - run:
+          name: ghclient v3/issues
+          no_output_timeout: 120
+          command: |
+            . venv/bin/activate
+            python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} << parameters.test_type >> -v | \
+              tee ${TEST_RESULTS}/<< parameters.test_type >>/v3.json
       - *persist_to_workspace
 
   issues_diff:
@@ -187,22 +187,6 @@ jobs:
               tee ${TEST_RESULTS}/zones/curl.json
       - *persist_to_workspace
 
-  zones_v3:
-    <<: *testbed_environment
-    steps:
-      - checkout
-      - *attach_workspace
-      - *restore_cache
-
-      - run:
-          name: ghclient v3/zones
-          no_output_timeout: 120
-          command: |
-            . venv/bin/activate
-            python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} zones -v | tee ${TEST_RESULTS}/zones/v3.json
-
-      - *persist_to_workspace
-
   zones_v1:
     <<: *testbed_environment
     steps:
@@ -216,6 +200,22 @@ jobs:
           command: |
             . venv/bin/activate
             python ghclient.py ${HUB_TOKEN} zones -v | tee ${TEST_RESULTS}/zones/v1.json
+
+      - *persist_to_workspace
+
+  zones_v3:
+    <<: *testbed_environment
+    steps:
+      - checkout
+      - *attach_workspace
+      - *restore_cache
+
+      - run:
+          name: ghclient v3/zones
+          no_output_timeout: 120
+          command: |
+            . venv/bin/activate
+            python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} zones -v | tee ${TEST_RESULTS}/zones/v3.json
 
       - *persist_to_workspace
 
@@ -276,22 +276,6 @@ jobs:
               tee ${TEST_RESULTS}/devices/curl.json
       - *persist_to_workspace
 
-  devices_v3:
-    <<: *testbed_environment
-    steps:
-      - checkout
-      - *attach_workspace
-      - *restore_cache
-
-      - run:
-          name: ghclient v3/devices
-          no_output_timeout: 120
-          command: |
-            . venv/bin/activate
-            python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} devices -v | tee ${TEST_RESULTS}/devices/v3.json
-
-      - *persist_to_workspace
-
   devices_v1:
     <<: *testbed_environment
     steps:
@@ -305,6 +289,22 @@ jobs:
           command: |
             . venv/bin/activate
             python ghclient.py ${HUB_TOKEN} devices -v | tee ${TEST_RESULTS}/devices/v1.json
+
+      - *persist_to_workspace
+
+  devices_v3:
+    <<: *testbed_environment
+    steps:
+      - checkout
+      - *attach_workspace
+      - *restore_cache
+
+      - run:
+          name: ghclient v3/devices
+          no_output_timeout: 120
+          command: |
+            . venv/bin/activate
+            python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} devices -v | tee ${TEST_RESULTS}/devices/v3.json
 
       - *persist_to_workspace
 
