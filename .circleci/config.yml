@@ -372,7 +372,7 @@ workflows:
       - devices_curl:
           requires:
             - make_testbed
-            -zones_diff
+            - zones_diff
       - devices_v1:
           requires:
             - make_testbed
