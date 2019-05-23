@@ -128,7 +128,7 @@ jobs:
   issues_curl:
     <<: *testbed_environment
     steps:
-      - get_curl_command:
+      - get_v1_curl:
           test_type: "issues"
 
   get_v1_app:
