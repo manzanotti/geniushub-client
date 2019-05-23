@@ -65,7 +65,7 @@ aliases:
 
 commands:
   get_curl_command:
-    description: "get via curl using v1 api"
+    description: "get v1 response via cURL"
     parameters:
       test_type:
         type: string
@@ -362,20 +362,20 @@ workflows:
       - issues_curl:
           requires:
             - make_testbed
-      - get_v1:
+      - issues_v1:
           test_type: "issues"
           requires:
             - make_testbed
-      - get_v3:
+      - issues_v3:
           test_type: "issues"
           requires:
             - make_testbed
       - issues_diff:
           test_type: "issues"
           requires:
-            - get_curl
-            - get_v1
-            - get_v3
+            - issues_curl
+            - issues_v1
+            - issues_v3
 
       - zones_curl:
           requires:
