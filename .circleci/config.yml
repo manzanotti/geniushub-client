@@ -251,7 +251,7 @@ jobs:
 
 workflows:
   version: 2.1
-  test_output:
+  test_issues:
     jobs:
       - make_testbed
 
@@ -270,7 +270,7 @@ workflows:
             - issues_v1
             - issues_v3
 
-  test_output_zones:
+  test_zones:
     jobs:
       - make_testbed
 
@@ -289,7 +289,7 @@ workflows:
             - zones_v1
             - zones_v3
 
-  test_output_devices:
+  test_devices:
     jobs:
       - make_testbed
 
