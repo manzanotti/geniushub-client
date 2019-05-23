@@ -119,32 +119,12 @@ commands:
               tee ${TEST_RESULTS}/<< parameters.test_type >>/v3.json
       - *persist_to_workspace
 
-
-jobs:
-  make_testbed:
-    <<: *testbed_environment
-    steps: *create_testbed
-
-  issues_curl:
-    <<: *testbed_environment
-    steps:
-      - get_v1_curl:
-          test_type: "issues"
-
-  issues_v1:
-    <<: *testbed_environment
-    steps:
-      - get_v1_app:
-          test_type: "issues"
-
-  issues_v3:
-    <<: *testbed_environment
-    steps:
-      - get_v3_app:
-          test_type: "issues"
-
-  issues_diff:
-    <<: *testbed_environment
+  diff_files:
+    description: "compare outputs"
+    parameters:
+      test_type:
+        type: string
+        default: "issues"
     steps:
       - checkout
       - *attach_workspace
@@ -189,6 +169,37 @@ jobs:
             wdiff ${TEST_RESULTS}/<< parameters.test_type >>/curl.json ${TEST_RESULTS}/<< parameters.test_type >>/v3.json | colordiff
 
       - *store_artifacts
+
+
+
+jobs:
+  make_testbed:
+    <<: *testbed_environment
+    steps: *create_testbed
+
+  issues_curl:
+    <<: *testbed_environment
+    steps:
+      - get_v1_curl:
+          test_type: "issues"
+
+  issues_v1:
+    <<: *testbed_environment
+    steps:
+      - get_v1_app:
+          test_type: "issues"
+
+  issues_v3:
+    <<: *testbed_environment
+    steps:
+      - get_v3_app:
+          test_type: "issues"
+
+  issues_diff:
+    <<: *testbed_environment
+    steps:
+      - diff_files:
+          test_type: "issues"
 
   zones_curl:
     <<: *testbed_environment
@@ -332,11 +343,11 @@ workflows:
       - issues_v3:
           requires:
             - make_testbed
-      # - issues_diff:
-      #     requires:
-      #       - issues_curl
-      #       - issues_v1
-      #       - issues_v3
+      - issues_diff:
+          requires:
+            - issues_curl
+            - issues_v1
+            - issues_v3
 
       - zones_curl:
           requires:
