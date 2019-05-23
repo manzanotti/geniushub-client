@@ -65,7 +65,7 @@ aliases:
 
 
 commands:
-  get_curl_command:
+  get_v1_curl:
     description: "get v1 response via cURL"
     parameters:
       test_type:
@@ -81,23 +81,12 @@ commands:
               tee ${TEST_RESULTS}/<< parameters.test_type >>/curl.json
       - *persist_to_workspace
 
-
-jobs:
-  make_testbed:
-    <<: *testbed_environment
-    steps: *create_testbed
-
-  issues_curl:
-    <<: *testbed_environment
-    steps:
-      - get_curl_command:
-          test_type: "issue"
-
-  issues_v1:
-    <<: *testbed_environment
+  get_v1_app:
+    description: "get v1 response via app"
     parameters:
       test_type:
-          type: string
+        type: string
+        default: "issues"
     steps:
       - checkout
       - *attach_workspace
@@ -111,11 +100,12 @@ jobs:
               tee ${TEST_RESULTS}/<< parameters.test_type >>/v1.json
       - *persist_to_workspace
 
-  issues_v3:
-    <<: *testbed_environment
+  get_v3_app:
+    description: "get v3 response via app"
     parameters:
       test_type:
-          type: string
+        type: string
+        default: "issues"
     steps:
       - checkout
       - *attach_workspace
@@ -128,6 +118,30 @@ jobs:
             python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} << parameters.test_type >> -v | \
               tee ${TEST_RESULTS}/<< parameters.test_type >>/v3.json
       - *persist_to_workspace
+
+
+jobs:
+  make_testbed:
+    <<: *testbed_environment
+    steps: *create_testbed
+
+  issues_curl:
+    <<: *testbed_environment
+    steps:
+      - get_curl_command:
+          test_type: "issues"
+
+  get_v1_app:
+    <<: *testbed_environment
+    steps:
+      - get_curl_command:
+          test_type: "issues"
+
+  get_v3_app:
+    <<: *testbed_environment
+    steps:
+      - get_curl_command:
+          test_type: "issues"
 
   issues_diff:
     <<: *testbed_environment
