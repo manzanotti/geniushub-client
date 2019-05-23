@@ -64,7 +64,6 @@ aliases:
 
 commands:
   get_curl:
-    <<: *testbed_environment
     parameters:
       test_type:
         type: string
@@ -88,7 +87,7 @@ jobs:
     <<: *testbed_environment
     steps:
       - get_curl
-          test_type: issues
+          test_type: "issues"
 
   issues_v3:
     <<: *testbed_environment
