@@ -156,17 +156,6 @@ jobs:
 
       - *store_artifacts
 
-  zones_prep:
-    <<: *testbed_environment
-    steps:
-      - *attach_workspace
-      - run:
-          name: Prep zones
-          no_output_timeout: 30
-          command: |
-            rm -rf ${TEST_RESULTS}/issues
-      - *persist_to_workspace
-
   zones_curl:
     <<: *testbed_environment
     steps:
@@ -366,18 +355,15 @@ workflows:
             - issues_v1
             - issues_v3
 
-      - zones_prep:
-          requires:
-            - issues_diff
       - zones_curl:
           requires:
-            - zones_prep
+            - issues_diff
       - zones_v1:
           requires:
-            - zones_prep
+            - issues_diff
       - zones_v3:
           requires:
-            - zones_prep
+            - issues_diff
       - zones_diff:
           requires:
             - zones_curl
