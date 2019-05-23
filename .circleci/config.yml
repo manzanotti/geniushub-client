@@ -72,7 +72,6 @@ jobs:
     parameters:
       test_type:
           type: string
-          default: "issues"
     steps:
       - *attach_workspace
       - run:
@@ -83,48 +82,40 @@ jobs:
               tee ${TEST_RESULTS}/<< parameters.test_type >>/curl.json
       - *persist_to_workspace
 
-  issues_curl:
+  get_v3:
     <<: *testbed_environment
-    steps:
-      - *attach_workspace
-      - run:
-          name: cURL v1/issues
-          no_output_timeout: 330
-          command: |
-            curl -X GET https://my.geniushub.co.uk/v1/issues -H "authorization: Bearer ${HUB_TOKEN}" --connect-timeout 300 | \
-              tee ${TEST_RESULTS}/issues/curl.json
-      - *persist_to_workspace
-
-  issues_v3:
-    <<: *testbed_environment
+    parameters:
+      test_type:
+          type: string
     steps:
       - checkout
       - *attach_workspace
       - *restore_cache
-
       - run:
           name: ghclient v3/issues
           no_output_timeout: 120
           command: |
             . venv/bin/activate
-            python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} issues -v | tee ${TEST_RESULTS}/issues/v3.json
-
+            python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} << parameters.test_type >> -v | \
+              tee ${TEST_RESULTS}/<< parameters.test_type >>/v3.json
       - *persist_to_workspace
 
   issues_v1:
     <<: *testbed_environment
+    parameters:
+      test_type:
+          type: string
     steps:
       - checkout
       - *attach_workspace
       - *restore_cache
-
       - run:
           name: ghclient v1/issues
           no_output_timeout: 330
           command: |
             . venv/bin/activate
-            python ghclient.py ${HUB_TOKEN} issues -v | tee ${TEST_RESULTS}/issues/v1.json
-
+            python ghclient.py ${HUB_TOKEN} << parameters.test_type >> -v | \
+              tee ${TEST_RESULTS}/<< parameters.test_type >>/v1.json
       - *persist_to_workspace
 
   issues_diff:
@@ -360,17 +351,19 @@ workflows:
           test_type: "issues"
           requires:
             - make_testbed
-      - issues_v1:
+      - get_v1:
+          test_type: "issues"
           requires:
             - make_testbed
-      - issues_v3:
+      - get_v3:
+          test_type: "issues"
           requires:
             - make_testbed
       - issues_diff:
           requires:
             - get_curl
-            - issues_v1
-            - issues_v3
+            - get_v1
+            - get_v3
 
       - zones_curl:
           requires:
