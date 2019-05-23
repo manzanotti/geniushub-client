@@ -86,7 +86,7 @@ jobs:
     <<: *testbed_environment
     steps: *create_testbed
 
-  get_curl:
+  issues_curl:
     <<: *testbed_environment
     steps:
       - get_curl_command:
@@ -359,7 +359,7 @@ workflows:
     jobs:
       - make_testbed
 
-      - get_curl:
+      - issues_curl:
           requires:
             - make_testbed
       - get_v1:
