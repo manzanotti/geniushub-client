@@ -62,13 +62,10 @@ aliases:
 
       - *persist_to_workspace
 
-jobs:
-  make_testbed:
-    <<: *testbed_environment
-    steps: *create_testbed
 
-  get_curl:
-    <<: *testbed_environment
+commands:
+  get_curl_command:
+    description: "get via curl using v1 api"
     parameters:
       test_type:
           type: string
@@ -81,6 +78,18 @@ jobs:
             curl -X GET https://my.geniushub.co.uk/v1/<< parameters.test_type >> -H "authorization: Bearer ${HUB_TOKEN}" --connect-timeout 300 | \
               tee ${TEST_RESULTS}/<< parameters.test_type >>/curl.json
       - *persist_to_workspace
+
+
+jobs:
+  make_testbed:
+    <<: *testbed_environment
+    steps: *create_testbed
+
+  get_curl:
+    <<: *testbed_environment
+    steps:
+      - get_curl_command:
+          test_type: "issue"
 
   get_v3:
     <<: *testbed_environment
