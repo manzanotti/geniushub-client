@@ -379,15 +379,12 @@ workflows:
           requires:
             - make_testbed
       - issues_v1:
-          test_type: "issues"
           requires:
             - make_testbed
       - issues_v3:
-          test_type: "issues"
           requires:
             - make_testbed
       # - issues_diff:
-      #     test_type: "issues"
       #     requires:
       #       - issues_curl
       #       - issues_v1
