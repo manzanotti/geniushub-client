@@ -62,22 +62,6 @@ aliases:
 
       - *persist_to_workspace
 
-commands:
-  get_curl:
-    parameters:
-      test_type:
-        type: string
-
-    steps:
-      - *attach_workspace
-      - run:
-        name: cURL v1/<< parameters.test_type >>
-        no_output_timeout: 330
-        command: |
-          curl -X GET https://my.geniushub.co.uk/v1/<< parameters.test_type >> -H "authorization: Bearer ${HUB_TOKEN}" --connect-timeout 300 | \
-            tee ${TEST_RESULTS}/<< parameters.test_type >>/curl.json
-      - *persist_to_workspace
-
 jobs:
   make_testbed:
     <<: *testbed_environment
@@ -86,8 +70,14 @@ jobs:
   issues_curl:
     <<: *testbed_environment
     steps:
-      - get_curl
-          test_type: "issues"
+      - *attach_workspace
+      - run:
+          name: cURL v1/issues
+          no_output_timeout: 330
+          command: |
+            curl -X GET https://my.geniushub.co.uk/v1/issues -H "authorization: Bearer ${HUB_TOKEN}" --connect-timeout 300 | \
+              tee ${TEST_RESULTS}/issues/curl.json
+      - *persist_to_workspace
 
   issues_v3:
     <<: *testbed_environment
