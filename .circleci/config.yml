@@ -3,6 +3,7 @@
 #
 version: 2.1
 
+
 aliases:
   - &testbed_environment
     docker:
@@ -353,6 +354,7 @@ jobs:
 
       - *store_artifacts
 
+
 workflows:
   version: 2.1
   test_output:
@@ -370,12 +372,12 @@ workflows:
           test_type: "issues"
           requires:
             - make_testbed
-      - issues_diff:
-          test_type: "issues"
-          requires:
-            - issues_curl
-            - issues_v1
-            - issues_v3
+      # - issues_diff:
+      #     test_type: "issues"
+      #     requires:
+      #       - issues_curl
+      #       - issues_v1
+      #       - issues_v3
 
       - zones_curl:
           requires:
