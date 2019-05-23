@@ -171,7 +171,6 @@ commands:
       - *store_artifacts
 
 
-
 jobs:
   make_testbed:
     <<: *testbed_environment
@@ -222,47 +221,8 @@ jobs:
   zones_diff:
     <<: *testbed_environment
     steps:
-      - checkout
-      - *attach_workspace
-      - *restore_cache
-
-      - run:
-          name: cURL zones prep
-          no_output_timeout: 60
-          command: |
-            . venv/bin/activate
-            cat ${TEST_RESULTS}/zones/curl.json | python -c "import sys, json; print(json.load(sys.stdin))" | \
-              tee ${TEST_RESULTS}/zones/curl.json
-
-      - run:
-          name: Diff v1/zones
-          no_output_timeout: 60
-          command: |
-            diff -qs ${TEST_RESULTS}/zones/curl.json ${TEST_RESULTS}/zones/v1.json | tee -a ${TEST_RESULTS}/zones/results.txt
-
-      - run:
-          name: Diff v1/zones display
-          no_output_timeout: 60
-          when: on_fail
-          command: |
-            sudo apt -y install wdiff colordiff >/dev/null 2>&1
-            wdiff ${TEST_RESULTS}/zones/curl.json ${TEST_RESULTS}/zones/v1.json | colordiff
-
-      - run:
-          name: Diff v3/zones
-          no_output_timeout: 60
-          command: |
-            diff -qs ${TEST_RESULTS}/zones/curl.json ${TEST_RESULTS}/zones/v3.json | tee -a ${TEST_RESULTS}/zones/results.txt
-
-      - run:
-          name: Diff v3/zones display
-          no_output_timeout: 60
-          when: on_fail
-          command: |
-            sudo apt -y install wdiff colordiff >/dev/null 2>&1
-            wdiff ${TEST_RESULTS}/zones/curl.json ${TEST_RESULTS}/zones/v3.json | colordiff
-
-      - *store_artifacts
+      - diff_files:
+          test_type: "zones"
 
   devices_curl:
     <<: *testbed_environment
@@ -285,47 +245,8 @@ jobs:
   devices_diff:
     <<: *testbed_environment
     steps:
-      - checkout
-      - *attach_workspace
-      - *restore_cache
-
-      - run:
-          name: cURL devices prep
-          no_output_timeout: 60
-          command: |
-            . venv/bin/activate
-            cat ${TEST_RESULTS}/devices/curl.json | python -c "import sys, json; print(json.load(sys.stdin))" | \
-              tee ${TEST_RESULTS}/devices/curl.json
-
-      - run:
-          name: Diff v1/devices
-          no_output_timeout: 60
-          command: |
-            diff -qs ${TEST_RESULTS}/devices/curl.json ${TEST_RESULTS}/devices/v1.json | tee -a ${TEST_RESULTS}/devices/results.txt
-
-      - run:
-          name: Diff v1/devices display
-          no_output_timeout: 60
-          when: on_fail
-          command: |
-            sudo apt -y install wdiff colordiff >/dev/null 2>&1
-            wdiff ${TEST_RESULTS}/devices/curl.json ${TEST_RESULTS}/devices/v1.json | colordiff
-
-      - run:
-          name: Diff v3/devices
-          no_output_timeout: 60
-          command: |
-            diff -qs ${TEST_RESULTS}/devices/curl.json ${TEST_RESULTS}/devices/v3.json | tee -a ${TEST_RESULTS}/devices/results.txt
-
-      - run:
-          name: Diff v3/devices display
-          no_output_timeout: 60
-          when: on_fail
-          command: |
-            sudo apt -y install wdiff colordiff >/dev/null 2>&1
-            wdiff ${TEST_RESULTS}/devices/curl.json ${TEST_RESULTS}/devices/v3.json | colordiff
-
-      - *store_artifacts
+      - diff_files:
+          test_type: "devices"
 
 
 workflows:
