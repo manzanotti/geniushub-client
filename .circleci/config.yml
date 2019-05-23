@@ -126,11 +126,16 @@ jobs:
             cat ${TEST_RESULTS}/issues/curl.json | python -c "import sys, json; print(json.load(sys.stdin))" | \
               tee ${TEST_RESULTS}/issues/curl.json
 
+            mkdir -p ${TEST_RESULTS}/temp
+            mv ${TEST_RESULTS}/issues/curl.json ${TEST_RESULTS}/temp
+            mv ${TEST_RESULTS}/issues/v1.json ${TEST_RESULTS}/temp
+            mv ${TEST_RESULTS}/issues/v3.json ${TEST_RESULTS}/temp
+
       - run:
           name: Diff v1/issues
           no_output_timeout: 60
           command: |
-            diff -qs ${TEST_RESULTS}/issues/curl.json ${TEST_RESULTS}/issues/v1.json | tee -a ${TEST_RESULTS}/issues/results.txt
+            diff -qs ${TEST_RESULTS}/temp/curl.json ${TEST_RESULTS}/temp/v1.json | tee -a ${TEST_RESULTS}/issues-results.txt
 
       - run:
           name: Diff v1/issues display
@@ -138,13 +143,13 @@ jobs:
           when: on_fail
           command: |
             sudo apt -y install wdiff colordiff >/dev/null 2>&1
-            wdiff ${TEST_RESULTS}/issues/curl.json ${TEST_RESULTS}/issues/v1.json | colordiff
+            wdiff ${TEST_RESULTS}/temp/curl.json ${TEST_RESULTS}/temp/v1.json | colordiff
 
       - run:
           name: Diff v3/issues
           no_output_timeout: 60
           command: |
-            diff -qs ${TEST_RESULTS}/issues/curl.json ${TEST_RESULTS}/issues/v3.json | tee -a ${TEST_RESULTS}/issues/results.txt
+            diff -qs ${TEST_RESULTS}/temp/curl.json ${TEST_RESULTS}/temp/v3.json | tee -a ${TEST_RESULTS}/issues-results.txt
 
       - run:
           name: Diff v3/issues display
@@ -152,7 +157,7 @@ jobs:
           when: on_fail
           command: |
             sudo apt -y install wdiff colordiff >/dev/null 2>&1
-            wdiff ${TEST_RESULTS}/issues/curl.json ${TEST_RESULTS}/issues/v3.json | colordiff
+            wdiff ${TEST_RESULTS}/temp/curl.json ${TEST_RESULTS}/temp/v3.json | colordiff
 
       - *store_artifacts
 
