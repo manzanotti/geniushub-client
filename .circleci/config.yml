@@ -144,8 +144,6 @@ commands:
             sudo apt -y install wdiff colordiff >/dev/null 2>&1
             wdiff ${TEST_RESULTS}/<< parameters.test_type >>/curl.json ${TEST_RESULTS}/<< parameters.test_type >>/<< parameters.api_ver >>.json | colordiff
 
-      - *store_artifacts
-
 
 jobs:
   make_testbed:
@@ -154,7 +152,7 @@ jobs:
 
   get_issues:
     <<: *testbed_environment
-    parallelism: 4
+    parallelism: 1
     steps:
       - get_v1_curl:
           test_type: "issues"
@@ -165,7 +163,7 @@ jobs:
 
   get_devices:
     <<: *testbed_environment
-    parallelism: 4
+    parallelism: 1
     steps:
       - get_v1_curl:
           test_type: "devices"
@@ -176,7 +174,7 @@ jobs:
 
   get_zones:
     <<: *testbed_environment
-    parallelism: 4
+    parallelism: 1
     steps:
       - get_v1_curl:
           test_type: "zones"
@@ -184,7 +182,6 @@ jobs:
           test_type: "zones"
       - get_v3_app:
           test_type: "zones"
-
 
   diff_issues:
     <<: *testbed_environment
@@ -194,6 +191,26 @@ jobs:
           api_ver: "v1"
       - diff_files:
           test_type: "issues"
+          api_ver: "v3"
+
+  diff_devices:
+    <<: *testbed_environment
+    steps:
+      - diff_files:
+          test_type: "devices"
+          api_ver: "v1"
+      - diff_files:
+          test_type: "devices"
+          api_ver: "v3"
+
+  diff_zones:
+    <<: *testbed_environment
+    steps:
+      - diff_files:
+          test_type: "zones"
+          api_ver: "v1"
+      - diff_files:
+          test_type: "zones"
           api_ver: "v3"
 
 
@@ -238,6 +255,22 @@ workflows:
       - diff_issues:
           requires:
             - get_issues
+          pre-steps:
+            - *attach_workspace
+          post-steps:
+            - *store_artifacts
+
+      - diff_devices:
+          requires:
+            - get_devices
+          pre-steps:
+            - *attach_workspace
+          post-steps:
+            - *store_artifacts
+
+      - diff_zones:
+          requires:
+            - get_zones
           pre-steps:
             - *attach_workspace
           post-steps:
