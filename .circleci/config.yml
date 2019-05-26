@@ -195,7 +195,7 @@ workflows:
             - *restore_cache
             - *attach_workspace
           post-steps:
-            - *persist_to_workspacee
+            - *persist_to_workspace
 
       - get_issues:
           requires:
@@ -205,4 +205,4 @@ workflows:
             - *restore_cache
             - *attach_workspace
           post-steps:
-            - *persist_to_workspacee
+            - *persist_to_workspace
