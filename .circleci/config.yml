@@ -218,7 +218,7 @@ workflows:
             - *restore_cache
             - *attach_workspace
           post-steps:
-            - prep_v1_curl
+            - prep_v1_curl:
                 test_type: "issues"
             - *persist_to_workspace
 
