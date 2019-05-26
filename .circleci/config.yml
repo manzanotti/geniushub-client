@@ -70,7 +70,6 @@ commands:
             curl -X GET https://my.geniushub.co.uk/v1/<< parameters.test_type >> -H "authorization: Bearer ${HUB_TOKEN}" --connect-timeout 300 | \
               tee ${TEST_RESULTS}/<< parameters.test_type >>/curl.json
 
-
   prep_v1_curl:
     description: "get v1 response via cURL"
     parameters:
@@ -130,8 +129,6 @@ commands:
         type: string
         default: "issues"
     steps:
-      - *attach_workspace
-
       - run:
           name: diff files
           no_output_timeout: 60
@@ -189,16 +186,12 @@ jobs:
           test_type: "zones"
 
 
-  issues_diff_v1:
+  diff_issues:
     <<: *testbed_environment
     steps:
       - diff_files:
           test_type: "issues"
           api_ver: "v1"
-
-  issues_diff_v3:
-    <<: *testbed_environment
-    steps:
       - diff_files:
           test_type: "issues"
           api_ver: "v3"
@@ -241,3 +234,11 @@ workflows:
             - *attach_workspace
           post-steps:
             - *persist_to_workspace
+
+      - diff_issues:
+          requires:
+            - get_issues
+          pre-steps:
+            - *attach_workspace
+          post-steps:
+            - *store_artifacts
