@@ -8,9 +8,7 @@ aliases:
   - &testbed_environment
     docker:
       - image: circleci/python:3.6.1
-
     working_directory: ~/working_directory
-
     environment:
       TEST_RESULTS: /tmp/workspace/test-results
 
@@ -42,10 +40,9 @@ aliases:
         path: /tmp/workspace/test-results
         destination: test_results
 
-  - &create_testbed
+  - &refresh_cache
       - checkout
       - *restore_cache
-
       - run:
           name: install dependencies
           command: |
@@ -53,14 +50,7 @@ aliases:
             . venv/bin/activate
             pip install --upgrade pip  # setuptools wheel
             pip install -r requirements.txt
-
       - *save_cache
-
-      - run: mkdir -p ${TEST_RESULTS}/issues
-      - run: mkdir -p ${TEST_RESULTS}/devices
-      - run: mkdir -p ${TEST_RESULTS}/zones
-
-      - *persist_to_workspace
 
 
 commands:
@@ -75,8 +65,15 @@ commands:
           name: get v1 response via cURL
           no_output_timeout: 330
           command: |
+            mkdir -p ${TEST_RESULTS}/<< parameters.test_type >>
+
             curl -X GET https://my.geniushub.co.uk/v1/<< parameters.test_type >> -H "authorization: Bearer ${HUB_TOKEN}" --connect-timeout 300 | \
               tee ${TEST_RESULTS}/<< parameters.test_type >>/curl.json
+
+            . venv/bin/activate
+            cat ${TEST_RESULTS}/<< parameters.test_type >>/curl.json | python -c "import sys, json; print(json.load(sys.stdin))" | \
+              tee ${TEST_RESULTS}/<< parameters.test_type >>/curl.json
+
 
   get_v1_curl_prep:
     description: "get v1 response via cURL"
@@ -104,6 +101,8 @@ commands:
           name: get v1 response via app
           no_output_timeout: 330
           command: |
+            mkdir -p ${TEST_RESULTS}/<< parameters.test_type >>
+
             . venv/bin/activate
             python ghclient.py ${HUB_TOKEN} << parameters.test_type >> -v | \
               tee ${TEST_RESULTS}/<< parameters.test_type >>/v1.json
@@ -119,6 +118,8 @@ commands:
           name: get v3 response via app
           no_output_timeout: 120
           command: |
+            mkdir -p ${TEST_RESULTS}/<< parameters.test_type >>
+
             . venv/bin/activate
             python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} << parameters.test_type >> -v | \
               tee ${TEST_RESULTS}/<< parameters.test_type >>/v3.json
@@ -156,7 +157,7 @@ commands:
 jobs:
   make_testbed:
     <<: *testbed_environment
-    steps: *create_testbed
+    steps: *refresh_cache
 
   get_issues:
     <<: *testbed_environment
@@ -212,12 +213,6 @@ workflows:
   test_issues:
     jobs:
       - make_testbed:
-          pre-steps:
-            - checkout
-            - *restore_cache
-            - *attach_workspace
-          post-steps:
-            - *persist_to_workspace
 
       - get_issues:
           requires:
