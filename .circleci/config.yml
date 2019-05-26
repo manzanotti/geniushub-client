@@ -44,7 +44,6 @@ aliases:
 
   - &create_testbed
       - checkout
-
       - *restore_cache
 
       - run:
@@ -72,6 +71,8 @@ commands:
         type: string
         default: "issues"
     steps:
+      - checkout
+      - *restore_cache
       - *attach_workspace
       - run:
           name: get v1 response via cURL
@@ -79,6 +80,14 @@ commands:
           command: |
             curl -X GET https://my.geniushub.co.uk/v1/<< parameters.test_type >> -H "authorization: Bearer ${HUB_TOKEN}" --connect-timeout 300 | \
               tee ${TEST_RESULTS}/<< parameters.test_type >>/curl.json
+      - run:
+          name: prepare cURL response
+          no_output_timeout: 60
+          command: |
+            . venv/bin/activate
+            cat ${TEST_RESULTS}/<< parameters.test_type >>/curl.json | python -c "import sys, json; print(json.load(sys.stdin))" | \
+              tee ${TEST_RESULTS}/<< parameters.test_type >>/curl.json
+
       - *persist_to_workspace
 
   get_v1_app:
@@ -89,8 +98,8 @@ commands:
         default: "issues"
     steps:
       - checkout
-      - *attach_workspace
       - *restore_cache
+      - *attach_workspace
       - run:
           name: get v1 response via app
           no_output_timeout: 330
@@ -108,8 +117,8 @@ commands:
         default: "issues"
     steps:
       - checkout
-      - *attach_workspace
       - *restore_cache
+      - *attach_workspace
       - run:
           name: get v3 response via app
           no_output_timeout: 120
@@ -129,17 +138,7 @@ commands:
         type: string
         default: "issues"
     steps:
-      - checkout
       - *attach_workspace
-      - *restore_cache
-
-      - run:
-          name: prepare cURL response
-          no_output_timeout: 60
-          command: |
-            . venv/bin/activate
-            cat ${TEST_RESULTS}/<< parameters.test_type >>/curl.json | python -c "import sys, json; print(json.load(sys.stdin))" | \
-              tee ${TEST_RESULTS}/<< parameters.test_type >>/curl.json
 
       - run:
           name: diff files
