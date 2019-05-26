@@ -189,7 +189,7 @@ workflows:
   version: 2.1
   test_issues:
     jobs:
-      - make_testbed
+      - make_testbed:
           pre-steps:
             - checkout
             - *restore_cache
