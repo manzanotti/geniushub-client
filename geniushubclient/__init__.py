@@ -105,11 +105,11 @@ def _extract_issues_from_zones(raw_json) -> list:
 
 def natural_sort(dict_list, dict_key):
     # def convert(text): return int(text) if text.isdigit() else text.lower()
-    # def alphanum_key(key): return [int(c) if c.isdigit() else c.lower()
-    #                                for c in re.split('([0-9]+)', key[dict_key])]
+    def alphanum_key(key): return [int(c) if c.isdigit() else c.lower()
+                                   for c in re.split('([0-9]+)', key[dict_key])]
 
-    alphanum_key = lambda key: [int(c) if c.isdigit() else c.lower()
-                                for c in re.split('([0-9]+)', key[dict_key])]
+    # alphanum_key = lambda key: [int(c) if c.isdigit() else c.lower()
+    #                             for c in re.split('([0-9]+)', key[dict_key])]
     return sorted(dict_list, key=alphanum_key)
 
 
