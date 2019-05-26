@@ -70,12 +70,8 @@ commands:
             curl -X GET https://my.geniushub.co.uk/v1/<< parameters.test_type >> -H "authorization: Bearer ${HUB_TOKEN}" --connect-timeout 300 | \
               tee ${TEST_RESULTS}/<< parameters.test_type >>/curl.json
 
-            . venv/bin/activate
-            cat ${TEST_RESULTS}/<< parameters.test_type >>/curl.json | python -c "import sys, json; print(json.load(sys.stdin))" | \
-              tee ${TEST_RESULTS}/<< parameters.test_type >>/curl.json
 
-
-  get_v1_curl_prep:
+  prep_v1_curl:
     description: "get v1 response via cURL"
     parameters:
       test_type:
@@ -222,6 +218,8 @@ workflows:
             - *restore_cache
             - *attach_workspace
           post-steps:
+            - prep_v1_curl
+                test_type: "issues"
             - *persist_to_workspace
 
       - get_devices:
