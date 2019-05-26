@@ -240,6 +240,8 @@ workflows:
             - *restore_cache
             - *attach_workspace
           post-steps:
+            - prep_v1_curl:
+                test_type: "devices"
             - *persist_to_workspace
 
       - get_zones:
@@ -250,6 +252,8 @@ workflows:
             - *restore_cache
             - *attach_workspace
           post-steps:
+            - prep_v1_curl:
+                test_type: "zones"
             - *persist_to_workspace
 
       - diff_issues:
