@@ -748,8 +748,8 @@ class GeniusHub(GeniusObject):
         result = self._subset_list(
             self._devices_raw, self._convert_device, **ATTRS_DEVICE)
 
-        # if not self._api_v1 and self._client._verbose != 3:                    # TODO: is this needed?
-        #     result = natural_sort(result, 'id')
+        if not self._api_v1 and self._client._verbose != 3:
+            result = natural_sort(result, 'id')
 
         _LOGGER.debug("Hub().devices, count = %s", len(result))
         return result
