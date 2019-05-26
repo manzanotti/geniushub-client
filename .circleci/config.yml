@@ -169,6 +169,28 @@ jobs:
       - get_v3_app:
           test_type: "issues"
 
+  get_devices:
+    <<: *testbed_environment
+    parallelism: 4
+    steps:
+      - get_v1_curl:
+          test_type: "devices"
+      - get_v1_app:
+          test_type: "devices"
+      - get_v3_app:
+          test_type: "devices"
+
+  get_zones:
+    <<: *testbed_environment
+    parallelism: 4
+    steps:
+      - get_v1_curl:
+          test_type: "zones"
+      - get_v1_app:
+          test_type: "zones"
+      - get_v3_app:
+          test_type: "zones"
+
 
   issues_diff_v1:
     <<: *testbed_environment
@@ -198,6 +220,26 @@ workflows:
             - *persist_to_workspace
 
       - get_issues:
+          requires:
+            - make_testbed
+          pre-steps:
+            - checkout
+            - *restore_cache
+            - *attach_workspace
+          post-steps:
+            - *persist_to_workspace
+
+      - get_devices:
+          requires:
+            - make_testbed
+          pre-steps:
+            - checkout
+            - *restore_cache
+            - *attach_workspace
+          post-steps:
+            - *persist_to_workspace
+
+      - get_zones:
           requires:
             - make_testbed
           pre-steps:
