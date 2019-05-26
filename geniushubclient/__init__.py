@@ -208,18 +208,34 @@ class GeniusObject(object):
 
         result['mode'] = IMODE_TO_MODE[raw_dict['iMode']]
 
-        # l = parseInt(i.iFlagExpectedKit) & e.equipmentTypes.Kit_PIR
+        # pylint: disable=pointless-string-statement
+        """Occupancy vs Activity (code from ap.js, search for occupancyIcon).
+
+            The occupancy symbol is affected by the mode of the zone:
+                Greyed out: no occupancy detected
+                Hollow icon: occupancy detected
+            In Footprint Mode:
+                Solid icon: occupancy detected; sufficient to call for heat
+
+        l = parseInt(i.iFlagExpectedKit) & e.equipmentTypes.Kit_PIR              # has a PIR
+        u = parseInt(i.iMode) === e.zoneModes.Mode_Footprint                     # in Footprint mode
+        d = null != (s=i.zoneReactive) ? s.bTriggerOn: void 0                    # ???
+        c = parseInt(i.iActivity) || 0                                           # ???
+        o = t.isInFootprintNightMode(i)                                          # night time
+
+        u && l && d && !o ? n : c > 0 ? r : a
+
+        n = "<i class='icon hg-icon-full-man   occupancy active' data-clickable='true'></i>"
+        r = "<i class='icon hg-icon-hollow-man occupancy active' data-clickable='true'></i>"
+        a = "<i class='icon hg-icon-full-man   occupancy'        data-clickable='false'></i>"
+        """
         if raw_dict['iFlagExpectedKit'] & KIT_TYPES.PIR:
-            # = parseInt(i.iMode) === e.zoneModes.Mode_Footprint
-            u = raw_dict['iMode'] == ZONE_MODES.Footprint                        # noqa; pylint: disable=invalid-name
-            # = null != (s = i.zoneReactive) ? s.bTriggerOn : void 0,
-            d = raw_dict['objFootprint']['objReactive']['bTriggerOn']            # noqa; pylint: disable=invalid-name
-            # = parseInt(i.iActivity) || 0,
-            c = bool(raw_dict['iActivity'] | 0)                                  # noqa; pylint: disable=invalid-name
-            # o = t.isInFootprintNightMode(i)
-            o = raw_dict['objFootprint']['bIsNight']                             # noqa; pylint: disable=invalid-name
-            # u && l && d && !o ? True : False
-            result['occupied'] = u and d and c and not o
+            # pylint: disable=invalid-name
+            u = raw_dict['iMode'] == ZONE_MODES.Footprint
+            d = raw_dict['zoneReactive']['bTriggerOn']
+            c = raw_dict['iActivity']
+            o = raw_dict['objFootprint']['bIsNight']
+            result['occupied'] = u and d and not o # and c > 0
 
         if raw_dict['iType'] in [ZONE_TYPES.OnOffTimer,
                                  ZONE_TYPES.ControlSP,
