@@ -121,13 +121,13 @@ DESCRIPTION_TO_TEXT = {
         "{zone_name} has no valid temperature sensor",
 
     "node:no_comms":
-        "The device has lost communication with the Hub",
+        "The {device_type} has lost communication with the Hub",
     "node:not_seen":                                                             # checked/confirmed
         "The {device_type} in {zone_name} can not been found by the Hub",
-    "node:low_battery":
-        "The battery is dead and needs to be replaced",
+    "node:low_battery":                                                          # checked/confirmed
+        "The battery for the {device_type} in {zone_name} is dead and needs to be replaced",
     "node:warn_battery":
-        "the battery is low",
+        "The battery for the {device_type} is low",
 }
 
 # Examples of JSON/schema (order changed):
