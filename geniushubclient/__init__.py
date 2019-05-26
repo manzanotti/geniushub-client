@@ -105,8 +105,8 @@ def _extract_issues_from_zones(raw_json) -> list:
 
 def natural_sort(dict_list, dict_key):
     # def convert(text): return int(text) if text.isdigit() else text.lower()
-    def alphanum_key(key): return [int(c) if c.isdigit() else c.lower()
-                                   for c in re.split('([0-9]+)', key[dict_key])]
+    def alphanum_key(k): return [int(c) if c.isdigit() else c.lower()
+                                 for c in re.split('([0-9]+)', k[dict_key])]
 
     # alphanum_key = lambda key: [int(c) if c.isdigit() else c.lower()
     #                             for c in re.split('([0-9]+)', key[dict_key])]
@@ -748,8 +748,8 @@ class GeniusHub(GeniusObject):
         result = self._subset_list(
             self._devices_raw, self._convert_device, **ATTRS_DEVICE)
 
-        # if not self._api_v1 and self._client._verbose != 3:                      # TODO: is this needed?
-        #     result = natural_sort(result, 'id')
+        if not self._api_v1 and self._client._verbose != 3:                      # TODO: is this needed?
+            result = natural_sort(result, 'id')
 
         _LOGGER.debug("Hub().devices, count = %s", len(result))
         return result
