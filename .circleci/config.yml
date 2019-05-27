@@ -216,7 +216,7 @@ jobs:
 
 workflows:
   version: 2.1
-  test_issues:
+  test_outputs:
     jobs:
       - make_testbed
 
