@@ -199,7 +199,8 @@ class GeniusObject(object):
         result['name'] = raw_dict['strName']
 
         if raw_dict['iType'] in [ZONE_TYPES.ControlSP, ZONE_TYPES.TPI]:
-            result['temperature'] = raw_dict['fPV']
+            if raw_dict['activeTemperatureDevices']:
+                result['temperature'] = raw_dict['fPV']
             result['setpoint'] = raw_dict['fSP']
 
         if raw_dict['iType'] == ZONE_TYPES.OnOffTimer:
