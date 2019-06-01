@@ -104,9 +104,8 @@ def _extract_issues_from_zones(raw_json) -> list:
 
 
 def natural_sort(dict_list, dict_key):
-    convert = lambda text: int(text) if text.isdigit() else text.lower()
-    alphanum_key = lambda key: [convert(c)
-                                for c in re.split('([0-9]+)', key[dict_key])]
+    def alphanum_key(k): return [int(c) if c.isdigit() else c.lower()
+                                 for c in re.split('([0-9]+)', k[dict_key])]
     return sorted(dict_list, key=alphanum_key)
 
 
@@ -200,7 +199,8 @@ class GeniusObject(object):
         result['name'] = raw_dict['strName']
 
         if raw_dict['iType'] in [ZONE_TYPES.ControlSP, ZONE_TYPES.TPI]:
-            result['temperature'] = raw_dict['fPV']
+            if raw_dict['activeTemperatureDevices']:
+                result['temperature'] = raw_dict['fPV']
             result['setpoint'] = raw_dict['fSP']
 
         if raw_dict['iType'] == ZONE_TYPES.OnOffTimer:
@@ -208,18 +208,34 @@ class GeniusObject(object):
 
         result['mode'] = IMODE_TO_MODE[raw_dict['iMode']]
 
-        # l = parseInt(i.iFlagExpectedKit) & e.equipmentTypes.Kit_PIR
+        # pylint: disable=pointless-string-statement
+        """Occupancy vs Activity (code from ap.js, search for occupancyIcon).
+
+            The occupancy symbol is affected by the mode of the zone:
+                Greyed out: no occupancy detected
+                Hollow icon: occupancy detected
+            In Footprint Mode:
+                Solid icon: occupancy detected; sufficient to call for heat
+
+        l = parseInt(i.iFlagExpectedKit) & e.equipmentTypes.Kit_PIR              # has a PIR
+        u = parseInt(i.iMode) === e.zoneModes.Mode_Footprint                     # in Footprint mode
+        d = null != (s=i.zoneReactive) ? s.bTriggerOn: void 0                    # ???
+        c = parseInt(i.iActivity) || 0                                           # ???
+        o = t.isInFootprintNightMode(i)                                          # night time
+
+        u && l && d && !o ? n : c > 0 ? r : a
+
+        n = "<i class='icon hg-icon-full-man   occupancy active' data-clickable='true'></i>"
+        r = "<i class='icon hg-icon-hollow-man occupancy active' data-clickable='true'></i>"
+        a = "<i class='icon hg-icon-full-man   occupancy'        data-clickable='false'></i>"
+        """
         if raw_dict['iFlagExpectedKit'] & KIT_TYPES.PIR:
-            # = parseInt(i.iMode) === e.zoneModes.Mode_Footprint
-            u = raw_dict['iMode'] == ZONE_MODES.Footprint                        # noqa; pylint: disable=invalid-name
-            # = null != (s = i.zoneReactive) ? s.bTriggerOn : void 0,
-            d = raw_dict['objFootprint']['objReactive']['bTriggerOn']            # noqa; pylint: disable=invalid-name
-            # = parseInt(i.iActivity) || 0,
-            c = bool(raw_dict['iActivity'] | 0)                                  # noqa; pylint: disable=invalid-name
-            # o = t.isInFootprintNightMode(i)
-            o = raw_dict['objFootprint']['bIsNight']                             # noqa; pylint: disable=invalid-name
-            # u && l && d && !o ? True : False
-            result['occupied'] = u and d and c and not o
+            # pylint: disable=invalid-name
+            u = raw_dict['iMode'] == ZONE_MODES.Footprint
+            d = raw_dict['zoneReactive']['bTriggerOn']
+            c = raw_dict['iActivity']                                            # noqa: ignore=F841; pylint: disable=unused-variable
+            o = raw_dict['objFootprint']['bIsNight']
+            result['occupied'] = u and d and not o  # and c > 0
 
         if raw_dict['iType'] in [ZONE_TYPES.OnOffTimer,
                                  ZONE_TYPES.ControlSP,
@@ -729,7 +745,7 @@ class GeniusHub(GeniusObject):
         result = self._subset_list(
             self._devices_raw, self._convert_device, **ATTRS_DEVICE)
 
-        if not self._api_v1 and self._client._verbose != 3:                      # TODO: is this needed?
+        if not self._api_v1 and self._client._verbose != 3:
             result = natural_sort(result, 'id')
 
         _LOGGER.debug("Hub().devices, count = %s", len(result))

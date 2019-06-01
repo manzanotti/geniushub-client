@@ -8,9 +8,7 @@ aliases:
   - &testbed_environment
     docker:
       - image: circleci/python:3.6.1
-
     working_directory: ~/working_directory
-
     environment:
       TEST_RESULTS: /tmp/workspace/test-results
 
@@ -42,11 +40,9 @@ aliases:
         path: /tmp/workspace/test-results
         destination: test_results
 
-  - &create_testbed
+  - &refresh_cache
       - checkout
-
       - *restore_cache
-
       - run:
           name: install dependencies
           command: |
@@ -54,14 +50,7 @@ aliases:
             . venv/bin/activate
             pip install --upgrade pip  # setuptools wheel
             pip install -r requirements.txt
-
       - *save_cache
-
-      - run: mkdir -p ${TEST_RESULTS}/issues
-      - run: mkdir -p ${TEST_RESULTS}/devices
-      - run: mkdir -p ${TEST_RESULTS}/zones
-
-      - *persist_to_workspace
 
 
 commands:
@@ -72,14 +61,29 @@ commands:
         type: string
         default: "issues"
     steps:
-      - *attach_workspace
       - run:
           name: get v1 response via cURL
           no_output_timeout: 330
           command: |
+            mkdir -p ${TEST_RESULTS}/<< parameters.test_type >>
+
             curl -X GET https://my.geniushub.co.uk/v1/<< parameters.test_type >> -H "authorization: Bearer ${HUB_TOKEN}" --connect-timeout 300 | \
               tee ${TEST_RESULTS}/<< parameters.test_type >>/curl.json
-      - *persist_to_workspace
+
+  prep_v1_curl:
+    description: "get v1 response via cURL"
+    parameters:
+      test_type:
+        type: string
+        default: "issues"
+    steps:
+      - run:
+          name: prepare cURL response
+          no_output_timeout: 60
+          command: |
+            . venv/bin/activate
+            cat ${TEST_RESULTS}/<< parameters.test_type >>/curl.json | python -c "import sys, json; print(json.load(sys.stdin))" | \
+              tee ${TEST_RESULTS}/<< parameters.test_type >>/curl.json
 
   get_v1_app:
     description: "get v1 response via app"
@@ -88,17 +92,15 @@ commands:
         type: string
         default: "issues"
     steps:
-      - checkout
-      - *attach_workspace
-      - *restore_cache
       - run:
           name: get v1 response via app
           no_output_timeout: 330
           command: |
+            mkdir -p ${TEST_RESULTS}/<< parameters.test_type >>
+
             . venv/bin/activate
             python ghclient.py ${HUB_TOKEN} << parameters.test_type >> -v | \
               tee ${TEST_RESULTS}/<< parameters.test_type >>/v1.json
-      - *persist_to_workspace
 
   get_v3_app:
     description: "get v3 response via app"
@@ -107,17 +109,15 @@ commands:
         type: string
         default: "issues"
     steps:
-      - checkout
-      - *attach_workspace
-      - *restore_cache
       - run:
           name: get v3 response via app
           no_output_timeout: 120
           command: |
+            mkdir -p ${TEST_RESULTS}/<< parameters.test_type >>
+
             . venv/bin/activate
             python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} << parameters.test_type >> -v | \
               tee ${TEST_RESULTS}/<< parameters.test_type >>/v3.json
-      - *persist_to_workspace
 
   diff_files:
     description: "compare outputs"
@@ -129,18 +129,6 @@ commands:
         type: string
         default: "issues"
     steps:
-      - checkout
-      - *attach_workspace
-      - *restore_cache
-
-      - run:
-          name: prepare cURL response
-          no_output_timeout: 60
-          command: |
-            . venv/bin/activate
-            cat ${TEST_RESULTS}/<< parameters.test_type >>/curl.json | python -c "import sys, json; print(json.load(sys.stdin))" | \
-              tee ${TEST_RESULTS}/<< parameters.test_type >>/curl.json
-
       - run:
           name: diff files
           no_output_timeout: 60
@@ -156,169 +144,138 @@ commands:
             sudo apt -y install wdiff colordiff >/dev/null 2>&1
             wdiff ${TEST_RESULTS}/<< parameters.test_type >>/curl.json ${TEST_RESULTS}/<< parameters.test_type >>/<< parameters.api_ver >>.json | colordiff
 
-      - *store_artifacts
-
 
 jobs:
   make_testbed:
     <<: *testbed_environment
-    steps: *create_testbed
+    steps: *refresh_cache
 
-  issues_curl:
+  get_issues:
     <<: *testbed_environment
+    parallelism: 1
     steps:
       - get_v1_curl:
           test_type: "issues"
-  issues_v1:
-    <<: *testbed_environment
-    steps:
       - get_v1_app:
           test_type: "issues"
-  issues_v3:
-    <<: *testbed_environment
-    steps:
       - get_v3_app:
           test_type: "issues"
-  issues_diff_v1:
+
+  get_devices:
+    <<: *testbed_environment
+    parallelism: 1
+    steps:
+      - get_v1_curl:
+          test_type: "devices"
+      - get_v1_app:
+          test_type: "devices"
+      - get_v3_app:
+          test_type: "devices"
+
+  get_zones:
+    <<: *testbed_environment
+    parallelism: 1
+    steps:
+      - get_v1_curl:
+          test_type: "zones"
+      - get_v1_app:
+          test_type: "zones"
+      - get_v3_app:
+          test_type: "zones"
+
+  diff_issues:
     <<: *testbed_environment
     steps:
       - diff_files:
           test_type: "issues"
           api_ver: "v1"
-  issues_diff_v3:
-    <<: *testbed_environment
-    steps:
       - diff_files:
           test_type: "issues"
           api_ver: "v3"
 
-  zones_curl:
-    <<: *testbed_environment
-    steps:
-      - get_v1_curl:
-          test_type: "zones"
-  zones_v1:
-    <<: *testbed_environment
-    steps:
-      - get_v1_app:
-          test_type: "zones"
-  zones_v3:
-    <<: *testbed_environment
-    steps:
-      - get_v3_app:
-          test_type: "zones"
-  zones_diff_v1:
+  diff_devices:
     <<: *testbed_environment
     steps:
       - diff_files:
-          test_type: "zones"
+          test_type: "devices"
           api_ver: "v1"
-  zones_diff_v3:
-    <<: *testbed_environment
-    steps:
       - diff_files:
-          test_type: "zones"
+          test_type: "devices"
           api_ver: "v3"
 
-  devices_curl:
-    <<: *testbed_environment
-    steps:
-      - get_v1_curl:
-          test_type: "devices"
-  devices_v1:
-    <<: *testbed_environment
-    steps:
-      - get_v1_app:
-          test_type: "devices"
-  devices_v3:
-    <<: *testbed_environment
-    steps:
-      - get_v3_app:
-          test_type: "devices"
-  devices_diff_v1:
+  diff_zones:
     <<: *testbed_environment
     steps:
       - diff_files:
-          test_type: "devices"
+          test_type: "zones"
           api_ver: "v1"
-  devices_diff_v3:
-    <<: *testbed_environment
-    steps:
       - diff_files:
-          test_type: "devices"
+          test_type: "zones"
           api_ver: "v3"
 
 
 workflows:
   version: 2.1
-  test_issues:
+  test_outputs:
     jobs:
       - make_testbed
 
-      - issues_curl:
+      - get_issues:
           requires:
             - make_testbed
-      - issues_v1:
-          requires:
-            - make_testbed
-      - issues_v3:
-          requires:
-            - make_testbed
-      - issues_diff_v1:
-          requires:
-            - issues_curl
-            - issues_v1
-            - issues_v3
-      - issues_diff_v3:
-          requires:
-            - issues_curl
-            - issues_v1
-            - issues_v3
+          pre-steps:
+            - checkout
+            - *restore_cache
+            - *attach_workspace
+          post-steps:
+            - prep_v1_curl:
+                test_type: "issues"
+            - *persist_to_workspace
 
-  test_zones:
-    jobs:
-      - make_testbed
+      - get_devices:
+          requires:
+            - make_testbed
+          pre-steps:
+            - checkout
+            - *restore_cache
+            - *attach_workspace
+          post-steps:
+            - prep_v1_curl:
+                test_type: "devices"
+            - *persist_to_workspace
 
-      - zones_curl:
+      - get_zones:
           requires:
             - make_testbed
-      - zones_v1:
-          requires:
-            - make_testbed
-      - zones_v3:
-          requires:
-            - make_testbed
-      - zones_diff_v1:
-          requires:
-            - zones_curl
-            - zones_v1
-            - zones_v3
-      - zones_diff_v3:
-          requires:
-            - zones_curl
-            - zones_v1
-            - zones_v3
+          pre-steps:
+            - checkout
+            - *restore_cache
+            - *attach_workspace
+          post-steps:
+            - prep_v1_curl:
+                test_type: "zones"
+            - *persist_to_workspace
 
-  test_devices:
-    jobs:
-      - make_testbed
+      - diff_issues:
+          requires:
+            - get_issues
+          pre-steps:
+            - *attach_workspace
+          post-steps:
+            - *store_artifacts
 
-      - devices_curl:
+      - diff_devices:
           requires:
-            - make_testbed
-      - devices_v1:
+            - get_devices
+          pre-steps:
+            - *attach_workspace
+          post-steps:
+            - *store_artifacts
+
+      - diff_zones:
           requires:
-            - make_testbed
-      - devices_v3:
-          requires:
-            - make_testbed
-      - devices_diff_v1:
-          requires:
-            - devices_curl
-            - devices_v1
-            - devices_v3
-      - devices_diff_v3:
-          requires:
-            - devices_curl
-            - devices_v1
-            - devices_v3
+            - get_zones
+          pre-steps:
+            - *attach_workspace
+          post-steps:
+            - *store_artifacts

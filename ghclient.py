@@ -126,9 +126,9 @@ async def main(loop):
             raise KeyError("Zone '%s' does not exist.", args[ZONE_ID])
 
         if args[MODE]:
-            raise NotImplementedError()  # await zone.set_mode(args[MODE])
+            await zone.set_mode(args[MODE])
         elif args[TEMP]:
-            raise NotImplementedError()  # await zone.set_override(args[TEMP], args[SECS])
+            await zone.set_override(args[TEMP], args[SECS])
         elif args[DEVICES]:
             print(zone.devices)
         elif args[ISSUES]:
