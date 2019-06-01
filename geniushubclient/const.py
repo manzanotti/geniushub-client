@@ -117,8 +117,8 @@ DESCRIPTION_TO_TEXT = {
         '{zone_name} is currently using the outside temperature',
     'zone:using_assumed_temp':
         '{zone_name} is currently using the assumed temperature',
-    'zone:tpi_no_temp':
-        '{zone_name} has no valid temperature sensor',
+    'zone:tpi_no_temp':                                                          # checked/confirmed
+        '{zone_name} currently has no valid temperature',
 
     'node:no_comms':
         'The {device_type} has lost communication with the Hub',

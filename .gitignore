@@ -2,6 +2,8 @@
 # zxdavb
 
 *.json
+*.out
+*.txt
 .vscode/*
 
 
