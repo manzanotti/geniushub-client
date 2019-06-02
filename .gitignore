@@ -1,6 +1,7 @@
 ### local .gitignore file
 # zxdavb
 
+tokens.sh
 *.json
 *.out
 *.txt
