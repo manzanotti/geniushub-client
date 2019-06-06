@@ -282,6 +282,10 @@ class GeniusObject(object):
                     setpoint_time = next_time
                     setpoint_temp = next_temp
 
+        except UnboundLocalError:
+            _LOGGER.warning("_convert_zone(): Failed to convert Timer "
+                            "schedule for Zone %s", result['id'])
+
         except:
             _LOGGER.exception("_convert_zone(): Failed to convert Timer "
                               "schedule for Zone %s", result['id'])
