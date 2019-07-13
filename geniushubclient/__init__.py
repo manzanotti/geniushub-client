@@ -4,6 +4,7 @@
    """
 # import asyncio
 from hashlib import sha256
+from typing import List, Set, Dict, Tuple, Optional
 
 import logging
 import re
@@ -28,6 +29,12 @@ _LOGGER.setLevel(logging.WARNING)
 # pylint: disable=too-many-arguments
 
 
+def natural_sort(dict_list, dict_key):
+    def alphanum_key(k): return [int(c) if c.isdigit() else c.lower()
+                                 for c in re.split('([0-9]+)', k[dict_key])]
+    return sorted(dict_list, key=alphanum_key)
+
+
 def _without_keys(dict_obj, keys) -> dict:
     _info = dict(dict_obj)
     _info = {k: v for k, v in _info.items() if k[:1] != '_'}
@@ -35,7 +42,7 @@ def _without_keys(dict_obj, keys) -> dict:
     return _info
 
 
-def _extract_zones_from_zones(raw_json) -> list:
+def _get_zones_from_zones_v3(raw_json) -> list:
     """Extract Zones from /v3/zones JSON.
 
     This extracts a list of Zones from a flat list of Zones.
@@ -45,7 +52,7 @@ def _extract_zones_from_zones(raw_json) -> list:
     return raw_json
 
 
-def _extract_devices_from_data_manager(raw_json) -> list:
+def _get_devices_from_data_manager(raw_json) -> list:
     """Extract Devices from /v3/data_manager JSON.
 
     This extracts a list of Devices from a nested list of Devices and Channels.
@@ -68,7 +75,7 @@ def _extract_devices_from_data_manager(raw_json) -> list:
     return result
 
 
-def _extract_devices_from_zones(raw_json) -> list:
+def _get_devices_from_zones_v3(raw_json) -> list:
     """Extract Devices from /v3/zones JSON.
 
     This extracts a list of Devices from a list of Zones. Each Zone may
@@ -85,7 +92,7 @@ def _extract_devices_from_zones(raw_json) -> list:
     return result
 
 
-def _extract_issues_from_zones(raw_json) -> list:
+def _get_issues_from_zones_v3(raw_json) -> list:
     """Extract Issues from /v3/zones JSON.
 
     This extracts a list of Issues from a list of Zones.  Each Zone may
@@ -103,16 +110,10 @@ def _extract_issues_from_zones(raw_json) -> list:
     return result
 
 
-def natural_sort(dict_list, dict_key):
-    def alphanum_key(k): return [int(c) if c.isdigit() else c.lower()
-                                 for c in re.split('([0-9]+)', k[dict_key])]
-    return sorted(dict_list, key=alphanum_key)
-
-
 class GeniusHubClient(object):
     """The class for a connection to a Genius Hub."""
     def __init__(self, hub_id, username=None, password=None, session=None,
-                 debug=False):
+                 debug=False) -> None:
         if debug is True:
             _LOGGER.setLevel(logging.DEBUG)
             _LOGGER.debug("Debug mode is explicitly enabled.")
@@ -162,7 +163,7 @@ class GeniusHubClient(object):
 
 class GeniusObject(object):
     """The base class for Genius Hub, Zone & Device."""
-    def __init__(self, client, obj_dict, hub=None, assignedZone=None):
+    def __init__(self, client, obj_dict, hub=None, assignedZone=None) -> None:
         self.id = None  # avoids no-member,                                      # pylint: disable=invalid-name
 
         self.__dict__.update(obj_dict)  # create self.id, etc.
@@ -565,14 +566,14 @@ class GeniusHub(GeniusObject):
     # conn.post("/v3/system/reboot", { username: e, password: t, json:{} })
     # conn.get("/v3/auth/test", { username: e, password: t, timeout: n })
 
-    def __init__(self, client, hub_dict):
+    def __init__(self, client, hub_dict) -> None:
         _LOGGER.info("GeniusHub(client, hub=%s)", hub_dict['id'])
         super().__init__(client, hub_dict)
 
-        self._info = {}  # a dict of attrs
-        self._zones = []  # a list of dicts
-        self._devices = []  # a list of dicts
-        self._issues = []  # a list of dicts
+        self._info: Dict[str, Any] = {}
+        self._zones: List[dict] = []
+        self._devices: List[dict] = []
+        self._issues: List[dict] = []
 
         self._info_raw = None
         self._issues_raw = self._devices_raw = self._zones_raw = None
@@ -698,11 +699,11 @@ class GeniusHub(GeniusObject):
         """Return a list (of dicts) of zones included in the system."""
         # getAllZonesData = x.get("/v3/zones", {username: e, password: t})
 
-        raw_json = await self._request("GET", 'zones')
         if self._api_v1:
-            self._zones_raw = raw_json
+            self._zones_raw = await self._request("GET", 'zones')
         else:
-            self._zones_raw = _extract_zones_from_zones(raw_json['data'])
+            raw_json = await self._request("GET", 'zones')
+            self._zones_raw = _get_zones_from_zones_v3(raw_json['data'])
 
         _LOGGER.debug("Hub()._get_zones_raw(): len(self._zones_raw) = %s",
                       len(self._zones_raw))
@@ -728,11 +729,10 @@ class GeniusHub(GeniusObject):
         # getDeviceList = x.get("/v3/data_manager", {username: e, password: t})
 
         if self._api_v1:
-            raw_json = await self._request('GET', 'devices')
-            self._devices_raw = raw_json
+            self._devices_raw = await self._request('GET', 'devices')
         else:
             raw_json = await self._request('GET', 'data_manager')
-            self._devices_raw = _extract_devices_from_data_manager(
+            self._devices_raw = _get_devices_from_data_manager(
                 raw_json['data'])
 
         _LOGGER.debug("Hub()._get_devices_raw(): len(self._devices_raw) = %s",
@@ -762,8 +762,7 @@ class GeniusHub(GeniusObject):
         if self._api_v1:
             self._issues_raw = await self._request('GET', 'issues')
         else:
-            self._issues_raw = _extract_issues_from_zones(
-                self._zones_raw)
+            self._issues_raw = _get_issues_from_zones_v3(self._zones_raw)
 
         _LOGGER.info("Hub()._get_issues(): len(self._issues_raw) = %s",
                      len(self._issues_raw))
@@ -787,7 +786,7 @@ class GeniusHub(GeniusObject):
 class GeniusZone(GeniusObject):
     """The class for Genius Zone."""
 
-    def __init__(self, client, zone_dict, hub):
+    def __init__(self, client, zone_dict, hub) -> None:
         _LOGGER.info("GeniusZone(hub=%s, zone['id]=%s)",
                      hub.id, zone_dict['id'])
         super().__init__(client, zone_dict, hub=hub)
@@ -926,7 +925,7 @@ class GeniusZone(GeniusObject):
 class GeniusDevice(GeniusObject):
     """The class for Genius Device."""
 
-    def __init__(self, client, device_dict, hub, zone=None):
+    def __init__(self, client, device_dict, hub, zone=None) -> None:
         _LOGGER.info("GeniusZone(hub=%s, zone=%s,device['id']=%s)",
                      hub.id, zone, device_dict['id'])
         super().__init__(client, device_dict, hub=hub, assignedZone=zone)
