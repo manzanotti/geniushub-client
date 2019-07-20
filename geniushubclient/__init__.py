@@ -48,8 +48,6 @@ def _get_zones_from_zones_v3(raw_json) -> list:
 
     This extracts a list of Zones from a flat list of Zones.
     """
-    _LOGGER.debug("_zones_from_zones(): raw_json = %s", raw_json)
-
     return raw_json
 
 
@@ -59,8 +57,6 @@ def _get_devices_from_data_manager(raw_json) -> list:
     This extracts a list of Devices from a nested list of Devices and Channels.
     Each Zone may have 0-many Devices.
     """
-    _LOGGER.debug("_devices_from_data_manager(): raw_json = %s", raw_json)
-
     result = []
     for site in [x for x in raw_json['childNodes'].values()
                  if x['addr'] != 'WeatherData']:
@@ -82,8 +78,6 @@ def _get_devices_from_zones_v3(raw_json) -> list:
     This extracts a list of Devices from a list of Zones. Each Zone may
     have multiple Devices.
     """
-    _LOGGER.debug("_devices_from_zones(): raw_json = %s", raw_json)
-
     result = []
     for zone in raw_json:
         for device in [x for x in zone['nodes'].values()
@@ -99,8 +93,6 @@ def _get_issues_from_zones_v3(raw_json) -> list:
     This extracts a list of Issues from a list of Zones.  Each Zone may
     have multiple Issues.
     """
-    _LOGGER.debug("_issues_from_zones(): raw_json = %s", raw_json)
-
     result = []
     for zone in raw_json:
         for issue in zone['lstIssues']:
@@ -706,6 +698,7 @@ class GeniusHub(GeniusObject):
             self._zones_raw = await self._request("GET", 'zones')
         else:
             json = await self._request("GET", 'zones')
+            _LOGGER.debug("Hub()._get_zones_raw(): json = %s", json['data'])
             self._zones_raw = _get_zones_from_zones_v3(json['data'])
 
         _LOGGER.debug("Hub()._get_zones_raw(): len(self._zones_raw) = %s",
@@ -735,6 +728,7 @@ class GeniusHub(GeniusObject):
             self._devices_raw = await self._request('GET', 'devices')
         else:
             json = await self._request('GET', 'data_manager')
+            _LOGGER.debug("Hub()._get_devices_raw(): json = %s", json['data'])
             self._devices_raw = _get_devices_from_data_manager(json['data'])
 
         _LOGGER.debug("Hub()._get_devices_raw(): len(self._devices_raw) = %s",
