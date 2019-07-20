@@ -18,8 +18,9 @@ from .const import (
     LEVEL_TO_TEXT, DESCRIPTION_TO_TEXT,
     ZONE_TYPES, ZONE_MODES, KIT_TYPES)
 
+logging.basicConfig()
 _LOGGER = logging.getLogger(__name__)
-_LOGGER.setLevel(logging.WARNING)
+# _LOGGER.setLevel(logging.WARNING)
 
 # pylint3 --max-line-length=120
 # pylint: disable=fixme, missing-docstring
@@ -525,12 +526,12 @@ class GeniusObject(object):
 
         # except concurrent.futures._base.TimeoutError as err:
 
-    def _subset_list(self, item_list_raw, _convert_to_v1,
+    def _subset_list(self, item_list_raw, convert_to_v1,
                      summary_keys, detail_keys) -> list:
         if self._client._verbose >= 3:
             return item_list_raw
 
-        item_list = [_convert_to_v1(i) for i in item_list_raw]
+        item_list = [convert_to_v1(i) for i in item_list_raw]
 
         if self._client._verbose >= 2:
             return item_list
@@ -545,12 +546,12 @@ class GeniusObject(object):
 
         return result
 
-    def _subset_dict(self, item_dict_raw, _convert_to_v1,
+    def _subset_dict(self, item_dict_raw, convert_to_v1,
                      summary_keys, detail_keys):
         if self._client._verbose >= 3:
             return item_dict_raw
 
-        item_dict = _convert_to_v1(item_dict_raw)
+        item_dict = convert_to_v1(item_dict_raw)
 
         if self._client._verbose >= 2:
             return item_dict
@@ -745,7 +746,7 @@ class GeniusHub(GeniusObject):
         """Return a list of Devices known to the Hub.
 
           v1/devices/summary: id, type
-          v1/devices: id, type, assignedZones, state
+          v1/devices:         id, type, assignedZones, state
         """
         result = self._subset_list(
             self._devices_raw, self._convert_device, **ATTRS_DEVICE)
@@ -765,7 +766,7 @@ class GeniusHub(GeniusObject):
         else:  # NB: this must run after _get_zones_raw()
             self._issues_raw = _get_issues_from_zones_v3(self._zones_raw)
 
-        _LOGGER.info("Hub()._get_issues_raw(): len(self._issues_raw) = %s",
+        _LOGGER.debug("Hub()._get_issues_raw(): len(self._issues_raw) = %s",
                      len(self._issues_raw))
         return self._issues_raw
 
@@ -775,8 +776,6 @@ class GeniusHub(GeniusObject):
 
           v1/issues: description, level
         """
-        # _LOGGER.warn("Hub().issues...")
-
         result = self._subset_list(
             self._issues_raw, self._convert_issue, **ATTRS_ISSUE)
 
@@ -966,7 +965,7 @@ class GeniusDevice(GeniusObject):
     """The class for Genius Device."""
 
     def __init__(self, client, device_dict, hub, zone=None) -> None:
-        _LOGGER.info("GeniusZone(hub=%s, zone=%s,device['id']=%s)",
+        _LOGGER.info("GeniusDevice(hub=%s, zone=%s, device['id']=%s)",
                      hub.id, zone, device_dict['id'])
         super().__init__(client, device_dict, hub=hub, assignedZone=zone)
 
