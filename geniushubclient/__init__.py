@@ -4,7 +4,7 @@
    """
 # import asyncio
 from hashlib import sha256
-from typing import List, Set, Dict, Tuple, Optional
+from typing import Any, Dict, List, Set, Tuple, Optional
 
 import logging
 import re
@@ -767,7 +767,7 @@ class GeniusHub(GeniusObject):
             self._issues_raw = _get_issues_from_zones_v3(self._zones_raw)
 
         _LOGGER.debug("Hub()._get_issues_raw(): len(self._issues_raw) = %s",
-                     len(self._issues_raw))
+                      len(self._issues_raw))
         return self._issues_raw
 
     @property
