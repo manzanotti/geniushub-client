@@ -376,7 +376,7 @@ class GeniusObject(object):
             if not device['type']:
                 device['type'] = fingerprint
                 _LOGGER.warning(
-                    "Device %s, '%s': determined only by its fingerprint!",
+                    "Device %s, '%s': typed only by its fingerprint!",
                     device['id'], device['type'])
 
             # elif (device['type'] == fingerprint or
@@ -409,8 +409,8 @@ class GeniusObject(object):
             _LOGGER.debug(
                 "Device %s, '%s': set to its fingerprint (this is OK).",
                     result['id'], result['type'])
-
-        _check_fingerprint(node, result)  # ... confirm type, set if needed
+        else:
+            _check_fingerprint(node, result)  # ... confirm type, set if needed
 
         result['assignedZones'] = [{'name': None}]  # 3. Set assignedZone...
         if node['location']['val']:
@@ -573,79 +573,62 @@ class GeniusHub(GeniusObject):
         _LOGGER.debug("Hub(%s).update()", self.id)
 
         def _populate_zone(zone_raw):
-            hub = self  # for now, only Hubs invoke this method
             zone_dict = self._convert_zone(zone_raw)
 
-            zone_id = zone_dict['id']
             try:  # does the hub already know about this zone?
-                zone = hub.zone_by_id[zone_id]
+                zone = self.zone_by_id[zone_dict['id']]
             except KeyError:
-                _LOGGER.debug("Creating a Zone (hub=%s, zone=%s)",
-                              hub.id, zone_dict['id'])
-                zone = GeniusZone(self._client, zone_dict, hub)
-                # await zone.update()
+                zone = GeniusZone(self._client, zone_dict, self)
 
-                hub.zone_objs.append(zone)
-                hub.zone_by_id[zone.id] = zone
-                hub.zone_by_name[zone.name] = zone
+                self.zone_by_id[zone.id] = zone
+                self.zone_by_name[zone.name] = zone
+                self.zone_objs.append(zone)
             else:
-                _LOGGER.debug("Found a Zone (hub=%s, zone=%s)",
-                              hub.id, zone_dict['id'])
+                _LOGGER.debug("Duplicate zone: %s!", zone.id)
 
             zone.__dict__.update(zone_dict)
             zone._info_raw = zone_raw
 
-            return zone_dict['id'], zone
+            return zone.id, zone
 
-        def _populate_device(device_raw):
-            # TODO: maybe? _populate_device(self, device_raw, parent_zone=None)
+        def _populate_device(device_raw): # TODO: maybe? _populate_device(device_raw, parent_zone=None)
             device_dict = self._convert_device(device_raw)
 
             if isinstance(self, GeniusHub):
-                hub = self
-                # or parent if None?
-                name = device_dict['assignedZones'][0]['name']
+                hub = self  # or parent if None?
                 zone = hub.zone_by_name[name] if name else None
+                name = device_dict['assignedZones'][0]['name']
             else:
                 hub = self.hub
                 zone = self
 
-            device_id = device_dict['id']
             try:  # does the Hub already know about this device?
-                device = hub.device_by_id[device_id]
+                device = hub.device_by_id[device_dict['id']]
             except KeyError:
-                _LOGGER.debug("Creating a Device (device=%s, hub=%s, zone=??)",
-                              device_dict['id'], hub.id)
                 device = GeniusDevice(self._client, device_dict, hub, zone)
-                # await device.update()
-
-                hub.device_objs.append(device)
                 hub.device_by_id[device.id] = device
+                hub.device_objs.append(device)
             else:
-                _LOGGER.debug("Found a Device (hub=%s, device=%s)",
-                              hub.id, device_dict['id'])
+                _LOGGER.error("Duplicate device: %s!", device.id)
 
             if zone:
                 try:  # does the (parent) Zone already know about this device?
-                    device = zone.device_by_id[device_id]
+                    device = zone.device_by_id[device_dict['id']]
                 except KeyError:
-                    _LOGGER.debug("Adding a Device (zone=%s, device=%s)",
-                                  zone.id, device_dict['id'])
-                    zone.device_objs.append(device)
                     zone.device_by_id[device.id] = device
+                    zone.device_objs.append(device)
                 else:
-                    _LOGGER.debug("Found a Device (zone=%s, device=%s)",
-                                  zone.id, device_dict['id'])
+                    _LOGGER.error("Duplicate device: %s for zone: %s!",
+                        device.id, zone.id)
 
             # TODO: this code may be redundant
             if isinstance(self, GeniusZone):
-                # TODO: remove this
-                print("LOOK FOR THIS IN THE LIBRARY")
+                print("LOOK FOR THIS IN THE LIBRARY")  # TODO: remove this
                 try:  # does the zone already know about this device?
-                    device = self.device_by_id[device_id]
+                    device = self.device_by_id[device_dict['id']]
                 except KeyError:
-                    self.device_objs.append(device)
                     self.device_by_id[device.id] = device
+                    self.device_objs.append(device)
 
             device.__dict__.update(device_dict)
             device._info_raw = device_raw
@@ -653,11 +636,9 @@ class GeniusHub(GeniusObject):
             return device_dict['id'], device
 
         def _populate_issue(issue_raw):
-            hub = self  # for now, only Hubs invoke this method
             issue_dict = self._convert_issue(issue_raw)
 
-            _LOGGER.debug("Found an Issue (hub=%s, zone=%s, issue=%s)",
-                          hub.id, "TBD", issue_dict)
+            _LOGGER.debug("Found an Issue (zone=TBA, issue=%s)", issue_dict)
 
             return issue_dict['description'], None
 
@@ -954,8 +935,8 @@ class GeniusDevice(GeniusObject):
     """The class for Genius Device."""
 
     def __init__(self, client, device_dict, hub, zone=None) -> None:
-        _LOGGER.info("GeniusDevice(hub=%s, zone_id=%s, device_id=%s)",
-                     hub.id, zone.id if zone else None, device_dict['id'])
+        _LOGGER.info("GeniusDevice(device_id=%s, zone_id=%s)",
+                     device_dict['id'], zone.id if zone else None)
         super().__init__(client, device_dict, hub=hub, assignedZone=zone)
 
         self._info = {}
