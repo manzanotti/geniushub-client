@@ -596,8 +596,8 @@ class GeniusHub(GeniusObject):
 
             if isinstance(self, GeniusHub):
                 hub = self  # or parent if None?
-                zone = hub.zone_by_name[name] if name else None
                 name = device_dict['assignedZones'][0]['name']
+                zone = hub.zone_by_name[name] if name else None
             else:
                 hub = self.hub
                 zone = self
