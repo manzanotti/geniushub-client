@@ -569,10 +569,10 @@ class GeniusHub(GeniusObject):
         _LOGGER.info("GeniusHub(client, hub=%s)", hub_dict['id'])
         super().__init__(client, hub_dict)
 
-        self._info: Dict[str, Any] = {}
-        self._zones: List[dict] = []
-        self._devices: List[dict] = []
-        self._issues: List[dict] = []
+        self._info = {}  # Dict[str, Any] = []
+        self._zones = []  # List[dict]
+        self._devices = []  # List[dict] = []
+        self._issues = []  # List[dict] = []
 
         self._info_raw = None
         self._issues_raw = self._devices_raw = self._zones_raw = None
