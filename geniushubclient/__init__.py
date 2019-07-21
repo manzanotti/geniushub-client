@@ -331,11 +331,14 @@ class GeniusObject(object):
         return result
 
     def _convert_device(self, raw_dict) -> dict:
-        """Convert a v3 device's dict/json to the v1 schema."""
+        """Convert a v3 device's dict/json to the v1 schema.
+
+        Sets id, type, assignedZones and state.
+        """
         if self._api_v1:
             return raw_dict
 
-        _LOGGER.debug("_convert_device(): raw_dict=%s", raw_dict)
+        # _LOGGER.debug("_convert_device(): raw_dict=%s", raw_dict)
 
         def _check_fingerprint(node, device):
             """Check the device type against its 'fingerprint'."""
@@ -362,29 +365,29 @@ class GeniusObject(object):
             else:  # ... no/invalid device fingerprint!
                 if device['type']:
                     _LOGGER.debug(
-                        "Device %s: No fingerprint to confirm type: '%s'.",
+                        "Device %s, '%s': has no confirming fingerprint!",
                         device['id'], device['type'])
                 else:
                     _LOGGER.error(
-                        "Device %s: No type, and no fingerprint!",
+                        "Device %s: has no type, and no fingerprint!",
                         device['id'])
                 return
 
             if not device['type']:
-                _LOGGER.debug(
-                    "Device %s: No type, but typed by fingerprint: '%s'.",
-                    device['id'], fingerprint)
                 device['type'] = fingerprint
+                _LOGGER.warning(
+                    "Device %s, '%s': determined only by its fingerprint!",
+                    device['id'], device['type'])
 
             # elif (device['type'] == fingerprint or
             elif device['type'][:21] == fingerprint:  # "Dual Channel Receiver"
                 _LOGGER.debug(
-                    "Device %s: The type: '%s', matches the fingerprint.",
+                    "Device %s, '%s': matches its fingerprint.",
                     device['id'], device['type'])
 
             else:  # device['type'] != device_type:
                 _LOGGER.error(
-                    "Device %s: The type: '%s', doesn't match fingerprint: '%s'!",
+                    "Device %s, '%s': doesn't match its fingerprint: '%s'!",
                     device['id'], device['type'], fingerprint)
 
         result = {}
@@ -399,20 +402,15 @@ class GeniusObject(object):
 
         node = raw_dict['childValues']
         # hack: find any Dual Channel Receiver(s), to 'force' that type
-        if 'SwitchBinary' in node and \
+        if 'SwitchBinary' in node and result['type'] is None and \
                 node['SwitchBinary']['path'].count('/') == 3:
+            result['type'] = 'Dual Channel Receiver - Channel {}'.format(
+                result['id'][-1])
+            _LOGGER.debug(
+                "Device %s, '%s': set to its fingerprint (this is OK).",
+                    result['id'], result['type'])
 
-            device_type = 'Dual Channel Receiver - Channel {}'
-            if result['type'] is None:
-                _LOGGER.debug("Assigning Type for Device: %s", result['id'])
-                result['type'] = device_type.format(result['id'][-1])
-            else:
-                _LOGGER.error("Clash for Device type: "
-                              "via Method 1: %s, via Method 2: %s",
-                              result['type'],
-                              device_type.format(result['id'][-1]))
-
-        _check_fingerprint(node, result)  # ... confirm type
+        _check_fingerprint(node, result)  # ... confirm type, set if needed
 
         result['assignedZones'] = [{'name': None}]  # 3. Set assignedZone...
         if node['location']['val']:
