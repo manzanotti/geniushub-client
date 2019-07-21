@@ -338,7 +338,7 @@ class GeniusObject(object):
         _LOGGER.debug("_convert_device(): raw_dict=%s", raw_dict)
 
         def _check_fingerprint(node, device):
-            # Check the device type against its 'fingerprint'...
+            """Check the device type against its 'fingerprint'."""
             if 'SwitchBinary' in node:
                 if 'TEMPERATURE' in node:
                     fingerprint = "Electric Switch"
@@ -359,34 +359,32 @@ class GeniusObject(object):
             elif 'Indicator' in node:
                 fingerprint = "Room Thermostat"
 
-            else:  # ... unknown device fingerprint!
-                if result['type']:
+            else:  # ... no/invalid device fingerprint!
+                if device['type']:
                     _LOGGER.debug(
-                        "Device %s: Can't get a Fingerprint to confirm device "
-                        "type: '%s'.", result['id'], result['type'])
+                        "Device %s: No fingerprint to confirm type: '%s'.",
+                        device['id'], device['type'])
                 else:
                     _LOGGER.error(
-                        "Device %s: Can't get a Fingerprint, and device has no "
-                        "type.", result['id'])
+                        "Device %s: No type, and no fingerprint!",
+                        device['id'])
                 return
 
             if not device['type']:
                 _LOGGER.debug(
-                    "Device %s: Device had no type, but has been typed by its "
-                    "fingerprint: '%s'.",
+                    "Device %s: No type, but typed by fingerprint: '%s'."
                     device['id'], fingerprint)
                 device['type'] = fingerprint
 
             # elif (device['type'] == fingerprint or
             elif device['type'][:21] == fingerprint:  # "Dual Channel Receiver"
                 _LOGGER.debug(
-                    "Device %s: Device type matches its fingerprint: '%s'.",
-                    device['id'], fingerprint)
+                    "Device %s: The type: '%s', matches the fingerprint.",
+                    device['id'], device['type'])
 
             else:  # device['type'] != device_type:
                 _LOGGER.error(
-                    "Device %s: Device type: '%s', doesn't match its "
-                    "fingerprint '%s'!",
+                    "Device %s: The type: '%s', doesn't match fingerprint: '%s'!",
                     device['id'], device['type'], fingerprint)
 
         result = {}
