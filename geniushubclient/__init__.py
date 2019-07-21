@@ -187,6 +187,8 @@ class GeniusObject(object):
         if self._api_v1:
             return raw_dict
 
+        # _LOGGER.debug("_convert_zone(): raw_dict=%s", raw_dict)
+
         result = {}
         result['id'] = raw_dict['iID']
         result['type'] = ITYPE_TO_TYPE[raw_dict['iType']]
@@ -333,6 +335,8 @@ class GeniusObject(object):
         if self._api_v1:
             return raw_dict
 
+        # _LOGGER.debug("_convert_device(): raw_dict=%s", raw_dict)
+
         def _check_fingerprint(device, device_fingerprint):
             if not device['type']:
                 _LOGGER.debug("Device %s: Matched by Fingerprint '%s'",
@@ -444,7 +448,7 @@ class GeniusObject(object):
         if self._api_v1:
             return raw_dict
 
-        _LOGGER.debug("_convert_issue(): raw_dict=%s", raw_dict)
+        # _LOGGER.debug("_convert_issue(): raw_dict=%s", raw_dict)
 
         description = DESCRIPTION_TO_TEXT.get(raw_dict['id'], raw_dict)
 
