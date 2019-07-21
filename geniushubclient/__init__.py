@@ -421,12 +421,12 @@ class GeniusObject(object):
         result['state'] = state = {}  # 4. Set state...
 
         MAP = {
-            'SwitchBinary': 'outputOnOff',         # DCCR/PLUG, RADR
-            'Battery': 'batteryLevel',             # VALV/ROMT, RADR, ROMS
-            'HEATING_1': 'setTemperature',         # VALV/ROMT, RADR
+            'SwitchBinary': 'outputOnOff',  #        DCCR/PLUG, RADR
+            'Battery': 'batteryLevel',  #            VALV/ROMT, RADR, ROMS
+            'HEATING_1': 'setTemperature',  #        VALV/ROMT, RADR
             'TEMPERATURE': 'measuredTemperature',  # VALV/ROMT, RADR, ROMS
-            'LUMINANCE': 'luminance',              #                  ROMS
-            'Motion': 'occupancyTrigger'           #                  ROMS
+            'LUMINANCE': 'luminance',  #                              ROMS
+            'Motion': 'occupancyTrigger'  #                           ROMS
         }
 
         # the following order should be preserved
