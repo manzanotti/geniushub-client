@@ -94,7 +94,8 @@ async def main(loop):
     client = GeniusHubClient(hub_id=args[HUB_ID],
                              username=args[USERNAME],
                              password=args[PASSWORD],
-                             session=session)
+                             session=session,
+                             debug=True)
 
     client.verbosity = args[VERBOSE]
 

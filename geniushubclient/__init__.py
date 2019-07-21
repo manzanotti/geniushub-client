@@ -335,32 +335,65 @@ class GeniusObject(object):
         if self._api_v1:
             return raw_dict
 
-        # _LOGGER.debug("_convert_device(): raw_dict=%s", raw_dict)
+        _LOGGER.debug("_convert_device(): raw_dict=%s", raw_dict)
 
-        def _check_fingerprint(device, device_fingerprint):
+        def _check_fingerprint(node, device):
+            # Check the device type against its 'fingerprint'...
+            if 'SwitchBinary' in node:
+                if 'TEMPERATURE' in node:
+                    fingerprint = "Electric Switch"
+                elif 'SwitchAllMode' in node:
+                    fingerprint = "Smart Plug"
+                else:
+                    fingerprint = "Dual Channel Receiver"
+
+            elif 'setback' in node:
+                if 'TEMPERATURE' in node:
+                    fingerprint = "Genius Valve"
+                else:
+                    fingerprint = "Radiator Valve"
+
+            elif 'Motion' in node:
+                fingerprint = "Room Sensor"
+
+            elif 'Indicator' in node:
+                fingerprint = "Room Thermostat"
+
+            else:  # ... unknown device fingerprint!
+                if result['type']:
+                    _LOGGER.debug(
+                        "Device %s: Can't get a Fingerprint to confirm device "
+                        "type: '%s'.", result['id'], result['type'])
+                else:
+                    _LOGGER.error(
+                        "Device %s: Can't get a Fingerprint, and device has no "
+                        "type.", result['id'])
+                return
+
             if not device['type']:
-                _LOGGER.debug("Device %s: Matched by Fingerprint '%s'",
-                              device['id'], device_fingerprint)
-                device['type'] = device_fingerprint
+                _LOGGER.debug(
+                    "Device %s: Device had no type, but has been typed by its "
+                    "fingerprint: '%s'.",
+                    device['id'], fingerprint)
+                device['type'] = fingerprint
 
-            elif device['type'] == device_fingerprint:
-                _LOGGER.debug("Device %s: Type matches its Fingerprint '%s'",
-                              device['id'], device_fingerprint)
-
-            elif device['type'][:21] == device_fingerprint:  # "Dual Channel Receiver"
-                _LOGGER.debug("Device %s: Type matches its Fingerprint '%s'",
-                              device['id'], device_fingerprint)
+            # elif (device['type'] == fingerprint or
+            elif device['type'][:21] == fingerprint:  # "Dual Channel Receiver"
+                _LOGGER.debug(
+                    "Device %s: Device type matches its fingerprint: '%s'.",
+                    device['id'], fingerprint)
 
             else:  # device['type'] != device_type:
-                _LOGGER.error("Device %s: Type '%s', doesn't match Fingerprint '%s'",
-                              device['id'], device['type'], device_fingerprint)
+                _LOGGER.error(
+                    "Device %s: Device type: '%s', doesn't match its "
+                    "fingerprint '%s'!",
+                    device['id'], device['type'], fingerprint)
 
         result = {}
-        # Determine Device Id...
-        result['id'] = raw_dict['addr']
 
-        # Determine Device Type...
-        result['type'] = None
+        result['id'] = raw_dict['addr']  # 1. Set id (addr)
+
+        result['type'] = None  # 2. Set type...
 
         node = raw_dict['childNodes']['_cfg']['childValues']
         if node:
@@ -368,7 +401,7 @@ class GeniusObject(object):
             result['_sku'] = node['sku']['val']
 
         node = raw_dict['childValues']
-        # Hack: find any Dual Channel Receiver(s), to give a type
+        # hack: find any Dual Channel Receiver(s), to 'force' that type
         if 'SwitchBinary' in node and \
                 node['SwitchBinary']['path'].count('/') == 3:
 
@@ -382,44 +415,13 @@ class GeniusObject(object):
                               result['type'],
                               device_type.format(result['id'][-1]))
 
-        # try to 'fingerprint' the device type
-        if 'SwitchBinary' in node:
-            if 'TEMPERATURE' in node:
-                _check_fingerprint(result, "Electric Switch")
-            elif 'SwitchAllMode' in node:
-                _check_fingerprint(result, "Smart Plug")
-            else:
-                _check_fingerprint(result, "Dual Channel Receiver")
+        _check_fingerprint(node, result)  # ... confirm type
 
-        elif 'setback' in node:
-            if 'TEMPERATURE' in node:
-                _check_fingerprint(result, "Genius Valve")
-            else:
-                _check_fingerprint(result, "Radiator Valve")
+        result['assignedZones'] = [{'name': None}]  # 3. Set assignedZone...
+        if node['location']['val']:
+            result['assignedZones'] = [{'name': node['location']['val']}]
 
-        elif 'Motion' in node:
-            _check_fingerprint(result, "Room Sensor")
-
-        elif 'Indicator' in node:
-            _check_fingerprint(result, "Room Thermostat")
-
-        else:  # unknown device fingerprint
-            if result['type']:
-                _LOGGER.debug("Device %s: Can't obtain a Fingerprint, "
-                              "using Type: '%s'", result['id'], result['type'])
-            else:
-                _LOGGER.error("Device %s: Can't obtain a Fingerprint, "
-                              "and has no Type.", result['id'])
-
-        # Determine Device assignedZones...
-        result['assignedZones'] = [{'name': None}]
-        node = raw_dict['childValues']['location']
-        if node['val']:
-            result['assignedZones'] = [{'name': node['val']}]
-
-        # Determine Device state...
-        state = result['state'] = {}
-        node = raw_dict['childValues']
+        result['state'] = state = {}  # 4. Set state...
 
         # DCCR, PLUG = ['outputOnOff']
         # VALV, ROMT = ['batteryLevel', 'setTemperature', 'measuredTemperature']
@@ -427,19 +429,19 @@ class GeniusObject(object):
         # RADR = ['batteryLevel', 'setTemperature']
         # RADR = ['outputOnOff', 'measuredTemperature']
 
-        # This preserves the order too
-        if 'SwitchBinary' in node:
+        MAP = {
+            'SwitchBinary': 'outputOnOff',
+            'Battery': 'batteryLevel',
+            'HEATING_1': 'setTemperature',
+            'TEMPERATURE': 'measuredTemperature',
+            'LUMINANCE': 'luminance',
+            'Motion': 'occupancyTrigger'
+        }
+
+        # the following order should be preserved
+        state.update([(v, node[k]['val']) for k, v in MAP.items() if k in node])
+        if 'SwitchBinary' in node:  # this one should be a bool
             state['outputOnOff'] = bool(node['SwitchBinary']['val'])
-        if 'Battery' in node:
-            state['batteryLevel'] = node['Battery']['val']
-        if 'HEATING_1' in node:
-            state['setTemperature'] = node['HEATING_1']['val']
-        if 'TEMPERATURE' in node:
-            state['measuredTemperature'] = node['TEMPERATURE']['val']
-        if 'LUMINANCE' in node:
-            state['luminance'] = node['LUMINANCE']['val']
-        if 'Motion' in node:
-            state['occupancyTrigger'] = node['Motion']['val']
 
         return result
 
@@ -569,10 +571,10 @@ class GeniusHub(GeniusObject):
         _LOGGER.info("GeniusHub(client, hub=%s)", hub_dict['id'])
         super().__init__(client, hub_dict)
 
-        self._info = {}  # Dict[str, Any] = {}
-        self._zones = []  # List[dict] = []
-        self._devices = []  # List[dict] = []
-        self._issues = []  # List[dict] = []
+        self._info: Dict[str, Any] = {}
+        self._zones: List[dict] = []
+        self._devices: List[dict] = []
+        self._issues: List[dict] = []
 
         self._info_raw = None
         self._issues_raw = self._devices_raw = self._zones_raw = None
@@ -702,10 +704,10 @@ class GeniusHub(GeniusObject):
             self._zones_raw = await self._request("GET", 'zones')
         else:
             json = await self._request("GET", 'zones')
-            _LOGGER.debug("Hub()._get_zones_raw(): json = %s", json['data'])
+            # _LOGGER.debug("Hub()._get_zones_raw(): json = %s", json['data'])
             self._zones_raw = _get_zones_from_zones_v3(json['data'])
 
-        _LOGGER.debug("Hub()._get_zones_raw(): len(self._zones_raw) = %s",
+        _LOGGER.info("Hub()._get_zones_raw(): len(self._zones_raw) = %s",
                       len(self._zones_raw))
         return self._zones_raw
 
@@ -732,10 +734,10 @@ class GeniusHub(GeniusObject):
             self._devices_raw = await self._request('GET', 'devices')
         else:
             json = await self._request('GET', 'data_manager')
-            _LOGGER.debug("Hub()._get_devices_raw(): json = %s", json['data'])
+            # _LOGGER.debug("Hub()._get_devices_raw(): json = %s", json['data'])
             self._devices_raw = _get_devices_from_data_manager(json['data'])
 
-        _LOGGER.debug("Hub()._get_devices_raw(): len(self._devices_raw) = %s",
+        _LOGGER.info("Hub()._get_devices_raw(): len(self._devices_raw) = %s",
                       len(self._devices_raw))
         return self._devices_raw
 
@@ -764,7 +766,7 @@ class GeniusHub(GeniusObject):
         else:  # NB: this must run after _get_zones_raw()
             self._issues_raw = _get_issues_from_zones_v3(self._zones_raw)
 
-        _LOGGER.debug("Hub()._get_issues_raw(): len(self._issues_raw) = %s",
+        _LOGGER.info("Hub()._get_issues_raw(): len(self._issues_raw) = %s",
                       len(self._issues_raw))
         return self._issues_raw
 
@@ -824,7 +826,7 @@ class GeniusZone(GeniusObject):
     """The class for Genius Zone."""
 
     def __init__(self, client, zone_dict, hub) -> None:
-        _LOGGER.info("GeniusZone(hub=%s, zone['id]=%s)",
+        _LOGGER.info("GeniusZone(hub=%s, zone_id=%s)",
                      hub.id, zone_dict['id'])
         super().__init__(client, zone_dict, hub=hub)
 
@@ -963,8 +965,8 @@ class GeniusDevice(GeniusObject):
     """The class for Genius Device."""
 
     def __init__(self, client, device_dict, hub, zone=None) -> None:
-        _LOGGER.info("GeniusDevice(hub=%s, zone=%s, device['id']=%s)",
-                     hub.id, zone, device_dict['id'])
+        _LOGGER.info("GeniusDevice(hub=%s, zone_id=%s, device_id=%s)",
+                     hub.id, zone.id if zone else None, device_dict['id'])
         super().__init__(client, device_dict, hub=hub, assignedZone=zone)
 
         self._info = {}
