@@ -594,25 +594,20 @@ class GeniusHub(GeniusObject):
         def _populate_device(device_raw): # TODO: maybe? _populate_device(device_raw, parent_zone=None)
             device_dict = self._convert_device(device_raw)
 
-            if isinstance(self, GeniusHub):
-                hub = self  # or parent if None?
-                name = device_dict['assignedZones'][0]['name']
-                zone = hub.zone_by_name[name] if name else None
-            else:
-                hub = self.hub
-                zone = self
+            name = device_dict['assignedZones'][0]['name']
+            zone = self.zone_by_name[name] if name else None
 
             try:  # does the Hub already know about this device?
-                device = hub.device_by_id[device_dict['id']]
+                device = self.device_by_id[device_dict['id']]
             except KeyError:
-                device = GeniusDevice(self._client, device_dict, hub, zone)
-                hub.device_by_id[device.id] = device
-                hub.device_objs.append(device)
+                device = GeniusDevice(self._client, device_dict, self, zone)
+                self.device_by_id[device.id] = device
+                self.device_objs.append(device)
             else:
                 _LOGGER.error("Duplicate device: %s!", device.id)
 
             if zone:
-                try:  # does the (parent) Zone already know about this device?
+                try:  # does the parent Zone already know about this device?
                     device = zone.device_by_id[device_dict['id']]
                 except KeyError:
                     zone.device_by_id[device.id] = device
@@ -620,15 +615,6 @@ class GeniusHub(GeniusObject):
                 else:
                     _LOGGER.error("Duplicate device: %s for zone: %s!",
                         device.id, zone.id)
-
-            # TODO: this code may be redundant
-            if isinstance(self, GeniusZone):
-                print("LOOK FOR THIS IN THE LIBRARY")  # TODO: remove this
-                try:  # does the zone already know about this device?
-                    device = self.device_by_id[device_dict['id']]
-                except KeyError:
-                    self.device_by_id[device.id] = device
-                    self.device_objs.append(device)
 
             device.__dict__.update(device_dict)
             device._info_raw = device_raw
