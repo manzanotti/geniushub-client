@@ -4,6 +4,7 @@
    """
 # import asyncio
 from hashlib import sha256
+from typing import Any, Dict, List, Set, Tuple, Optional
 
 import logging
 import re
@@ -17,8 +18,9 @@ from .const import (
     LEVEL_TO_TEXT, DESCRIPTION_TO_TEXT,
     ZONE_TYPES, ZONE_MODES, KIT_TYPES)
 
+logging.basicConfig()
 _LOGGER = logging.getLogger(__name__)
-_LOGGER.setLevel(logging.WARNING)
+# _LOGGER.setLevel(logging.WARNING)
 
 # pylint3 --max-line-length=120
 # pylint: disable=fixme, missing-docstring
@@ -28,6 +30,12 @@ _LOGGER.setLevel(logging.WARNING)
 # pylint: disable=too-many-arguments
 
 
+def natural_sort(dict_list, dict_key):
+    def alphanum_key(k): return [int(c) if c.isdigit() else c.lower()            # noqa; pylint: disable=multiple-statements
+                                 for c in re.split('([0-9]+)', k[dict_key])]
+    return sorted(dict_list, key=alphanum_key)
+
+
 def _without_keys(dict_obj, keys) -> dict:
     _info = dict(dict_obj)
     _info = {k: v for k, v in _info.items() if k[:1] != '_'}
@@ -35,24 +43,20 @@ def _without_keys(dict_obj, keys) -> dict:
     return _info
 
 
-def _extract_zones_from_zones(raw_json) -> list:
+def _get_zones_from_zones_v3(raw_json) -> list:
     """Extract Zones from /v3/zones JSON.
 
     This extracts a list of Zones from a flat list of Zones.
     """
-    _LOGGER.debug("_zones_from_zones(): raw_json = %s", raw_json)
-
     return raw_json
 
 
-def _extract_devices_from_data_manager(raw_json) -> list:
+def _get_devices_from_data_manager(raw_json) -> list:
     """Extract Devices from /v3/data_manager JSON.
 
     This extracts a list of Devices from a nested list of Devices and Channels.
     Each Zone may have 0-many Devices.
     """
-    _LOGGER.debug("_devices_from_data_manager(): raw_json = %s", raw_json)
-
     result = []
     for site in [x for x in raw_json['childNodes'].values()
                  if x['addr'] != 'WeatherData']:
@@ -68,14 +72,12 @@ def _extract_devices_from_data_manager(raw_json) -> list:
     return result
 
 
-def _extract_devices_from_zones(raw_json) -> list:
+def _get_devices_from_zones_v3(raw_json) -> list:
     """Extract Devices from /v3/zones JSON.
 
     This extracts a list of Devices from a list of Zones. Each Zone may
     have multiple Devices.
     """
-    _LOGGER.debug("_devices_from_zones(): raw_json = %s", raw_json)
-
     result = []
     for zone in raw_json:
         for device in [x for x in zone['nodes'].values()
@@ -85,14 +87,12 @@ def _extract_devices_from_zones(raw_json) -> list:
     return result
 
 
-def _extract_issues_from_zones(raw_json) -> list:
+def _get_issues_from_zones_v3(raw_json) -> list:
     """Extract Issues from /v3/zones JSON.
 
     This extracts a list of Issues from a list of Zones.  Each Zone may
     have multiple Issues.
     """
-    _LOGGER.debug("_issues_from_zones(): raw_json = %s", raw_json)
-
     result = []
     for zone in raw_json:
         for issue in zone['lstIssues']:
@@ -103,16 +103,10 @@ def _extract_issues_from_zones(raw_json) -> list:
     return result
 
 
-def natural_sort(dict_list, dict_key):
-    def alphanum_key(k): return [int(c) if c.isdigit() else c.lower()
-                                 for c in re.split('([0-9]+)', k[dict_key])]
-    return sorted(dict_list, key=alphanum_key)
-
-
 class GeniusHubClient(object):
     """The class for a connection to a Genius Hub."""
     def __init__(self, hub_id, username=None, password=None, session=None,
-                 debug=False):
+                 debug=False) -> None:
         if debug is True:
             _LOGGER.setLevel(logging.DEBUG)
             _LOGGER.debug("Debug mode is explicitly enabled.")
@@ -162,8 +156,8 @@ class GeniusHubClient(object):
 
 class GeniusObject(object):
     """The base class for Genius Hub, Zone & Device."""
-    def __init__(self, client, obj_dict, hub=None, assignedZone=None):
-        self.id = None  # avoids no-member,                                      # pylint: disable=invalid-name
+    def __init__(self, client, obj_dict, hub=None, assignedZone=None) -> None:
+        self.id = None  # avoids no-member,                                      # noqa; pylint: disable=invalid-name
 
         self.__dict__.update(obj_dict)  # create self.id, etc.
 
@@ -186,12 +180,14 @@ class GeniusObject(object):
 
         elif isinstance(self, GeniusDevice):
             self.hub = hub
-            self.assignedZone = assignedZone                                     # pylint: disable=invalid-name
+            self.assignedZone = assignedZone                                     # noqa; pylint: disable=invalid-name
 
     def _convert_zone(self, raw_dict) -> dict:
         """Convert a v3 zone's dict/json to the v1 schema."""
         if self._api_v1:
             return raw_dict
+
+        # _LOGGER.debug("_convert_zone(): raw_dict=%s", raw_dict)
 
         result = {}
         result['id'] = raw_dict['iID']
@@ -286,9 +282,10 @@ class GeniusObject(object):
             _LOGGER.warning("_convert_zone(): Failed to convert Timer "
                             "schedule for Zone %s", result['id'])
 
-        except:
+        except Exception as err:
             _LOGGER.exception("_convert_zone(): Failed to convert Timer "
-                              "schedule for Zone %s", result['id'])
+                              "schedule for Zone %s, message: %s",
+                              result['id'], err)
 
         try:
             if raw_dict['iType'] in [ZONE_TYPES.ControlSP]:
@@ -326,9 +323,10 @@ class GeniusObject(object):
                     setpoint_time = next_time
                     setpoint_temp = next_temp
 
-        except:
+        except Exception as err:
             _LOGGER.exception("_convert_zone(): Failed to convert Footprint "
-                              "schedule for Zone %s", result['id'])
+                              "schedule for Zone %s, message: %s",
+                              result['id'], err)
 
         return result
 
@@ -336,6 +334,8 @@ class GeniusObject(object):
         """Convert a v3 device's dict/json to the v1 schema."""
         if self._api_v1:
             return raw_dict
+
+        # _LOGGER.debug("_convert_device(): raw_dict=%s", raw_dict)
 
         def _check_fingerprint(device, device_fingerprint):
             if not device['type']:
@@ -448,7 +448,7 @@ class GeniusObject(object):
         if self._api_v1:
             return raw_dict
 
-        _LOGGER.debug("_convert_issue(): raw_dict=%s", raw_dict)
+        # _LOGGER.debug("_convert_issue(): raw_dict=%s", raw_dict)
 
         description = DESCRIPTION_TO_TEXT.get(raw_dict['id'], raw_dict)
 
@@ -522,12 +522,12 @@ class GeniusObject(object):
 
         # except concurrent.futures._base.TimeoutError as err:
 
-    def _subset_list(self, item_list_raw, _convert_to_v1,
+    def _subset_list(self, item_list_raw, convert_to_v1,
                      summary_keys, detail_keys) -> list:
         if self._client._verbose >= 3:
             return item_list_raw
 
-        item_list = [_convert_to_v1(i) for i in item_list_raw]
+        item_list = [convert_to_v1(i) for i in item_list_raw]
 
         if self._client._verbose >= 2:
             return item_list
@@ -542,12 +542,12 @@ class GeniusObject(object):
 
         return result
 
-    def _subset_dict(self, item_dict_raw, _convert_to_v1,
+    def _subset_dict(self, item_dict_raw, convert_to_v1,
                      summary_keys, detail_keys):
         if self._client._verbose >= 3:
             return item_dict_raw
 
-        item_dict = _convert_to_v1(item_dict_raw)
+        item_dict = convert_to_v1(item_dict_raw)
 
         if self._client._verbose >= 2:
             return item_dict
@@ -565,14 +565,14 @@ class GeniusHub(GeniusObject):
     # conn.post("/v3/system/reboot", { username: e, password: t, json:{} })
     # conn.get("/v3/auth/test", { username: e, password: t, timeout: n })
 
-    def __init__(self, client, hub_dict):
+    def __init__(self, client, hub_dict) -> None:
         _LOGGER.info("GeniusHub(client, hub=%s)", hub_dict['id'])
         super().__init__(client, hub_dict)
 
-        self._info = {}  # a dict of attrs
-        self._zones = []  # a list of dicts
-        self._devices = []  # a list of dicts
-        self._issues = []  # a list of dicts
+        self._info: Dict[str, Any] = {}
+        self._zones: List[dict] = []
+        self._devices: List[dict] = []
+        self._issues: List[dict] = []
 
         self._info_raw = None
         self._issues_raw = self._devices_raw = self._zones_raw = None
@@ -586,7 +586,7 @@ class GeniusHub(GeniusObject):
             zone_dict = self._convert_zone(zone_raw)
 
             zone_id = zone_dict['id']
-            try:  # does the hub already know about this device?
+            try:  # does the hub already know about this zone?
                 zone = hub.zone_by_id[zone_id]
             except KeyError:
                 _LOGGER.debug("Creating a Zone (hub=%s, zone=%s)",
@@ -672,7 +672,7 @@ class GeniusHub(GeniusObject):
 
         [_populate_zone(z) for z in await self._get_zones_raw]                   # noqa; pylint: disable=expression-not-assigned
         [_populate_device(d) for d in await self._get_devices_raw]               # noqa; pylint: disable=expression-not-assigned
-        [_populate_issue(i) for i in await self._get_issues]                     # noqa; pylint: disable=expression-not-assigned
+        [_populate_issue(i) for i in await self._get_issues_raw]                 # noqa; pylint: disable=expression-not-assigned
 
         _LOGGER.debug("Hub(%s).update(): len(hub.zone_objs) = %s",
                       self.id, len(self.zone_objs))
@@ -694,15 +694,16 @@ class GeniusHub(GeniusObject):
         return info
 
     @property
-    async def _get_zones_raw(self) -> list:
-        """Return a list (of dicts) of zones included in the system."""
+    async def _get_zones_raw(self) -> List[dict]:
+        """Return a list of zones included in the system."""
         # getAllZonesData = x.get("/v3/zones", {username: e, password: t})
 
-        raw_json = await self._request("GET", 'zones')
         if self._api_v1:
-            self._zones_raw = raw_json
+            self._zones_raw = await self._request("GET", 'zones')
         else:
-            self._zones_raw = _extract_zones_from_zones(raw_json['data'])
+            json = await self._request("GET", 'zones')
+            _LOGGER.debug("Hub()._get_zones_raw(): json = %s", json['data'])
+            self._zones_raw = _get_zones_from_zones_v3(json['data'])
 
         _LOGGER.debug("Hub()._get_zones_raw(): len(self._zones_raw) = %s",
                       len(self._zones_raw))
@@ -723,17 +724,16 @@ class GeniusHub(GeniusObject):
         return result
 
     @property
-    async def _get_devices_raw(self) -> list:
-        """Return a list (of dicts) of devices included in the system."""
+    async def _get_devices_raw(self) -> List[dict]:
+        """Return a list of devices included in the system."""
         # getDeviceList = x.get("/v3/data_manager", {username: e, password: t})
 
         if self._api_v1:
-            raw_json = await self._request('GET', 'devices')
-            self._devices_raw = raw_json
+            self._devices_raw = await self._request('GET', 'devices')
         else:
-            raw_json = await self._request('GET', 'data_manager')
-            self._devices_raw = _extract_devices_from_data_manager(
-                raw_json['data'])
+            json = await self._request('GET', 'data_manager')
+            _LOGGER.debug("Hub()._get_devices_raw(): json = %s", json['data'])
+            self._devices_raw = _get_devices_from_data_manager(json['data'])
 
         _LOGGER.debug("Hub()._get_devices_raw(): len(self._devices_raw) = %s",
                       len(self._devices_raw))
@@ -744,7 +744,7 @@ class GeniusHub(GeniusObject):
         """Return a list of Devices known to the Hub.
 
           v1/devices/summary: id, type
-          v1/devices: id, type, assignedZones, state
+          v1/devices:         id, type, assignedZones, state
         """
         result = self._subset_list(
             self._devices_raw, self._convert_device, **ATTRS_DEVICE)
@@ -756,17 +756,16 @@ class GeniusHub(GeniusObject):
         return result
 
     @property
-    async def _get_issues(self) -> list:
-        """Return a list (of dicts) of issues known to the hub."""
+    async def _get_issues_raw(self) -> List[dict]:
+        """Return a list of issues known to the hub."""
 
         if self._api_v1:
             self._issues_raw = await self._request('GET', 'issues')
-        else:
-            self._issues_raw = _extract_issues_from_zones(
-                self._zones_raw)
+        else:  # NB: this must run after _get_zones_raw()
+            self._issues_raw = _get_issues_from_zones_v3(self._zones_raw)
 
-        _LOGGER.info("Hub()._get_issues(): len(self._issues_raw) = %s",
-                     len(self._issues_raw))
+        _LOGGER.debug("Hub()._get_issues_raw(): len(self._issues_raw) = %s",
+                      len(self._issues_raw))
         return self._issues_raw
 
     @property
@@ -775,8 +774,6 @@ class GeniusHub(GeniusObject):
 
           v1/issues: description, level
         """
-        # _LOGGER.warn("Hub().issues...")
-
         result = self._subset_list(
             self._issues_raw, self._convert_issue, **ATTRS_ISSUE)
 
@@ -784,10 +781,49 @@ class GeniusHub(GeniusObject):
         return result
 
 
+class GeniusHubTest(GeniusHub):
+    """The test class for a Genius Hub - uses a test file."""
+
+    def __init__(self, client, hub_dict, zones_json={}, device_json={}) -> None:
+        _LOGGER.info("GeniusHubTest(client, hub=%s)", hub_dict['id'])
+        super().__init__(client, hub_dict)
+
+        self._zones_json = zones_json
+        self._device_json = device_json
+
+        self._api_v1 = False
+
+    @property
+    async def _get_zones_raw(self) -> List[dict]:
+        """Return a list of zones included in the system."""
+        if self._zones_json:
+            json = self._zones_json
+            self._zones_raw = _get_zones_from_zones_v3(json['data'])
+        else:
+            super()._get_zones_raw()
+
+        _LOGGER.debug("Hub()._get_zones_raw(): len(self._zones_raw) = %s",
+                      len(self._zones_raw))
+        return self._zones_raw
+
+    @property
+    async def _get_devices_raw(self) -> List[dict]:
+        """Return a list of devices included in the system."""
+        if self._device_json:
+            json = self._device_json
+            self._devices_raw = _get_devices_from_data_manager(json['data'])
+        else:
+            super()._get_zones_raw()
+
+        _LOGGER.debug("Hub()._get_devices_raw(): len(self._devices_raw) = %s",
+                      len(self._devices_raw))
+        return self._devices_raw
+
+
 class GeniusZone(GeniusObject):
     """The class for Genius Zone."""
 
-    def __init__(self, client, zone_dict, hub):
+    def __init__(self, client, zone_dict, hub) -> None:
         _LOGGER.info("GeniusZone(hub=%s, zone['id]=%s)",
                      hub.id, zone_dict['id'])
         super().__init__(client, zone_dict, hub=hub)
@@ -926,8 +962,8 @@ class GeniusZone(GeniusObject):
 class GeniusDevice(GeniusObject):
     """The class for Genius Device."""
 
-    def __init__(self, client, device_dict, hub, zone=None):
-        _LOGGER.info("GeniusZone(hub=%s, zone=%s,device['id']=%s)",
+    def __init__(self, client, device_dict, hub, zone=None) -> None:
+        _LOGGER.info("GeniusDevice(hub=%s, zone=%s, device['id']=%s)",
                      hub.id, zone, device_dict['id'])
         super().__init__(client, device_dict, hub=hub, assignedZone=zone)
 
