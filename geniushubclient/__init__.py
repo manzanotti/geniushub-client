@@ -372,7 +372,7 @@ class GeniusObject(object):
 
             if not device['type']:
                 _LOGGER.debug(
-                    "Device %s: No type, but typed by fingerprint: '%s'."
+                    "Device %s: No type, but typed by fingerprint: '%s'.",
                     device['id'], fingerprint)
                 device['type'] = fingerprint
 
@@ -390,7 +390,6 @@ class GeniusObject(object):
         result = {}
 
         result['id'] = raw_dict['addr']  # 1. Set id (addr)
-
         result['type'] = None  # 2. Set type...
 
         node = raw_dict['childNodes']['_cfg']['childValues']
@@ -421,19 +420,13 @@ class GeniusObject(object):
 
         result['state'] = state = {}  # 4. Set state...
 
-        # DCCR, PLUG = ['outputOnOff']
-        # VALV, ROMT = ['batteryLevel', 'setTemperature', 'measuredTemperature']
-        # ROMS =  ['batteryLevel', 'measuredTemperature', 'luminance', 'occupancyTrigger']
-        # RADR = ['batteryLevel', 'setTemperature']
-        # RADR = ['outputOnOff', 'measuredTemperature']
-
         MAP = {
-            'SwitchBinary': 'outputOnOff',
-            'Battery': 'batteryLevel',
-            'HEATING_1': 'setTemperature',
-            'TEMPERATURE': 'measuredTemperature',
-            'LUMINANCE': 'luminance',
-            'Motion': 'occupancyTrigger'
+            'SwitchBinary': 'outputOnOff',         # DCCR/PLUG, RADR
+            'Battery': 'batteryLevel',             # VALV/ROMT, RADR, ROMS
+            'HEATING_1': 'setTemperature',         # VALV/ROMT, RADR
+            'TEMPERATURE': 'measuredTemperature',  # VALV/ROMT, RADR, ROMS
+            'LUMINANCE': 'luminance',              #                  ROMS
+            'Motion': 'occupancyTrigger'           #                  ROMS
         }
 
         # the following order should be preserved
