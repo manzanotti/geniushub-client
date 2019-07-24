@@ -245,7 +245,7 @@ class GeniusObject(object):
                     if raw_dict['iType'] == ZONE_TYPES.OnOffTimer:
                         next_temp = bool(setpoint['fSP'])
 
-                    if next_time == -1:  # i.e. default SP entry
+                    if next_time <= 0:  # a new day (-1=default SP; 0=1st SP)
                         day += 1
                         node = root['weekly'][IDAY_TO_DAY[day]] = {}
                         node['defaultSetpoint'] = default_temp = next_temp
