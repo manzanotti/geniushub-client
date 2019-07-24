@@ -1,8 +1,11 @@
 ### local .gitignore file
 # zxdavb
 
+!.gitignore
+ghdebug*.*
 tokens*
 tokens*.*
+
 *.json
 *.out
 *.txt
