@@ -107,12 +107,7 @@ class GeniusHubClient(object):
     """The class for a connection to a Genius Hub."""
     def __init__(self, hub_id, username=None, password=None, session=None,
                  debug=False) -> None:
-        if debug is True:
-            _LOGGER.setLevel(logging.DEBUG)
-            _LOGGER.debug("Debug mode is explicitly enabled.")
-        else:
-            _LOGGER.debug("Debug mode is not explicitly enabled "
-                          "(but may be enabled elsewhere).")
+        self.debug = debug
 
         # use existing session if one was provided
         self._session = session if session else aiohttp.ClientSession()
@@ -139,8 +134,21 @@ class GeniusHubClient(object):
         self.hub = GeniusHub(self, {'id': hub_id})
 
     @property
+    def debug(self) -> bool:
+        return self._debug
+
+    @debug.setter
+    def debug(self, value) -> None:
+        self._debug = value
+        if value is True:
+            _LOGGER.setLevel(logging.DEBUG)
+            _LOGGER.debug("Debug mode is explicitly enabled.")
+        else:
+            _LOGGER.debug("Debug mode is not explicitly enabled "
+                          "(but may be enabled elsewhere).")
+
+    @property
     def verbosity(self) -> int:
-        """Currently unused, ignore."""
         return self._verbose
 
     @verbosity.setter
@@ -278,7 +286,7 @@ class GeniusObject(object):
 
         except UnboundLocalError:
             _LOGGER.warning("_convert_zone(): Failed to convert Timer "
-                            " for Zone %s", result['id'])
+                            " schedule for Zone %s", result['id'])
 
         except Exception as err:
             _LOGGER.exception("_convert_zone(): Failed to convert Timer "
@@ -482,7 +490,7 @@ class GeniusObject(object):
 
         # except concurrent.futures._base.TimeoutError as err:
         except aiohttp.client_exceptions.ServerDisconnectedError as err:
-            _LOGGER.warning("_request(): ServerDisconnected, retrying (msg=%s)", err)
+            _LOGGER.debug("_request(): ServerDisconnected, retrying (msg=%s)", err)
             _session = aiohttp.ClientSession()
             async with http_method(
                 self._client._url_base + url,
@@ -703,42 +711,32 @@ class GeniusHub(GeniusObject):
             self._issues_raw, self._convert_issue, **ATTRS_ISSUE)
 
 
-class GeniusHubTest(GeniusHub):
+class GeniusTestHub(GeniusHub):
     """The test class for a Genius Hub - uses a test file."""
 
     def __init__(self, client, hub_dict, zones_json={}, device_json={}) -> None:
-        _LOGGER.info("GeniusHubTest()")
+        _LOGGER.warn("GeniusTestHub()")
         super().__init__(client, hub_dict)
 
-        self._zones_json = zones_json
-        self._device_json = device_json
+        self._zones_test = zones_json
+        self._devices_test = device_json
 
         self._api_v1 = False
 
     @property
     async def _get_zones_raw(self) -> List[dict]:
         """Return a list of zones included in the system."""
-        if self._zones_json:
-            json = self._zones_json
-            self._zones_raw = _get_zones_from_zones_v3(json['data'])
-        else:
-            super()._get_zones_raw()
+        self._zones_raw = self._zones_test
 
-        _LOGGER.debug("Hub()._get_zones_raw(): len(self._zones_raw) = %s",
-                      len(self._zones_raw))
+        _LOGGER.info("Hub: len(_zones_raw) = %s", len(self._zones_raw))
         return self._zones_raw
 
     @property
     async def _get_devices_raw(self) -> List[dict]:
         """Return a list of devices included in the system."""
-        if self._device_json:
-            json = self._device_json
-            self._devices_raw = _get_devices_from_data_manager(json['data'])
-        else:
-            super()._get_zones_raw()
+        self._devices_raw = self._devices_test
 
-        _LOGGER.debug("Hub()._get_devices_raw(): len(self._devices_raw) = %s",
-                      len(self._devices_raw))
+        _LOGGER.info("Hub: len(_devices_raw) = %s", len(self._devices_raw))
         return self._devices_raw
 
 
