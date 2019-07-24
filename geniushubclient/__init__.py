@@ -92,7 +92,12 @@ class GeniusHubClient(object):
     """The class for a connection to a Genius Hub."""
     def __init__(self, hub_id, username=None, password=None, session=None,
                  debug=False) -> None:
-        self.debug = debug
+        if debug is True:
+            _LOGGER.setLevel(logging.DEBUG)
+            _LOGGER.debug("Debug mode is explicitly enabled.")
+        else:
+            _LOGGER.debug("Debug mode is not explicitly enabled "
+                          "(but may be enabled elsewhere).")
 
         # use existing session if one was provided
         self._session = session if session else aiohttp.ClientSession()
@@ -117,20 +122,6 @@ class GeniusHubClient(object):
         hub_id = hub_id[:8] + "..." if len(hub_id) > 20 else hub_id
 
         self.hub = GeniusHub(self, {'id': hub_id})
-
-    @property
-    def debug(self) -> bool:
-        return self._debug
-
-    @debug.setter
-    def debug(self, value) -> None:
-        self._debug = value
-        if value is True:
-            _LOGGER.setLevel(logging.DEBUG)
-            _LOGGER.debug("Debug mode is explicitly enabled.")
-        else:
-            _LOGGER.debug("Debug mode is not explicitly enabled "
-                          "(but may be enabled elsewhere).")
 
     @property
     def verbosity(self) -> int:
@@ -269,13 +260,12 @@ class GeniusObject(object):
                     setpoint_temp = next_temp
 
         except UnboundLocalError:
-            _LOGGER.warning("_convert_zone(): Failed to convert Timer "
-                            " schedule for Zone %s", result['id'])
+            _LOGGER.warning("Failed to convert Timer schedule for Zone %s",
+                            result['id'])
 
         except Exception as err:
-            _LOGGER.exception("_convert_zone(): Failed to convert Timer "
-                              "schedule for Zone %s, message: %s",
-                              result['id'], err)
+            _LOGGER.exception("Failed to convert Timer schedule for Zone %s, "
+                              "message: %s", result['id'], err)
 
         try:
             if raw_dict['iType'] in [ZONE_TYPES.ControlSP]:
@@ -314,9 +304,8 @@ class GeniusObject(object):
                     setpoint_temp = next_temp
 
         except Exception as err:
-            _LOGGER.exception("_convert_zone(): Failed to convert Footprint "
-                              "schedule for Zone %s, message: %s",
-                              result['id'], err)
+            _LOGGER.exception("Failed to convert Footprint schedule for Zone %s, "
+                              "message: %s", result['id'], err)
 
         return result
 
@@ -398,7 +387,7 @@ class GeniusObject(object):
                 result['id'][-1])
             _LOGGER.debug(
                 "Device %s, '%s': typed by its fingerprint (this is OK).",
-                    result['id'], result['type'])
+                result['id'], result['type'])
         else:
             _check_fingerprint(node, result)  # ... confirm type, set if needed
 
@@ -409,12 +398,12 @@ class GeniusObject(object):
         result['state'] = state = {}  # 4. Set state...
 
         MAP = {
-            'SwitchBinary': 'outputOnOff',  #        DCCR/PLUG, RADR
-            'Battery': 'batteryLevel',  #            VALV/ROMT, RADR, ROMS
-            'HEATING_1': 'setTemperature',  #        VALV/ROMT, RADR
+            'SwitchBinary': 'outputOnOff',  # #      DCCR/PLUG, RADR
+            'Battery': 'batteryLevel',  # #          VALV/ROMT, RADR, ROMS
+            'HEATING_1': 'setTemperature',  # #      VALV/ROMT, RADR
             'TEMPERATURE': 'measuredTemperature',  # VALV/ROMT, RADR, ROMS
-            'LUMINANCE': 'luminance',  #                              ROMS
-            'Motion': 'occupancyTrigger'  #                           ROMS
+            'LUMINANCE': 'luminance',  # #                            ROMS
+            'Motion': 'occupancyTrigger'  # #                         ROMS
         }
 
         # the following order should be preserved
@@ -591,7 +580,7 @@ class GeniusHub(GeniusObject):
                     zone.device_objs.append(device)
                 else:
                     _LOGGER.error("Duplicate device: %s for zone: %s!",
-                        device.id, zone.id)
+                                  device.id, zone.id)
 
             device.__dict__.update(device_dict)
             device._info_raw = device_raw
@@ -698,8 +687,8 @@ class GeniusHub(GeniusObject):
 class GeniusTestHub(GeniusHub):
     """The test class for a Genius Hub - uses a test file."""
 
-    def __init__(self, client, hub_dict, zones_json={}, device_json={}) -> None:
-        _LOGGER.warn("GeniusTestHub()")
+    def __init__(self, client, hub_dict, zones_json, device_json) -> None:
+        _LOGGER.warning("GeniusTestHub()")
         super().__init__(client, hub_dict)
 
         self._zones_test = zones_json
