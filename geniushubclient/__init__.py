@@ -234,55 +234,50 @@ class GeniusObject(object):
         """
         result['schedule'] = {'timer': {}, 'footprint': {}}
 
-        try:
-            if raw_dict['iType'] != ZONE_TYPES.Manager:
-                root = result['schedule']['timer'] = {'weekly': {}}
+        if raw_dict['iType'] != ZONE_TYPES.Manager:
+            root = result['schedule']['timer'] = {'weekly': {}}
+            day = -1
 
-                day = -1
+            try:
                 for setpoint in raw_dict['objTimer']:
-                    next_time = setpoint['iTm']
-                    next_temp = setpoint['fSP']
-                    if raw_dict['iType'] == ZONE_TYPES.OnOffTimer:
-                        next_temp = bool(setpoint['fSP'])
+                    next_tm = setpoint['iTm']
+                    next_sp = setpoint['fSP']
 
-                    if next_time <= 0:  # a new day (-1=default SP; 0=1st SP)
+                    if setpoint['iDay'] > day:  # a new day
                         day += 1
                         node = root['weekly'][IDAY_TO_DAY[day]] = {}
-                        node['defaultSetpoint'] = default_temp = next_temp
+                        node['defaultSetpoint'] = default_temp = next_sp
                         node['heatingPeriods'] = []
 
-                    elif setpoint_temp != default_temp:                          # noqa: disable=F821; pylint: disable=used-before-assignment
+                    elif next_sp != default_temp:
                         node['heatingPeriods'].append({
-                            'end': next_time,
-                            'start': setpoint_time,                              # noqa: disable=F821; pylint: disable=used-before-assignment
-                            'setpoint': setpoint_temp                            # noqa: disable=F821; pylint: disable=used-before-assignment
+                            'end': 0,
+                            'start': next_tm,
+                            'setpoint': next_sp
                         })
 
-                    setpoint_time = next_time
-                    setpoint_temp = next_temp
+                    else:
+                        node['heatingPeriods'][-1]['end'] = next_tm
 
-        except UnboundLocalError:
-            _LOGGER.warning("Failed to convert Timer schedule for Zone %s",
-                            result['id'])
+            except Exception as err:
+                _LOGGER.exception("Failed to convert Timer schedule for Zone %s, "
+                                  "message: %s", result['id'], err)
 
-        except Exception as err:
-            _LOGGER.exception("Failed to convert Timer schedule for Zone %s, "
-                              "message: %s", result['id'], err)
 
-        try:
-            if raw_dict['iType'] in [ZONE_TYPES.ControlSP]:
-                root = result['schedule']['footprint'] = {'weekly': {}}
+        if raw_dict['iType'] in [ZONE_TYPES.ControlSP]:
+            root = result['schedule']['footprint'] = {'weekly': {}}
 
+            try:
                 away_temp = raw_dict['objFootprint']['fFootprintAwaySP']
                 night_temp = raw_dict['objFootprint']['fFootprintNightSP']
                 night_start = raw_dict['objFootprint']['iFootprintTmNightStart']
 
                 day = -1
                 for setpoint in raw_dict['objFootprint']['lstSP']:
-                    next_time = setpoint['iTm']
+                    next_sec = setpoint['iTm']
                     next_temp = setpoint['fSP']
 
-                    if next_time == 0:  # i.e. start of day
+                    if next_sec == 0:  # i.e. start of day
                         day += 1
                         node = root['weekly'][IDAY_TO_DAY[day]] = {}
                         node['defaultSetpoint'] = away_temp
@@ -290,24 +285,24 @@ class GeniusObject(object):
 
                     elif setpoint_temp != away_temp:
                         node['heatingPeriods'].append({
-                            'end': next_time,
+                            'end': next_sec,
                             'start': setpoint_time,
                             'setpoint': setpoint_temp
                         })
 
-                    if next_time == night_start:  # e.g. 11pm
+                    if next_sec == night_start:  # e.g. 11pm
                         node['heatingPeriods'].append({
                             'end': 86400,
                             'start': night_start,
                             'setpoint': night_temp
                         })
 
-                    setpoint_time = next_time
+                    setpoint_time = next_sec
                     setpoint_temp = next_temp
 
-        except Exception as err:
-            _LOGGER.exception("Failed to convert Footprint schedule for Zone %s, "
-                              "message: %s", result['id'], err)
+            except Exception as err:
+                _LOGGER.exception("Failed to convert Footprint schedule for Zone %s, "
+                                  "message: %s", result['id'], err)
 
         return result
 
