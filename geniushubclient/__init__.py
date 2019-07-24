@@ -44,19 +44,12 @@ def _without_keys(dict_obj, keys) -> dict:
 
 
 def _get_zones_from_zones_v3(raw_json) -> list:
-    """Extract Zones from /v3/zones JSON.
-
-    This extracts a list of Zones from a flat list of Zones.
-    """
+    """Extract Zones from /v3/zones JSON."""
     return raw_json
 
 
 def _get_devices_from_data_manager(raw_json) -> list:
-    """Extract Devices from /v3/data_manager JSON.
-
-    This extracts a list of Devices from a nested list of Devices and Channels.
-    Each Zone may have 0-many Devices.
-    """
+    """Extract Devices from /v3/data_manager JSON."""
     result = []
     for site in [x for x in raw_json['childNodes'].values()
                  if x['addr'] != 'WeatherData']:
@@ -73,11 +66,7 @@ def _get_devices_from_data_manager(raw_json) -> list:
 
 
 def _get_devices_from_zones_v3(raw_json) -> list:
-    """Extract Devices from /v3/zones JSON.
-
-    This extracts a list of Devices from a list of Zones. Each Zone may
-    have multiple Devices.
-    """
+    """Extract Devices from /v3/zones JSON."""
     result = []
     for zone in raw_json:
         for device in [x for x in zone['nodes'].values()
@@ -88,11 +77,7 @@ def _get_devices_from_zones_v3(raw_json) -> list:
 
 
 def _get_issues_from_zones_v3(raw_json) -> list:
-    """Extract Issues from /v3/zones JSON.
-
-    This extracts a list of Issues from a list of Zones.  Each Zone may
-    have multiple Issues.
-    """
+    """Extract Issues from /v3/zones JSON."""
     result = []
     for zone in raw_json:
         for issue in zone['lstIssues']:
@@ -201,8 +186,7 @@ class GeniusObject(object):
         result['name'] = raw_dict['strName']
 
         if raw_dict['iType'] in [ZONE_TYPES.ControlSP, ZONE_TYPES.TPI]:
-            if raw_dict['activeTemperatureDevices']:
-                result['temperature'] = raw_dict['fPV']
+            result['temperature'] = raw_dict['fPV']
             result['setpoint'] = raw_dict['fSP']
 
         if raw_dict['iType'] == ZONE_TYPES.OnOffTimer:
