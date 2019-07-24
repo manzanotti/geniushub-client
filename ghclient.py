@@ -20,7 +20,7 @@ Arguments:
     info      display the properties of the hub/zone/device, as a dict
     reboot    reboot the hub
 
-    If no COMMAND is provided,  info is used and the entity's properties will be displayed.
+    If no COMMAND is provided, info is used and the entity's properties will be displayed.
 
 Options:
   If a USERNAME is provided, the HUB-ID must be hostname/IP address:
@@ -62,7 +62,7 @@ import re
 import aiohttp
 from docopt import docopt
 
-from geniushubclient import GeniusHubClient, GeniusHub
+from geniushubclient import GeniusHubClient, GeniusHub, GeniusTestHub
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -94,11 +94,12 @@ async def main(loop):
     client = GeniusHubClient(hub_id=args[HUB_ID],
                              username=args[USERNAME],
                              password=args[PASSWORD],
-                             session=session)
+                             session=session,
+                             debug=False)
 
     client.verbosity = args[VERBOSE]
 
-    hub = client.hub
+    hub = client.hub  # client.hub = GeniusHub(client, {'id': hub_id})
     await hub.update()  # initialise: enumerate all zones, devices & issues
 
     if args[DEVICE_ID]:
