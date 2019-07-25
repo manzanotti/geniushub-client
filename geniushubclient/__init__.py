@@ -243,8 +243,7 @@ class GeniusObject(object):
                     tm_next = setpoint['iTm']
                     sp_next = setpoint['fSP']
                     if raw_dict['iType'] == ZONE_TYPES.OnOffTimer:
-                        next_temp = bool(sp_next)
-
+                        sp_next = bool(sp_next)
 
                     if setpoint['iDay'] > day:  # a new day
                         day += 1
