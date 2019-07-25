@@ -143,6 +143,8 @@ class GeniusObject(object):
 
         self.__dict__.update(obj_dict)  # create self.id, etc.
 
+        # _LOGGER.warn("AAA dir(%s) = %s", type(self), dir(self))  # TODO: delete me
+
         self._client = client
         self._api_v1 = client._api_v1
 
@@ -214,6 +216,7 @@ class GeniusObject(object):
             d = raw_dict['zoneReactive']['bTriggerOn']
             c = raw_dict['iActivity'] or 0                                       # noqa: ignore=F841; pylint: disable=unused-variable
             o = raw_dict['objFootprint']['bIsNight']
+            # i suspect -1 should be True
             result['occupied'] = True if u and d and (not o) else -1 if c > 0 else False
 
         if raw_dict['iType'] in [ZONE_TYPES.OnOffTimer,
@@ -545,6 +548,8 @@ class GeniusHub(GeniusObject):
             zone.__dict__.update(zone_dict)
             zone._info_raw = zone_raw
 
+            # _LOGGER.warn("BBB dir(zone) = %s", dir(zone))  # TODO: delete me
+
             return zone.id, zone
 
         def _populate_device(device_raw):
@@ -833,6 +838,8 @@ class GeniusZone(GeniusObject):
             _LOGGER.debug("Zone(%s).update(v3): type = %s",
                           self.id, type(self))
             await self.hub.update()
+
+        # _LOGGER.warn("CCC dir(zone) = %s", dir(self))  # TODO: delete me
 
 
 class GeniusDevice(GeniusObject):
