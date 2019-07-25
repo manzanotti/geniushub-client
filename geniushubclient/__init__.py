@@ -239,8 +239,7 @@ class GeniusObject(object):
             day = -1
 
             try:
-                for setpoint in raw_dict['objTimer']:
-                    tm_next = setpoint['iTm']
+                for idx, setpoint in enumerate(raw_dict['objTimer']):
                     sp_next = setpoint['fSP']
                     if raw_dict['iType'] == ZONE_TYPES.OnOffTimer:
                         sp_next = bool(sp_next)
@@ -248,18 +247,15 @@ class GeniusObject(object):
                     if setpoint['iDay'] > day:  # a new day
                         day += 1
                         node = root['weekly'][IDAY_TO_DAY[day]] = {}
-                        node['defaultSetpoint'] = sp_default = sp_next
+                        node['defaultSetpoint'] = sp_next
                         node['heatingPeriods'] = []
 
-                    elif sp_next != sp_default:
+                    elif sp_next != node['defaultSetpoint']:
                         node['heatingPeriods'].append({
-                            'end': 0,
-                            'start': tm_next,
+                            'end': raw_dict['objTimer'][idx+1]['iTm'],
+                            'start': setpoint['iTm'],
                             'setpoint': sp_next
                         })
-
-                    else:
-                        node['heatingPeriods'][-1]['end'] = tm_next
 
             except Exception as err:
                 _LOGGER.exception("Failed to convert Timer schedule for Zone %s, "
@@ -273,7 +269,7 @@ class GeniusObject(object):
             sp_away = raw_dict['objFootprint']['fFootprintAwaySP']
             sp_nite = raw_dict['objFootprint']['fFootprintNightSP']
             tm_nite = raw_dict['objFootprint']['iFootprintTmNightStart']
-            tm_foot = raw_dict['objFootprint']['iFootprintTmNightEnd']
+            # tm_foot = raw_dict['objFootprint']['iFootprintTmNightEnd']
 
             try:
                 for setpoint in raw_dict['objFootprint']['lstSP']:
