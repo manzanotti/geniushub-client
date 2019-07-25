@@ -214,7 +214,7 @@ class GeniusObject(object):
             d = raw_dict['zoneReactive']['bTriggerOn']
             c = raw_dict['iActivity']                                            # noqa: ignore=F841; pylint: disable=unused-variable
             o = raw_dict['objFootprint']['bIsNight']
-            result['occupied'] = u and d and not o  # and c > 0
+            result['occupied'] = u and d and not o and c > 0
 
         if raw_dict['iType'] in [ZONE_TYPES.OnOffTimer,
                                  ZONE_TYPES.ControlSP,
