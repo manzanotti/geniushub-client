@@ -239,7 +239,8 @@ class GeniusObject(object):
             day = -1
 
             try:
-                for idx, setpoint in enumerate(raw_dict['objTimer']):
+                setpoints = raw_dict['objTimer']
+                for idx, setpoint in enumerate(setpoints):
                     sp_next = setpoint['fSP']
                     if raw_dict['iType'] == ZONE_TYPES.OnOffTimer:
                         sp_next = bool(sp_next)
@@ -252,7 +253,7 @@ class GeniusObject(object):
 
                     elif sp_next != node['defaultSetpoint']:
                         node['heatingPeriods'].append({
-                            'end': raw_dict['objTimer'][idx+1]['iTm'],
+                            'end': setpoints[idx+1]['iTm'],
                             'start': setpoint['iTm'],
                             'setpoint': sp_next
                         })
@@ -266,42 +267,27 @@ class GeniusObject(object):
             root = result['schedule']['footprint'] = {'weekly': {}}
             day = -1
 
-            sp_away = raw_dict['objFootprint']['fFootprintAwaySP']
-            sp_nite = raw_dict['objFootprint']['fFootprintNightSP']
-            tm_nite = raw_dict['objFootprint']['iFootprintTmNightStart']
-            # tm_foot = raw_dict['objFootprint']['iFootprintTmNightEnd']
-
             try:
-                for setpoint in raw_dict['objFootprint']['lstSP']:
+                setpoints = raw_dict['objFootprint']
+                for idx, setpoint in enumerate(setpoints['lstSP']):
                     tm_next = setpoint['iTm']
-                    sp_next = setpoint['fSP']
 
-                    if tm_next == 0:  # i.e. start of day
+                    if setpoint['iDay'] > day:  # a new day  # tm_next == 0
                         day += 1
                         node = root['weekly'][IDAY_TO_DAY[day]] = {}
-                        node['defaultSetpoint'] = sp_away
+                        node['defaultSetpoint'] = setpoints['fFootprintAwaySP']
                         node['heatingPeriods'] = []
 
-                    elif sp_last != sp_away:
+                    elif tm_next != setpoints['iFootprintTmNightStart']:
                         node['heatingPeriods'].append({
-                            'end': tm_next,
-                            'start': tm_last,
-                            'setpoint': sp_last
+                            'end': setpoints['lstSP'][idx+1]['iTm'],
+                            'start': tm_next,
+                            'setpoint': setpoint['fSP']
                         })
-
-                    if tm_next == tm_nite:  # e.g. 11pm
-                        node['heatingPeriods'].append({
-                            'end': 86400,
-                            'start': tm_nite,
-                            'setpoint': sp_nite
-                        })
-
-                    tm_last = tm_next
-                    sp_last = sp_next
 
             except Exception as err:
                 _LOGGER.exception("Failed to convert Footprint schedule for Zone %s, "
-                                "message: %s", result['id'], err)
+                                  "message: %s", result['id'], err)
 
         return result
 
