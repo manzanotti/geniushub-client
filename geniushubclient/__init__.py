@@ -241,20 +241,22 @@ class GeniusObject(object):
             try:
                 setpoints = raw_dict['objTimer']
                 for idx, setpoint in enumerate(setpoints):
+                    tm_next = setpoint['iTm']
                     sp_next = setpoint['fSP']
                     if raw_dict['iType'] == ZONE_TYPES.OnOffTimer:
                         sp_next = bool(sp_next)
 
-                    if setpoint['iDay'] > day:  # a new day
+                    if setpoint['iDay'] > day:
                         day += 1
                         node = root['weekly'][IDAY_TO_DAY[day]] = {}
                         node['defaultSetpoint'] = sp_next
                         node['heatingPeriods'] = []
 
                     elif sp_next != node['defaultSetpoint']:
+                        tm_last = setpoints[idx+1]['iTm']
                         node['heatingPeriods'].append({
-                            'end': setpoints[idx+1]['iTm'],
-                            'start': setpoint['iTm'],
+                            'end': tm_last,
+                            'start': tm_next,
                             'setpoint': sp_next
                         })
 
@@ -271,18 +273,24 @@ class GeniusObject(object):
                 setpoints = raw_dict['objFootprint']
                 for idx, setpoint in enumerate(setpoints['lstSP']):
                     tm_next = setpoint['iTm']
+                    sp_next = setpoint['fSP']
 
-                    if setpoint['iDay'] > day:  # a new day  # tm_next == 0
+                    if setpoint['iDay'] > day:
                         day += 1
                         node = root['weekly'][IDAY_TO_DAY[day]] = {}
                         node['defaultSetpoint'] = setpoints['fFootprintAwaySP']
                         node['heatingPeriods'] = []
 
-                    elif tm_next != setpoints['iFootprintTmNightStart']:
+                    if sp_next != setpoints['fFootprintAwaySP']:
+                        if tm_next == setpoints['iFootprintTmNightStart']:
+                            tm_last = 86400  # 24 * 60 * 60
+                        else:
+                            tm_last = setpoints['lstSP'][idx+1]['iTm']
+
                         node['heatingPeriods'].append({
-                            'end': setpoints['lstSP'][idx+1]['iTm'],
+                            'end': tm_last,
                             'start': tm_next,
-                            'setpoint': setpoint['fSP']
+                            'setpoint': sp_next
                         })
 
             except Exception as err:
