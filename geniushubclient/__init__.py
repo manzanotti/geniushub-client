@@ -520,7 +520,7 @@ class GeniusHub(GeniusObject):
         self._devices = []  # List[dict] = []
         self._issues = []  # List[dict] = []
 
-        self._info_raw = self._issues_raw = self._devices_raw = self._zones_raw = None
+        self._issues_raw = self._devices_raw = self._zones_raw = None
 
     async def update(self):
         """Update the Hub with its latest state data."""
@@ -532,47 +532,40 @@ class GeniusHub(GeniusObject):
                 zone = self.zone_by_id[zone_dict['id']]
             except KeyError:
                 zone = GeniusZone(self._client, zone_dict, self)
+                self.zone_objs.append(zone)
 
                 self.zone_by_id[zone_dict['id']] = zone
                 self.zone_by_name[zone_dict['name']] = zone
-                self.zone_objs.append(zone)
             else:
-                _LOGGER.debug("Duplicate zone: %s!", zone.id)
+                _LOGGER.debug("Duplicate zone: %s!", zone_dict['id'])
 
-            zone.__dict__.update(zone_dict)
-            zone._info_raw = zone_raw
-
-            # _LOGGER.warn("BBB dir(zone) = %s", dir(zone))  # TODO: delete me
-
-            return zone.id, zone
+            return zone_dict['id'], zone
 
         def _populate_device(device_raw):
             device_dict = self._convert_device(device_raw)
 
-            name = device_dict['assignedZones'][0]['name']
-            zone = self.zone_by_name[name] if name else None
+            zone_name = device_dict['assignedZones'][0]['name']
+            zone = self.zone_by_name[zone_name] if zone_name else None
 
             try:  # does the Hub already know about this device?
                 device = self.device_by_id[device_dict['id']]
             except KeyError:
                 device = GeniusDevice(self._client, device_dict, self, zone)
-                self.device_by_id[device.id] = device
                 self.device_objs.append(device)
+
+                self.device_by_id[device_dict['id']] = device
             else:
-                _LOGGER.error("Duplicate device: %s!", device.id)
+                _LOGGER.error("Duplicate device: %s!", device_dict['id'])
 
             if zone:
                 try:  # does the parent Zone already know about this device?
                     device = zone.device_by_id[device_dict['id']]
                 except KeyError:
-                    zone.device_by_id[device.id] = device
+                    zone.device_by_id[device_dict['id']] = device
                     zone.device_objs.append(device)
                 else:
                     _LOGGER.error("Duplicate device: %s for zone: %s!",
-                                  device.id, zone.id)
-
-            device.__dict__.update(device_dict)
-            device._info_raw = device_raw
+                                  device_dict['id'], zone.id)
 
             return device_dict['id'], device
 
@@ -716,8 +709,10 @@ class GeniusZone(GeniusObject):
         self._devices = []
         self._issues = []
 
-        self._info_raw = self._issues_raw = self._devices_raw = None
+        self._issues_raw = self._devices_raw = None
+
         self.name = self.setpoint = None  # avoid non-member lint errors
+        self.__dict__.update(zone_dict)
 
     @property
     def info(self) -> dict:
@@ -849,7 +844,9 @@ class GeniusDevice(GeniusObject):
         self._info = {}
         self._issues = []
 
-        self._info_raw = self._issues_raw = None
+        self._issues_raw = None
+
+        self.__dict__.update(device_dict)
 
     @property
     def info(self) -> dict:
