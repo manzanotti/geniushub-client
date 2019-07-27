@@ -22,19 +22,21 @@ logging.basicConfig()
 _LOGGER = logging.getLogger(__name__)
 
 # pylint3 --max-line-length=100
-# pylint: disable=fixme, missing-docstring
-# pylint: disable=too-many-instance-attributes, too-few-public-methods
-# pylint: disable=too-many-locals, too-many-branches, too-many-statements
-# pylint: disable=too-many-arguments
+# p#ylint: disable=fixme, missing-docstring
+# p#ylint: disable=too-many-locals, too-many-branches, too-many-statements
+# p#ylint: disable=too-many-arguments
 
 
 def natural_sort(dict_list, dict_key):
-    def alphanum_key(k): return [int(c) if c.isdigit() else c.lower()            # noqa; pylint: disable=multiple-statements
+    """Return a list that is case-insensitively sorted."""
+    # noqa; pylint: disable=missing-docstring, multiple-statements
+    def alphanum_key(k): return [int(c) if c.isdigit() else c.lower()
                                  for c in re.split('([0-9]+)', k[dict_key])]
     return sorted(dict_list, key=alphanum_key)
 
 
 def _without_keys(dict_obj, keys) -> dict:
+    """Return a dict, after removing unwanted of keys."""
     _info = dict(dict_obj)
     _info = {k: v for k, v in _info.items() if k[:1] != '_'}
     _info = {k: v for k, v in _info.items() if k not in keys}
@@ -86,10 +88,10 @@ def _get_issues_from_zones_v3(raw_json) -> list:
     return result
 
 
-class GeniusHubClient():
+class GeniusHubClient():  # pylint: disable=too-many-instance-attributes
     """The class for a connection to a Genius Hub."""
     def __init__(self, hub_id, username=None, password=None, session=None,
-                 debug=False) -> None:
+                 debug=False) -> None:  # pylint: disable=too-many-arguments
         if debug is True:
             _LOGGER.setLevel(logging.DEBUG)
             _LOGGER.debug("Debug mode is explicitly enabled.")
@@ -120,6 +122,7 @@ class GeniusHubClient():
         self.hub = GeniusHub(self, {'id': hub_id})
 
     async def request(self, method, url, data=None):
+        """Perform a request."""
         _LOGGER.debug("_request(method=%s, url=%s, data=%s)", method, url, data)
 
         http_method = {
@@ -161,6 +164,7 @@ class GeniusHubClient():
 
     @property
     def verbosity(self) -> int:
+        """Get/Set the level of detail."""
         return self._verbose
 
     @verbosity.setter
@@ -172,7 +176,7 @@ class GeniusHubClient():
                              "The permissible range is (0-3).".format(value))
 
 
-class GeniusObject():
+class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instance-attributes
     """The base class for Genius Hub, Zone & Device."""
     def __init__(self, client, obj_dict, hub=None, assigned_zone=None) -> None:
         self.id = None  # avoids no-member,                                      # noqa; pylint: disable=invalid-name
@@ -562,7 +566,7 @@ class GeniusHub(GeniusObject):
 
             if zone:
                 try:  # does the parent Zone already know about this device?
-                    device = zone.device_by_id[device_dict['id']]  # TODO: what happends if None
+                    device = zone.device_by_id[device_dict['id']]  # TODO: what happends if None???
                 except KeyError:
                     zone.device_by_id[device_dict['id']] = device
                     zone.device_objs.append(device)
@@ -816,23 +820,6 @@ class GeniusZone(GeniusObject):
         _LOGGER.debug(
             "set_override_temp(%s): done, response = %s", self.id, resp)
 
-    async def update(self):
-        """Update the Zone with its latest state data."""
-        _LOGGER.debug("Zone(%s).update(xx)", self.id)
-
-        if self._client.api_version == 1:
-            _LOGGER.debug("Zone(%s).update(v1): type = %s",
-                          self.id, type(self))
-            url = 'zones/{}'
-            data = await self._client.request('GET', url.format(self.id))
-            self.__dict__.update(data)
-        else:  # a WORKAROUND...
-            _LOGGER.debug("Zone(%s).update(v3): type = %s",
-                          self.id, type(self))
-            await self.hub.update()
-
-        # _LOGGER.warn("CCC dir(zone) = %s", dir(self))  # TODO: delete me
-
 
 class GeniusDevice(GeniusObject):
     """The class for Genius Device."""
@@ -858,18 +845,3 @@ class GeniusDevice(GeniusObject):
     def location(self) -> dict:  # aka assignedZones
         """Return the parent Zone of this Device."""
         raise NotImplementedError()
-
-    async def update(self):
-        """Update the Device with its latest state data."""
-        _LOGGER.debug("Device(%s).update(xx)", self.id)
-
-        if self._client.api_version == 1:
-            _LOGGER.debug("Device(%s).update(v1): type = %s",
-                          self.id, type(self))
-            url = 'devices/{}'
-            data = await self._client.request('GET', url.format(self.id))
-            self.__dict__.update(data)
-        else:  # a WORKAROUND...
-            await self.hub.update()
-            _LOGGER.debug("Device(%s).update(v3): type = %s",
-                          self.id, type(self))
