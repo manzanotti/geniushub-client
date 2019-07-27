@@ -22,9 +22,9 @@ logging.basicConfig()
 _LOGGER = logging.getLogger(__name__)
 # _LOGGER.setLevel(logging.WARNING)
 
-# pylint3 --max-line-length=120
+# pylint3 --max-line-length=100
 # pylint: disable=fixme, missing-docstring
-# pylint: disable=no-member, protected-access
+# p#ylint: disable=no-member, protected-access
 # pylint: disable=too-many-instance-attributes, too-few-public-methods
 # pylint: disable=too-many-locals, too-many-branches, too-many-statements
 # pylint: disable=too-many-arguments
@@ -88,7 +88,7 @@ def _get_issues_from_zones_v3(raw_json) -> list:
     return result
 
 
-class GeniusHubClient(object):
+class GeniusHubClient():
     """The class for a connection to a Genius Hub."""
     def __init__(self, hub_id, username=None, password=None, session=None,
                  debug=False) -> None:
@@ -99,17 +99,15 @@ class GeniusHubClient(object):
             _LOGGER.debug("Debug mode is not explicitly enabled "
                           "(but may be enabled elsewhere).")
 
-        # use existing session if one was provided
         self._session = session if session else aiohttp.ClientSession()
 
-        # if no credentials, then hub_id is a token for v1 API
-        self._api_v1 = not (username or password)
-        if self._api_v1:
+        self.api_version = 3 if username or password else 0
+        if self.api_version == 1:
             self._auth = None
             self._url_base = 'https://my.geniushub.co.uk/v1/'
             self._headers = {'authorization': "Bearer " + hub_id}
             self._timeout = aiohttp.ClientTimeout(total=DEFAULT_TIMEOUT_V1)
-        else:  # using API ver3
+        else:  # self.api_version == 3
             sha = sha256()
             sha.update((username + password).encode('utf-8'))
             self._auth = aiohttp.BasicAuth(
@@ -129,14 +127,14 @@ class GeniusHubClient(object):
 
     @verbosity.setter
     def verbosity(self, value):
-        if value >= 0 and value <= 3:
+        if 0 <= value <= 3:
             self._verbose = value
         else:
             raise ValueError("'{}' is not valid for verbosity. "
                              "The permissible range is (0-3).".format(value))
 
 
-class GeniusObject(object):
+class GeniusObject():
     """The base class for Genius Hub, Zone & Device."""
     def __init__(self, client, obj_dict, hub=None, assignedZone=None) -> None:
         self.id = None  # avoids no-member,                                      # noqa; pylint: disable=invalid-name
@@ -146,7 +144,6 @@ class GeniusObject(object):
         # _LOGGER.warn("AAA dir(%s) = %s", type(self), dir(self))  # TODO: delete me
 
         self._client = client
-        self._api_v1 = client._api_v1
 
         if isinstance(self, GeniusHub):
             self.zone_objs = []
@@ -168,7 +165,7 @@ class GeniusObject(object):
 
     def _convert_zone(self, raw_dict) -> dict:
         """Convert a v3 zone's dict/json to the v1 schema."""
-        if self._api_v1:
+        if self._client.api_version == 1:
             return raw_dict
 
         # _LOGGER.debug("_convert_zone(): raw_dict=%s", raw_dict)
@@ -184,8 +181,8 @@ class GeniusObject(object):
                 result['temperature'] = raw_dict['fPV']
             result['setpoint'] = raw_dict['fSP']
 
-        if raw_dict['iType'] == ZONE_TYPES.OnOffTimer:
-            result['setpoint'] = raw_dict['fSP'] != 0
+        elif raw_dict['iType'] == ZONE_TYPES.OnOffTimer:
+            result['setpoint'] = bool(raw_dict['fSP'])
 
         result['mode'] = IMODE_TO_MODE[raw_dict['iMode']]
 
@@ -263,7 +260,7 @@ class GeniusObject(object):
                             'setpoint': sp_next
                         })
 
-            except Exception as err:
+            except Exception as err:  # pylint: disable=broad-except
                 _LOGGER.exception("Failed to convert Timer schedule for Zone %s, "
                                   "message: %s", result['id'], err)
 
@@ -296,7 +293,7 @@ class GeniusObject(object):
                             'setpoint': sp_next
                         })
 
-            except Exception as err:
+            except Exception as err:  # pylint: disable=broad-except
                 _LOGGER.exception("Failed to convert Footprint schedule for Zone %s, "
                                   "message: %s", result['id'], err)
 
@@ -307,7 +304,7 @@ class GeniusObject(object):
 
         Sets id, type, assignedZones and state.
         """
-        if self._api_v1:
+        if self._client.api_version == 1:
             return raw_dict
 
         # _LOGGER.debug("_convert_device(): raw_dict=%s", raw_dict)
@@ -408,7 +405,7 @@ class GeniusObject(object):
 
     def _convert_issue(self, raw_dict) -> dict:
         """Convert a v3 issues's dict/json to the v1 schema."""
-        if self._api_v1:
+        if self._client.api_version == 1:
             return raw_dict
 
         # _LOGGER.debug("_convert_issue(): raw_dict=%s", raw_dict)
@@ -436,6 +433,8 @@ class GeniusObject(object):
     async def _request(self, method, url, data=None):
         _LOGGER.debug("_request(method=%s, url=%s, data=%s)", method, url, data)
 
+
+
         http_method = {
             "GET": self._client._session.get,
             "PATCH": self._client._session.patch,
@@ -445,13 +444,13 @@ class GeniusObject(object):
 
         try:
             async with http_method(
-                self._client._url_base + url,
-                json=data,
-                headers=self._client._headers,
-                auth=self._client._auth,
-                timeout=self._client._timeout,
-                raise_for_status=True
-            ) as resp:
+                    self._client._url_base + url,
+                    json=data,
+                    headers=self._client._headers,
+                    auth=self._client._auth,
+                    timeout=self._client._timeout,
+                    raise_for_status=True
+                ) as resp:
                 response = await resp.json(content_type=None)
 
         # except concurrent.futures._base.TimeoutError as err:
@@ -459,12 +458,12 @@ class GeniusObject(object):
             _LOGGER.debug("_request(): ServerDisconnected, retrying (msg=%s)", err)
             _session = aiohttp.ClientSession()
             async with http_method(
-                self._client._url_base + url,
-                json=data,
-                headers=self._client._headers,
-                auth=self._client._auth,
-                timeout=self._client._timeout,
-                raise_for_status=True
+                    self._client._url_base + url,
+                    json=data,
+                    headers=self._client._headers,
+                    auth=self._client._auth,
+                    timeout=self._client._timeout,
+                    raise_for_status=True
             ) as resp:
                 response = await resp.json(content_type=None)
             await _session.close()
@@ -503,7 +502,7 @@ class GeniusObject(object):
         if self._client._verbose >= 2:
             return item_dict
 
-        elif self._client._verbose >= 1:
+        if self._client._verbose >= 1:
             keys = summary_keys + detail_keys
         else:
             keys = summary_keys
@@ -525,8 +524,7 @@ class GeniusHub(GeniusObject):
         self._devices = []  # List[dict] = []
         self._issues = []  # List[dict] = []
 
-        self._info_raw = None
-        self._issues_raw = self._devices_raw = self._zones_raw = None
+        self._info_raw = self._issues_raw = self._devices_raw = self._zones_raw = None
 
     async def update(self):
         """Update the Hub with its latest state data."""
@@ -539,8 +537,8 @@ class GeniusHub(GeniusObject):
             except KeyError:
                 zone = GeniusZone(self._client, zone_dict, self)
 
-                self.zone_by_id[zone.id] = zone
-                self.zone_by_name[zone.name] = zone
+                self.zone_by_id[zone_dict['id']] = zone
+                self.zone_by_name[zone_dict['name']] = zone
                 self.zone_objs.append(zone)
             else:
                 _LOGGER.debug("Duplicate zone: %s!", zone.id)
@@ -606,7 +604,7 @@ class GeniusHub(GeniusObject):
         """Return a list of zones included in the system."""
         # getAllZonesData = x.get("/v3/zones", {username: e, password: t})
 
-        if self._api_v1:
+        if self._client.api_version == 1:
             self._zones_raw = await self._request("GET", 'zones')
         else:
             json = await self._request("GET", 'zones')
@@ -635,7 +633,7 @@ class GeniusHub(GeniusObject):
         """Return a list of devices included in the system."""
         # getDeviceList = x.get("/v3/data_manager", {username: e, password: t})
 
-        if self._api_v1:
+        if self._client.api_version == 1:
             self._devices_raw = await self._request('GET', 'devices')
         else:
             json = await self._request('GET', 'data_manager')
@@ -655,7 +653,7 @@ class GeniusHub(GeniusObject):
         result = self._subset_list(
             self._devices_raw, self._convert_device, **ATTRS_DEVICE)
 
-        if not self._api_v1 and self._client._verbose != 3:
+        if self._client.api_version != 0 and self._client._verbose != 3:
             result = natural_sort(result, 'id')
 
         return result
@@ -664,7 +662,7 @@ class GeniusHub(GeniusObject):
     async def _get_issues_raw(self) -> List[dict]:
         """Return a list of issues known to the hub."""
 
-        if self._api_v1:
+        if self._client.api_version == 1:
             self._issues_raw = await self._request('GET', 'issues')
         else:  # NB: this must run after _get_zones_raw()
             self._issues_raw = _get_issues_from_zones_v3(self._zones_raw)
@@ -692,7 +690,7 @@ class GeniusTestHub(GeniusHub):
         self._zones_test = zones_json
         self._devices_test = device_json
 
-        self._api_v1 = False
+        self._client.api_version = 3
 
     @property
     async def _get_zones_raw(self) -> List[dict]:
@@ -722,13 +720,14 @@ class GeniusZone(GeniusObject):
         self._devices = []
         self._issues = []
 
-        self._info_raw = None
-        self._issues_raw = self._devices_raw = None
+        self._info_raw = self._issues_raw = self._devices_raw = None
+        self.name = self.setpoint = None  # avoid non-member lint errors
 
     @property
     def info(self) -> dict:
         """Return all information for a zone."""
-        return _without_keys(self.__dict__, ['device_by_id', 'device_objs', 'hub'])  # TODO: rename hub to _hub
+        return _without_keys(self.__dict__,
+                             ['device_by_id', 'device_objs', 'hub'])  # TODO: rename hub to _hub
 
     @property
     def devices(self) -> list:
@@ -784,7 +783,7 @@ class GeniusZone(GeniusObject):
         _LOGGER.debug("Zone(%s).set_mode(mode=%s, mode_str='%s')...",
                       self.id, mode, mode_str)
 
-        if self._api_v1:
+        if self._client.api_version == 1:
             # v1 API uses strings
             url = 'zones/{}/mode'
             resp = await self._request("PUT", url.format(self.id),
@@ -806,12 +805,12 @@ class GeniusZone(GeniusObject):
           duration is in seconds
           setpoint is in degrees Celsius
         """
-        setpoint = self.setpoint if setpoint is None else setpoint
+        setpoint = setpoint if setpoint is not None else self.setpoint
 
         _LOGGER.debug("Zone(%s).set_override(setpoint=%s, duration=%s)...",
                       self.id, setpoint, duration)
 
-        if self._api_v1:
+        if self._client.api_version == 1:
             url = 'zones/{}/override'
             data = {'setpoint': setpoint, 'duration': duration}
             resp = await self._request("POST", url.format(self.id), data=data)
@@ -831,7 +830,7 @@ class GeniusZone(GeniusObject):
         """Update the Zone with its latest state data."""
         _LOGGER.debug("Zone(%s).update(xx)", self.id)
 
-        if self._api_v1:
+        if self._client.api_version == 1:
             _LOGGER.debug("Zone(%s).update(v1): type = %s",
                           self.id, type(self))
             url = 'zones/{}'
@@ -856,8 +855,7 @@ class GeniusDevice(GeniusObject):
         self._info = {}
         self._issues = []
 
-        self._info_raw = None
-        self._issues_raw = None
+        self._info_raw = self._issues_raw = None
 
     @property
     def info(self) -> dict:
@@ -873,7 +871,7 @@ class GeniusDevice(GeniusObject):
         """Update the Device with its latest state data."""
         _LOGGER.debug("Device(%s).update(xx)", self.id)
 
-        if self._api_v1:
+        if self._client.api_version == 1:
             _LOGGER.debug("Device(%s).update(v1): type = %s",
                           self.id, type(self))
             url = 'devices/{}'
