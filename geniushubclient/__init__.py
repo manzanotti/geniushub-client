@@ -749,11 +749,6 @@ class GeniusZone(GeniusObject):
                       len(self._devices))
         return self._issues
 
-    @property
-    def schedule(self) -> list:
-        """Return the list of scheduled setpoints for this Zone."""
-        raise NotImplementedError()
-
     async def set_mode(self, mode):
         """Set the mode of the zone.
 
@@ -840,8 +835,3 @@ class GeniusDevice(GeniusObject):
     def info(self) -> dict:
         """Return all information for a device."""
         return _without_keys(self.__dict__, ['hub', 'assigned_zone'])
-
-    @property
-    def location(self) -> dict:  # aka assignedZones
-        """Return the parent Zone of this Device."""
-        raise NotImplementedError()
