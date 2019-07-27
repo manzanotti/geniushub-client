@@ -20,11 +20,9 @@ from .const import (
 
 logging.basicConfig()
 _LOGGER = logging.getLogger(__name__)
-# _LOGGER.setLevel(logging.WARNING)
 
 # pylint3 --max-line-length=100
 # pylint: disable=fixme, missing-docstring
-# p#ylint: disable=no-member, protected-access
 # pylint: disable=too-many-instance-attributes, too-few-public-methods
 # pylint: disable=too-many-locals, too-many-branches, too-many-statements
 # pylint: disable=too-many-arguments
@@ -120,6 +118,46 @@ class GeniusHubClient():
         hub_id = hub_id[:8] + "..." if len(hub_id) > 20 else hub_id
 
         self.hub = GeniusHub(self, {'id': hub_id})
+
+    async def request(self, method, url, data=None):
+        _LOGGER.debug("_request(method=%s, url=%s, data=%s)", method, url, data)
+
+        http_method = {
+            "GET": self._session.get,
+            "PATCH": self._session.patch,
+            "POST": self._session.post,
+            "PUT": self._session.put,
+        }.get(method)
+
+        try:
+            async with http_method(
+                    self._url_base + url,
+                    json=data,
+                    headers=self._headers,
+                    auth=self._auth,
+                    timeout=self._timeout,
+                    raise_for_status=True
+                ) as resp:
+                response = await resp.json(content_type=None)
+
+        # except concurrent.futures._base.TimeoutError as err:
+        except aiohttp.client_exceptions.ServerDisconnectedError as err:
+            _LOGGER.debug("_request(): ServerDisconnected, retrying (msg=%s)", err)
+            _session = aiohttp.ClientSession()
+            async with http_method(
+                    self._url_base + url,
+                    json=data,
+                    headers=self._headers,
+                    auth=self._auth,
+                    timeout=self._timeout,
+                    raise_for_status=True
+            ) as resp:
+                response = await resp.json(content_type=None)
+            await _session.close()
+
+        if method != 'GET':
+            _LOGGER.debug("_request(): response=%s", response)
+        return response
 
     @property
     def verbosity(self) -> int:
@@ -430,59 +468,17 @@ class GeniusObject():
 
         return {'description': description, 'level': level}
 
-    async def _request(self, method, url, data=None):
-        _LOGGER.debug("_request(method=%s, url=%s, data=%s)", method, url, data)
-
-
-
-        http_method = {
-            "GET": self._client._session.get,
-            "PATCH": self._client._session.patch,
-            "POST": self._client._session.post,
-            "PUT": self._client._session.put,
-        }.get(method)
-
-        try:
-            async with http_method(
-                    self._client._url_base + url,
-                    json=data,
-                    headers=self._client._headers,
-                    auth=self._client._auth,
-                    timeout=self._client._timeout,
-                    raise_for_status=True
-                ) as resp:
-                response = await resp.json(content_type=None)
-
-        # except concurrent.futures._base.TimeoutError as err:
-        except aiohttp.client_exceptions.ServerDisconnectedError as err:
-            _LOGGER.debug("_request(): ServerDisconnected, retrying (msg=%s)", err)
-            _session = aiohttp.ClientSession()
-            async with http_method(
-                    self._client._url_base + url,
-                    json=data,
-                    headers=self._client._headers,
-                    auth=self._client._auth,
-                    timeout=self._client._timeout,
-                    raise_for_status=True
-            ) as resp:
-                response = await resp.json(content_type=None)
-            await _session.close()
-
-        if method != 'GET':
-            _LOGGER.debug("_request(): response=%s", response)
-        return response
-
     def _subset_list(self, item_list_raw, convert_to_v1,
                      summary_keys, detail_keys) -> list:
-        if self._client._verbose >= 3:
+        if self._client.verbosity >= 3:
             return item_list_raw
 
         item_list = [convert_to_v1(i) for i in item_list_raw]
 
-        if self._client._verbose >= 2:
+        if self._client.verbosity >= 2:
             return item_list
 
-        if self._client._verbose >= 1:
+        if self._client.verbosity >= 1:
             keys = summary_keys + detail_keys
         else:
             keys = summary_keys
@@ -494,15 +490,15 @@ class GeniusObject():
 
     def _subset_dict(self, item_dict_raw, convert_to_v1,
                      summary_keys, detail_keys):
-        if self._client._verbose >= 3:
+        if self._client.verbosity >= 3:
             return item_dict_raw
 
         item_dict = convert_to_v1(item_dict_raw)
 
-        if self._client._verbose >= 2:
+        if self._client.verbosity >= 2:
             return item_dict
 
-        if self._client._verbose >= 1:
+        if self._client.verbosity >= 1:
             keys = summary_keys + detail_keys
         else:
             keys = summary_keys
@@ -605,9 +601,9 @@ class GeniusHub(GeniusObject):
         # getAllZonesData = x.get("/v3/zones", {username: e, password: t})
 
         if self._client.api_version == 1:
-            self._zones_raw = await self._request("GET", 'zones')
+            self._zones_raw = await self._client.request('GET', 'zones')
         else:
-            json = await self._request("GET", 'zones')
+            json = await self._client.request('GET', 'zones')
             # _LOGGER.debug("Hub()._get_zones_raw(): json = %s", json['data'])
             self._zones_raw = _get_zones_from_zones_v3(json['data'])
 
@@ -634,9 +630,9 @@ class GeniusHub(GeniusObject):
         # getDeviceList = x.get("/v3/data_manager", {username: e, password: t})
 
         if self._client.api_version == 1:
-            self._devices_raw = await self._request('GET', 'devices')
+            self._devices_raw = await self._client.request('GET', 'devices')
         else:
-            json = await self._request('GET', 'data_manager')
+            json = await self._client.request('GET', 'data_manager')
             # _LOGGER.debug("Hub()._get_devices_raw(): json = %s", json['data'])
             self._devices_raw = _get_devices_from_data_manager(json['data'])
 
@@ -653,7 +649,7 @@ class GeniusHub(GeniusObject):
         result = self._subset_list(
             self._devices_raw, self._convert_device, **ATTRS_DEVICE)
 
-        if self._client.api_version != 0 and self._client._verbose != 3:
+        if self._client.api_version != 0 and self._client.verbosity != 3:
             result = natural_sort(result, 'id')
 
         return result
@@ -663,7 +659,7 @@ class GeniusHub(GeniusObject):
         """Return a list of issues known to the hub."""
 
         if self._client.api_version == 1:
-            self._issues_raw = await self._request('GET', 'issues')
+            self._issues_raw = await self._client.request('GET', 'issues')
         else:  # NB: this must run after _get_zones_raw()
             self._issues_raw = _get_issues_from_zones_v3(self._zones_raw)
 
@@ -786,14 +782,12 @@ class GeniusZone(GeniusObject):
         if self._client.api_version == 1:
             # v1 API uses strings
             url = 'zones/{}/mode'
-            resp = await self._request("PUT", url.format(self.id),
-                                       data=mode_str)
+            resp = await self._client.request('PUT', url.format(self.id), data=mode_str)
         else:
             # v3 API uses dicts
             # TODO: check PUT(POST?) vs PATCH
             url = 'zone/{}'
-            resp = await self._request("PATCH", url.format(self.id),
-                                       data={'iMode': mode})
+            resp = await self._client.request('PATCH', url.format(self.id), data={'iMode': mode})
 
         if resp:  # for v1, resp = None?
             resp = resp['data'] if resp['error'] == 0 else resp
@@ -813,13 +807,13 @@ class GeniusZone(GeniusObject):
         if self._client.api_version == 1:
             url = 'zones/{}/override'
             data = {'setpoint': setpoint, 'duration': duration}
-            resp = await self._request("POST", url.format(self.id), data=data)
+            resp = await self._client.request('POST', url.format(self.id), data=data)
         else:
             url = 'zone/{}'
             data = {'iMode': ZONE_MODES.Boost,
                     'fBoostSP': setpoint,
                     'iBoostTimeRemaining': duration}
-            resp = await self._request("PATCH", url.format(self.id), data=data)
+            resp = await self._client.request('PATCH', url.format(self.id), data=data)
 
         if resp:  # for v1, resp = None?
             resp = resp['data'] if resp['error'] == 0 else resp
@@ -834,7 +828,7 @@ class GeniusZone(GeniusObject):
             _LOGGER.debug("Zone(%s).update(v1): type = %s",
                           self.id, type(self))
             url = 'zones/{}'
-            data = await self._request("GET", url.format(self.id))
+            data = await self._client.request('GET', url.format(self.id))
             self.__dict__.update(data)
         else:  # a WORKAROUND...
             _LOGGER.debug("Zone(%s).update(v3): type = %s",
@@ -875,7 +869,7 @@ class GeniusDevice(GeniusObject):
             _LOGGER.debug("Device(%s).update(v1): type = %s",
                           self.id, type(self))
             url = 'devices/{}'
-            data = await self._request("GET", url.format(self.id))
+            data = await self._client.request('GET', url.format(self.id))
             self.__dict__.update(data)
         else:  # a WORKAROUND...
             await self.hub.update()
