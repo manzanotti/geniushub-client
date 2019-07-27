@@ -131,13 +131,13 @@ class GeniusHubClient():
 
         try:
             async with http_method(
-                    self._url_base + url,
-                    json=data,
-                    headers=self._headers,
-                    auth=self._auth,
-                    timeout=self._timeout,
-                    raise_for_status=True
-                ) as resp:
+                self._url_base + url,
+                json=data,
+                headers=self._headers,
+                auth=self._auth,
+                timeout=self._timeout,
+                raise_for_status=True
+            ) as resp:
                 response = await resp.json(content_type=None)
 
         # except concurrent.futures._base.TimeoutError as err:
@@ -145,12 +145,12 @@ class GeniusHubClient():
             _LOGGER.debug("_request(): ServerDisconnected, retrying (msg=%s)", err)
             _session = aiohttp.ClientSession()
             async with http_method(
-                    self._url_base + url,
-                    json=data,
-                    headers=self._headers,
-                    auth=self._auth,
-                    timeout=self._timeout,
-                    raise_for_status=True
+                self._url_base + url,
+                json=data,
+                headers=self._headers,
+                auth=self._auth,
+                timeout=self._timeout,
+                raise_for_status=True
             ) as resp:
                 response = await resp.json(content_type=None)
             await _session.close()
@@ -174,7 +174,7 @@ class GeniusHubClient():
 
 class GeniusObject():
     """The base class for Genius Hub, Zone & Device."""
-    def __init__(self, client, obj_dict, hub=None, assignedZone=None) -> None:
+    def __init__(self, client, obj_dict, hub=None, assigned_zone=None) -> None:
         self.id = None  # avoids no-member,                                      # noqa; pylint: disable=invalid-name
 
         self.__dict__.update(obj_dict)  # create self.id, etc.
@@ -192,14 +192,14 @@ class GeniusObject():
             self.device_by_id = {}
 
         elif isinstance(self, GeniusZone):
-            self.hub = hub
+            self.hub = hub                      # TODO: rename to _hub?
 
             self.device_objs = []
             self.device_by_id = {}
 
         elif isinstance(self, GeniusDevice):
-            self.hub = hub
-            self.assignedZone = assignedZone                                     # noqa; pylint: disable=invalid-name
+            self.hub = hub                      # TODO: rename to _hub?
+            self.assigned_zone = assigned_zone  # TODO: rename to _zone?
 
     def _convert_zone(self, raw_dict) -> dict:
         """Convert a v3 zone's dict/json to the v1 schema."""
@@ -419,7 +419,7 @@ class GeniusObject():
         else:
             _check_fingerprint(node, result)  # ... confirm type, set if needed
 
-        result['assignedZones'] = [{'name': None}]  # 3. Set assignedZone...
+        result['assignedZones'] = [{'name': None}]  # 3. Set assignedZones...
         if node['location']['val']:
             result['assignedZones'] = [{'name': node['location']['val']}]
 
@@ -536,8 +536,10 @@ class GeniusHub(GeniusObject):
 
                 self.zone_by_id[zone_dict['id']] = zone
                 self.zone_by_name[zone_dict['name']] = zone
+
+                _LOGGER.debug("Found a Zone: %s", zone_dict['id'])
             else:
-                _LOGGER.debug("Duplicate zone: %s!", zone_dict['id'])
+                _LOGGER.error("Duplicate Zone: %s!", zone_dict['id'])
 
             return zone_dict['id'], zone
 
@@ -554,17 +556,18 @@ class GeniusHub(GeniusObject):
                 self.device_objs.append(device)
 
                 self.device_by_id[device_dict['id']] = device
+                _LOGGER.debug("Found a Device: %s", device_dict['id'])
             else:
-                _LOGGER.error("Duplicate device: %s!", device_dict['id'])
+                _LOGGER.error("Duplicate Device: %s!", device_dict['id'])
 
             if zone:
                 try:  # does the parent Zone already know about this device?
-                    device = zone.device_by_id[device_dict['id']]
+                    device = zone.device_by_id[device_dict['id']]  # TODO: what happends if None
                 except KeyError:
                     zone.device_by_id[device_dict['id']] = device
                     zone.device_objs.append(device)
                 else:
-                    _LOGGER.error("Duplicate device: %s for zone: %s!",
+                    _LOGGER.error("Duplicate Device: %s for Zone: %s!",
                                   device_dict['id'], zone.id)
 
             return device_dict['id'], device
@@ -584,8 +587,7 @@ class GeniusHub(GeniusObject):
     @property
     def info(self) -> dict:
         """Return all information for the hub."""
-        keys = ['device_by_id', 'device_objs',
-                'zone_by_id', 'zone_by_name', 'zone_objs']
+        keys = ['device_by_id', 'device_objs', 'zone_by_id', 'zone_by_name', 'zone_objs']
         return _without_keys(self.__dict__, keys)
 
     @property
@@ -717,8 +719,7 @@ class GeniusZone(GeniusObject):
     @property
     def info(self) -> dict:
         """Return all information for a zone."""
-        return _without_keys(self.__dict__,
-                             ['device_by_id', 'device_objs', 'hub'])  # TODO: rename hub to _hub
+        return _without_keys(self.__dict__, ['device_by_id', 'device_objs', 'hub'])
 
     @property
     def devices(self) -> list:
@@ -837,9 +838,9 @@ class GeniusDevice(GeniusObject):
     """The class for Genius Device."""
 
     def __init__(self, client, device_dict, hub, zone=None) -> None:
-        _LOGGER.info("GeniusDevice(id=%s, assignedZone=%s)",
+        _LOGGER.info("GeniusDevice(id=%s, assigned_zone=%s)",
                      device_dict['id'], zone.id if zone else None)
-        super().__init__(client, device_dict, hub=hub, assignedZone=zone)
+        super().__init__(client, device_dict, hub=hub, assigned_zone=zone)
 
         self._info = {}
         self._issues = []
@@ -851,7 +852,7 @@ class GeniusDevice(GeniusObject):
     @property
     def info(self) -> dict:
         """Return all information for a device."""
-        return _without_keys(self.__dict__, ['hub'])
+        return _without_keys(self.__dict__, ['hub', 'assigned_zone'])
 
     @property
     def location(self) -> dict:  # aka assignedZones
