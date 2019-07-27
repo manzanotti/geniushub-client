@@ -436,8 +436,8 @@ class GeniusObject():
 
         # the following order should be preserved
         state.update([(v, node[k]['val']) for k, v in MAP.items() if k in node])
-        if 'SwitchBinary' in node:  # this one should be a bool
-            state['outputOnOff'] = bool(node['SwitchBinary']['val'])
+        if 'outputOnOff' in state:  # this one should be a bool
+            state['outputOnOff'] = bool(state['outputOnOff'])
 
         return result
 
