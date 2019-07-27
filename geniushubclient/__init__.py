@@ -101,7 +101,7 @@ class GeniusHubClient():
 
         self._session = session if session else aiohttp.ClientSession()
 
-        self.api_version = 3 if username or password else 0
+        self.api_version = 3 if username or password else 1
         if self.api_version == 1:
             self._auth = None
             self._url_base = 'https://my.geniushub.co.uk/v1/'
