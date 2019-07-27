@@ -624,6 +624,9 @@ class GeniusHub(GeniusObject):
           v1/zones:         id, name, type, mode, temperature, setpoint,
           occupied, override, schedule
         """
+        # for zone in self.zone_objs:  # TODO: delete me
+        #     print(zone.info)
+
         return self._subset_list(
             self._zones_raw, self._convert_zone, **ATTRS_ZONE)
 
@@ -725,7 +728,7 @@ class GeniusZone(GeniusObject):
     @property
     def info(self) -> dict:
         """Return all information for a zone."""
-        return _without_keys(self.__dict__, ['device_by_id', 'device_objs'])
+        return _without_keys(self.__dict__, ['device_by_id', 'device_objs', 'hub'])  # TODO: rename hub to _hub
 
     @property
     def devices(self) -> list:
@@ -859,7 +862,7 @@ class GeniusDevice(GeniusObject):
     @property
     def info(self) -> dict:
         """Return all information for a device."""
-        return _without_keys(self.__dict__, [])
+        return _without_keys(self.__dict__, ['hub'])
 
     @property
     def location(self) -> dict:  # aka assignedZones
