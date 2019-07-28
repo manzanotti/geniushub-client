@@ -183,6 +183,7 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
             self.zone_objs = []
             self.zone_by_id = {}
             self.zone_by_name = {}
+            self._issues = []
 
         if isinstance(self, GeniusDevice):
             self.assigned_zone = assigned_zone  # TODO: rename to _zone?
@@ -191,7 +192,6 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
             self.device_objs = []
             self.device_by_id = {}
 
-# temp
     def __repr__(self):
         return str(self.info)
 
@@ -551,14 +551,8 @@ class GeniusHub(GeniusObject):
           v1/zones:         id, name, type, mode, temperature, setpoint,
           occupied, override, schedule
         """
-        # zone_dicts = [d.__dict__.items() for d in self.zone_objs]
-        # _LOGGER.warn("AAA = %s", zone_dicts)
-        # return json.dumps(self, default=zone_dicts)
-
         # return self._subset_list(self.zone_objs, self._zones_raw, **ATTRS_ZONE)
-
-        return self._subset_list_old(
-            self._zones_raw, self._convert_zone, **ATTRS_ZONE)
+        return [z.info for z in self.zone_objs]
 
     @property
     def devices(self) -> list:
@@ -567,13 +561,7 @@ class GeniusHub(GeniusObject):
           v1/devices/summary: id, type
           v1/devices:         id, type, assignedZones, state
         """
-        result = self._subset_list_old(
-            self._devices_raw, self._convert_device, **ATTRS_DEVICE)
-
-        if self._client.api_version != 0 and self._client.verbosity != 3:
-            result = natural_sort(result, 'id')
-
-        return result
+        return natural_sort([d.info for d in self.device_objs], 'id')
 
     @property
     def issues(self) -> list:
@@ -581,8 +569,7 @@ class GeniusHub(GeniusObject):
 
           v1/issues: description, level
         """
-        return self._subset_list_old(
-            self._issues_raw, self._convert_issue, **ATTRS_ISSUE)
+        return self._issues
 
     async def update(self):
         """Update the Hub with its latest state data."""
@@ -639,7 +626,7 @@ class GeniusHub(GeniusObject):
 
             _LOGGER.debug("Found an Issue: %s)", issue_dict)
 
-            return issue_dict['description'], None
+            return issue_dict
 
         if isinstance(self, GeniusTestHub):  # a hack for testing
             self._client.api_version = 3
@@ -648,9 +635,9 @@ class GeniusHub(GeniusObject):
             self._devices_raw = _get_devices_from_data_manager(self._devices_test)
 
         elif self._client.api_version == 1:
-                self._zones_raw = await self._client.request('GET', 'zones')
-                self._issues_raw = await self._client.request('GET', 'issues')
-                self._devices_raw = await self._client.request('GET', 'devices')
+            self._zones_raw = await self._client.request('GET', 'zones')
+            self._issues_raw = await self._client.request('GET', 'issues')
+            self._devices_raw = await self._client.request('GET', 'devices')
 
         else:   # self._client.api_version == 3:
             json = await self._client.request('GET', 'zones')
@@ -663,7 +650,7 @@ class GeniusHub(GeniusObject):
         # pylint: disable=expression-not-assigned
         [_populate_zone(z) for z in self._zones_raw]
         [_populate_device(d) for d in self._devices_raw]
-        [_populate_issue(i) for i in self._issues_raw]
+        self._issues = [_populate_issue(i) for i in self._issues_raw]
 
     async def reboot(self):
         """Reboot the hub."""
@@ -683,7 +670,7 @@ class GeniusTestHub(GeniusHub):
 
 
 class GeniusZone(GeniusObject):
-    """The class for Genius Zone."""
+    """The class for a Genius Zone."""
 
     def __init__(self, client, zone_dict, raw_json) -> None:
         _LOGGER.info("Creating GeniusZone(id=%s)", zone_dict['id'])
@@ -712,23 +699,12 @@ class GeniusZone(GeniusObject):
 
           This is a v1 API: GET /zones/{zoneId}devices
         """
-        self._devices = [self._convert_device(d) for d in self.hub._devices_raw
-                         if d['childValues']['location']['val'] == self.name]
-
-        _LOGGER.debug("Zone(%s).devices: len(self._devices) = %s",
-                      self.id, len(self._devices))
-        return self._devices
+        return natural_sort([d.info for d in self.device_objs], 'id')
 
     @property
     def issues(self) -> list:
         """Return a list of Issues known to the Zone."""
-
-        self._issues = [self._convert_issue(i) for i in self.hub._issues_raw
-                        if i['_zone_name'] == self.name]
-
-        _LOGGER.debug("Hub().devices: len(self._devices) = %s",
-                      len(self._devices))
-        return self._issues
+        raise NotImplementedError
 
     async def set_mode(self, mode):
         """Set the mode of the zone.
@@ -798,7 +774,7 @@ class GeniusZone(GeniusObject):
 
 
 class GeniusDevice(GeniusObject):  # pylint: disable=too-few-public-methods
-    """The class for Genius Device."""
+    """The class for a Genius Device."""
 
     def __init__(self, client, device_dict, raw_json, zone=None) -> None:
         _LOGGER.info("Creating GeniusDevice(id=%s, assigned_zone=%s)",
