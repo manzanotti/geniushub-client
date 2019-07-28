@@ -147,7 +147,7 @@ async def main(loop):
         elif args[ISSUES]:
             print(hub.issues)
         else:  # as per args[INFO]
-            raise NotImplementedError()  # await hub.info
+            print(hub.info)
 
     await session.close()
 

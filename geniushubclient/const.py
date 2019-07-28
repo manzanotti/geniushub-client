@@ -87,7 +87,7 @@ IMODE_TO_MODE = {
     ZONE_MODES.Off: 'off',
     ZONE_MODES.Timer: 'timer',
     ZONE_MODES.Footprint: 'footprint',
-    ZONE_MODES.Away: 'away',
+    ZONE_MODES.Away: 'off',  # is 'away', but v1 API says 'off'
     ZONE_MODES.Boost: 'override',
     ZONE_MODES.Early: 'early',
     ZONE_MODES.Test: 'test',
@@ -152,6 +152,15 @@ ATTRS_DEVICE = {
 ATTRS_ISSUE = {
     'summary_keys': ['description', 'level'],
     'detail_keys': []
+}
+
+STATE_ATTRS = {
+    'SwitchBinary': 'outputOnOff',  # #      DCCR/PLUG, RADR
+    'Battery': 'batteryLevel',  # #          VALV/ROMT, RADR, ROMS
+    'HEATING_1': 'setTemperature',  # #      VALV/ROMT, RADR
+    'TEMPERATURE': 'measuredTemperature',  # VALV/ROMT, RADR, ROMS
+    'LUMINANCE': 'luminance',  # #                            ROMS
+    'Motion': 'occupancyTrigger'  # #                         ROMS
 }
 
 # This is from Vendor's bower.js

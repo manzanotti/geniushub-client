@@ -220,30 +220,6 @@ workflows:
     jobs:
       - make_testbed
 
-      - get_issues:
-          requires:
-            - make_testbed
-          pre-steps:
-            - checkout
-            - *restore_cache
-            - *attach_workspace
-          post-steps:
-            - prep_v1_curl:
-                test_type: "issues"
-            - *persist_to_workspace
-
-      - get_devices:
-          requires:
-            - make_testbed
-          pre-steps:
-            - checkout
-            - *restore_cache
-            - *attach_workspace
-          post-steps:
-            - prep_v1_curl:
-                test_type: "devices"
-            - *persist_to_workspace
-
       - get_zones:
           requires:
             - make_testbed
@@ -256,13 +232,26 @@ workflows:
                 test_type: "zones"
             - *persist_to_workspace
 
-      - diff_issues:
+      - diff_zones:
           requires:
-            - get_issues
+            - get_zones
           pre-steps:
             - *attach_workspace
           post-steps:
             - *store_artifacts
+
+      - get_devices:
+          requires:
+            - make_testbed
+            - get_zones
+          pre-steps:
+            - checkout
+            - *restore_cache
+            - *attach_workspace
+          post-steps:
+            - prep_v1_curl:
+                test_type: "devices"
+            - *persist_to_workspace
 
       - diff_devices:
           requires:
@@ -272,9 +261,22 @@ workflows:
           post-steps:
             - *store_artifacts
 
-      - diff_zones:
+      - get_issues:
           requires:
-            - get_zones
+            - make_testbed
+            - get_devices
+          pre-steps:
+            - checkout
+            - *restore_cache
+            - *attach_workspace
+          post-steps:
+            - prep_v1_curl:
+                test_type: "issues"
+            - *persist_to_workspace
+
+      - diff_issues:
+          requires:
+            - get_issues
           pre-steps:
             - *attach_workspace
           post-steps:
