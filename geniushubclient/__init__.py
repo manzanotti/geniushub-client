@@ -465,6 +465,7 @@ class GeniusHub(GeniusObject):
 
     def __init__(self, client, hub_dict) -> None:
         _LOGGER.info("Creating GeniusHub()")
+
         super().__init__(client, hub_dict, {})
 
         self._zones_raw = self._devices_raw = self._issues_raw = None
@@ -601,6 +602,7 @@ class GeniusTestHub(GeniusHub):
 
     def __init__(self, client, hub_dict, zones_json, device_json) -> None:
         _LOGGER.warning("Creating GeniusTestHub()")
+
         super().__init__(client, hub_dict)
 
         self._zones_test = zones_json
@@ -612,7 +614,6 @@ class GeniusZone(GeniusObject):
 
     def __init__(self, client, zone_dict, raw_json) -> None:
         _LOGGER.info("Creating GeniusZone(id=%s)", zone_dict['id'])
-        self.setpoint = None  # prevents non-member lint errors
 
         super().__init__(client, zone_dict, raw_json)
 
