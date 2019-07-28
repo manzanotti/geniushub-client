@@ -201,8 +201,8 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
 
         result = {}
         result['id'] = raw_dict['iID']
-        result['type'] = ITYPE_TO_TYPE[raw_dict['iType']]
         result['name'] = raw_dict['strName']
+        result['type'] = ITYPE_TO_TYPE[raw_dict['iType']]
 
         if raw_dict['iType'] in [ZONE_TYPES.ControlSP, ZONE_TYPES.TPI]:
             if not (raw_dict['iType'] == ZONE_TYPES.TPI and
@@ -525,7 +525,7 @@ class GeniusHub(GeniusObject):
                 self.zone_by_id[zone_dict['id']] = zone
                 self.zone_by_name[zone_dict['name']] = zone
 
-                _LOGGER.debug("Found a Zone: %s", zone_dict['id'])
+                _LOGGER.debug("Found a new Zone: %s", zone_dict['id'])
             else:
                 _LOGGER.error("Duplicate Zone: %s!", zone_dict['id'])
 
@@ -544,7 +544,7 @@ class GeniusHub(GeniusObject):
                 self.device_objs.append(device)
 
                 self.device_by_id[device_dict['id']] = device
-                _LOGGER.debug("Found a Device: %s", device_dict['id'])
+                _LOGGER.debug("Found a new Device: %s", device_dict['id'])
             else:
                 _LOGGER.error("Duplicate Device: %s!", device_dict['id'])
 
@@ -563,7 +563,7 @@ class GeniusHub(GeniusObject):
         def _populate_issue(issue_raw):
             issue_dict = self._convert_issue(issue_raw)
 
-            _LOGGER.debug("Found an Issue: %s)", issue_dict)
+            _LOGGER.debug("Found a new Issue: %s)", issue_dict)
 
             return issue_dict
 
