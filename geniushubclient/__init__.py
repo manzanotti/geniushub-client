@@ -526,14 +526,15 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
 
 class GeniusHub(GeniusObject):
     """The class for a Genius Hub."""
-    # conn.post("/v3/system/reboot", { username: e, password: t, json:{} })
-    # conn.get("/v3/auth/test", { username: e, password: t, timeout: n })
+    # x.post("/v3/system/reboot", { username: e, password: t, json:{} })
+    # x.get("/v3/auth/test", { username: e, password: t, timeout: n })
 
     def __init__(self, client, hub_dict) -> None:
         _LOGGER.info("Creating GeniusHub()")
         super().__init__(client, hub_dict, {})
 
-        self._issues_raw = self._devices_raw = self._zones_raw = None
+        self._zones_raw = self._devices_raw = self._issues_raw = None
+        self._zones_test = self._devices_test = None
 
     async def update(self):
         """Update the Hub with its latest state data."""
@@ -592,10 +593,29 @@ class GeniusHub(GeniusObject):
 
             return issue_dict['description'], None
 
-        # these three must be executed in this order
-        [_populate_zone(z) for z in await self._get_zones_raw]                   # noqa; pylint: disable=expression-not-assigned
-        [_populate_device(d) for d in await self._get_devices_raw]               # noqa; pylint: disable=expression-not-assigned
-        [_populate_issue(i) for i in await self._get_issues_raw]                 # noqa; pylint: disable=expression-not-assigned
+        if isinstance(self, GeniusTestHub):  # a hack for testing
+            self._client.api_version = 3
+            self._zones_raw = _get_zones_from_zones_v3(self._zones_test)
+            self._issues_raw = _get_issues_from_zones_v3(self._zones_test)
+            self._devices_raw = _get_devices_from_data_manager(self._devices_test)
+
+        elif self._client.api_version == 1:
+                self._zones_raw = await self._client.request('GET', 'zones')
+                self._issues_raw = await self._client.request('GET', 'issues')
+                self._devices_raw = await self._client.request('GET', 'devices')
+
+        else:   # self._client.api_version == 3:
+            json = await self._client.request('GET', 'zones')
+            self._zones_raw = _get_zones_from_zones_v3(json['data'])
+            self._issues_raw = _get_issues_from_zones_v3(json['data'])
+
+            json = await self._client.request('GET', 'data_manager')
+            self._devices_raw = _get_devices_from_data_manager(json['data'])
+
+        # pylint: disable=expression-not-assigned
+        [_populate_zone(z) for z in self._zones_raw]
+        [_populate_device(d) for d in self._devices_raw]
+        [_populate_issue(i) for i in self._issues_raw]
 
     @property
     def info(self) -> dict:
@@ -603,21 +623,6 @@ class GeniusHub(GeniusObject):
         keys = ['device_objs', 'device_by_id', 'device_by_zone_id',
                 'zone_objs', 'zone_by_id', 'zone_by_name']
         return self._without_keys(keys)
-
-    @property
-    async def _get_zones_raw(self) -> List[dict]:
-        """Return a list of zones included in the system."""
-        # getAllZonesData = x.get("/v3/zones", {username: e, password: t})
-
-        if self._client.api_version == 1:
-            self._zones_raw = await self._client.request('GET', 'zones')
-        else:
-            json = await self._client.request('GET', 'zones')
-            # _LOGGER.debug("Hub()._get_zones_raw(): json = %s", json['data'])
-            self._zones_raw = _get_zones_from_zones_v3(json['data'])
-
-        _LOGGER.info("Hub: len(_zones_raw) = %s", len(self._zones_raw))
-        return self._zones_raw
 
     @property
     def zones(self) -> list:
@@ -637,21 +642,6 @@ class GeniusHub(GeniusObject):
             self._zones_raw, self._convert_zone, **ATTRS_ZONE)
 
     @property
-    async def _get_devices_raw(self) -> List[dict]:
-        """Return a list of devices included in the system."""
-        # getDeviceList = x.get("/v3/data_manager", {username: e, password: t})
-
-        if self._client.api_version == 1:
-            self._devices_raw = await self._client.request('GET', 'devices')
-        else:
-            json = await self._client.request('GET', 'data_manager')
-            # _LOGGER.debug("Hub()._get_devices_raw(): json = %s", json['data'])
-            self._devices_raw = _get_devices_from_data_manager(json['data'])
-
-        _LOGGER.info("Hub: len(_devices_raw) = %s", len(self._devices_raw))
-        return self._devices_raw
-
-    @property
     def devices(self) -> list:
         """Return a list of Devices known to the Hub.
 
@@ -667,18 +657,6 @@ class GeniusHub(GeniusObject):
         return result
 
     @property
-    async def _get_issues_raw(self) -> List[dict]:
-        """Return a list of issues known to the hub."""
-
-        if self._client.api_version == 1:
-            self._issues_raw = await self._client.request('GET', 'issues')
-        else:  # NB: this must run after _get_zones_raw()
-            self._issues_raw = _get_issues_from_zones_v3(self._zones_raw)
-
-        _LOGGER.info("Hub: len(_issues_raw) = %s", len(self._issues_raw))
-        return self._issues_raw
-
-    @property
     def issues(self) -> list:
         """Return a list of Issues known to the Hub.
 
@@ -692,29 +670,11 @@ class GeniusTestHub(GeniusHub):
     """The test class for a Genius Hub - uses a test file."""
 
     def __init__(self, client, hub_dict, zones_json, device_json) -> None:
-        _LOGGER.warning("GeniusTestHub()")
+        _LOGGER.warning("Creating GeniusTestHub()")
         super().__init__(client, hub_dict)
 
         self._zones_test = zones_json
         self._devices_test = device_json
-
-        self._client.api_version = 3
-
-    @property
-    async def _get_zones_raw(self) -> List[dict]:
-        """Return a list of zones included in the system."""
-        self._zones_raw = self._zones_test
-
-        _LOGGER.info("Hub: len(_zones_raw) = %s", len(self._zones_raw))
-        return self._zones_raw
-
-    @property
-    async def _get_devices_raw(self) -> List[dict]:
-        """Return a list of devices included in the system."""
-        self._devices_raw = self._devices_test
-
-        _LOGGER.info("Hub: len(_devices_raw) = %s", len(self._devices_raw))
-        return self._devices_raw
 
 
 class GeniusZone(GeniusObject):
