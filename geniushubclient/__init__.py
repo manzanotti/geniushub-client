@@ -171,6 +171,7 @@ class GeniusHubClient():  # pylint: disable=too-many-instance-attributes
 
 class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instance-attributes
     """The base class for any Genius object: Hub, Zone or Device."""
+
     def __init__(self, client, obj_dict, raw_dict, assigned_zone=None) -> None:
         self.id = None  # prevents non-member lint errors                        # noqa; pylint: disable=invalid-name
         self.__dict__.update(obj_dict)  # create self.id, etc.
@@ -477,7 +478,7 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
     #         keys = summary_keys
 
     #     return {k: item_dict[k] for k in keys if k in item_dict}
-
+#
     def _subset_list_old(self, item_list_raw, convert_to_v1,
                      summary_keys, detail_keys) -> list:
         item_list = [convert_to_v1(i) for i in item_list_raw]
@@ -498,7 +499,7 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
 
         return result
 
-    # def _subset_list(self, object_list, item_list_raw, summary_keys, detail_keys) -> list:
+#   # def _subset_list(self, object_list, item_list_raw, summary_keys, detail_keys) -> list:
     #     if self._client.verbosity >= 3:
     #         return item_list_raw
 
@@ -516,7 +517,7 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
     #               for item in item_list]
 
     #     return result
-
+#
     def _without_keys(self, keys) -> dict:
         """Return self.__dict__ after removing unwanted keys."""
         _dict = {k: v for k, v in self.__dict__.items()
