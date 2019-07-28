@@ -527,8 +527,6 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
 
 class GeniusHub(GeniusObject):
     """The class for a Genius Hub."""
-    # x.post("/v3/system/reboot", { username: e, password: t, json:{} })
-    # x.get("/v3/auth/test", { username: e, password: t, timeout: n })
 
     def __init__(self, client, hub_dict) -> None:
         _LOGGER.info("Creating GeniusHub()")
@@ -536,6 +534,55 @@ class GeniusHub(GeniusObject):
 
         self._zones_raw = self._devices_raw = self._issues_raw = None
         self._zones_test = self._devices_test = None
+
+    @property
+    def info(self) -> dict:
+        """Return all information for the hub."""
+        # x.get("/v3/auth/test", { username: e, password: t, timeout: n })
+        keys = ['device_objs', 'device_by_id', 'device_by_zone_id',
+                'zone_objs', 'zone_by_id', 'zone_by_name']
+        return self._without_keys(keys)
+
+    @property
+    def zones(self) -> list:
+        """Return a list of Zones known to the Hub.
+
+          v1/zones/summary: id, name
+          v1/zones:         id, name, type, mode, temperature, setpoint,
+          occupied, override, schedule
+        """
+        # zone_dicts = [d.__dict__.items() for d in self.zone_objs]
+        # _LOGGER.warn("AAA = %s", zone_dicts)
+        # return json.dumps(self, default=zone_dicts)
+
+        # return self._subset_list(self.zone_objs, self._zones_raw, **ATTRS_ZONE)
+
+        return self._subset_list_old(
+            self._zones_raw, self._convert_zone, **ATTRS_ZONE)
+
+    @property
+    def devices(self) -> list:
+        """Return a list of Devices known to the Hub.
+
+          v1/devices/summary: id, type
+          v1/devices:         id, type, assignedZones, state
+        """
+        result = self._subset_list_old(
+            self._devices_raw, self._convert_device, **ATTRS_DEVICE)
+
+        if self._client.api_version != 0 and self._client.verbosity != 3:
+            result = natural_sort(result, 'id')
+
+        return result
+
+    @property
+    def issues(self) -> list:
+        """Return a list of Issues known to the Hub.
+
+          v1/issues: description, level
+        """
+        return self._subset_list_old(
+            self._issues_raw, self._convert_issue, **ATTRS_ISSUE)
 
     async def update(self):
         """Update the Hub with its latest state data."""
@@ -618,53 +665,10 @@ class GeniusHub(GeniusObject):
         [_populate_device(d) for d in self._devices_raw]
         [_populate_issue(i) for i in self._issues_raw]
 
-    @property
-    def info(self) -> dict:
-        """Return all information for the hub."""
-        keys = ['device_objs', 'device_by_id', 'device_by_zone_id',
-                'zone_objs', 'zone_by_id', 'zone_by_name']
-        return self._without_keys(keys)
-
-    @property
-    def zones(self) -> list:
-        """Return a list of Zones known to the Hub.
-
-          v1/zones/summary: id, name
-          v1/zones:         id, name, type, mode, temperature, setpoint,
-          occupied, override, schedule
-        """
-        # zone_dicts = [d.__dict__.items() for d in self.zone_objs]
-        # _LOGGER.warn("AAA = %s", zone_dicts)
-        # return json.dumps(self, default=zone_dicts)
-
-        # return self._subset_list(self.zone_objs, self._zones_raw, **ATTRS_ZONE)
-
-        return self._subset_list_old(
-            self._zones_raw, self._convert_zone, **ATTRS_ZONE)
-
-    @property
-    def devices(self) -> list:
-        """Return a list of Devices known to the Hub.
-
-          v1/devices/summary: id, type
-          v1/devices:         id, type, assignedZones, state
-        """
-        result = self._subset_list_old(
-            self._devices_raw, self._convert_device, **ATTRS_DEVICE)
-
-        if self._client.api_version != 0 and self._client.verbosity != 3:
-            result = natural_sort(result, 'id')
-
-        return result
-
-    @property
-    def issues(self) -> list:
-        """Return a list of Issues known to the Hub.
-
-          v1/issues: description, level
-        """
-        return self._subset_list_old(
-            self._issues_raw, self._convert_issue, **ATTRS_ISSUE)
+    async def reboot(self):
+        """Reboot the hub."""
+        # x.post("/v3/system/reboot", { username: e, password: t, json:{} })
+        raise NotImplementedError
 
 
 class GeniusTestHub(GeniusHub):
