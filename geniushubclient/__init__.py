@@ -203,6 +203,7 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
         result['id'] = raw_dict['iID']
         result['name'] = raw_dict['strName']
         result['type'] = ITYPE_TO_TYPE[raw_dict['iType']]
+        result['mode'] = IMODE_TO_MODE[raw_dict['iMode']]
 
         if raw_dict['iType'] in [ZONE_TYPES.ControlSP, ZONE_TYPES.TPI]:
             if not (raw_dict['iType'] == ZONE_TYPES.TPI and
@@ -212,8 +213,6 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
 
         elif raw_dict['iType'] == ZONE_TYPES.OnOffTimer:
             result['setpoint'] = bool(raw_dict['fSP'])
-
-        result['mode'] = IMODE_TO_MODE[raw_dict['iMode']]
 
         # pylint: disable=pointless-string-statement
         """Occupancy vs Activity (code from ap.js, search for occupancyIcon).
