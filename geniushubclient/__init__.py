@@ -612,9 +612,9 @@ class GeniusZone(GeniusObject):
 
     def __init__(self, client, zone_dict, raw_json) -> None:
         _LOGGER.info("Creating GeniusZone(id=%s)", zone_dict['id'])
-        super().__init__(client, zone_dict, raw_json)
+        self.setpoint = None  # prevents non-member lint errors
 
-        self.name = self.setpoint = None  # prevents non-member lint errors
+        super().__init__(client, zone_dict, raw_json)
 
     def __repr__(self):
         return {k: v for k, v in self.__dict__.items()
@@ -722,6 +722,7 @@ class GeniusDevice(GeniusObject):  # pylint: disable=too-few-public-methods
     def __init__(self, client, device_dict, raw_json, zone=None) -> None:
         _LOGGER.info("Creating GeniusDevice(id=%s, assigned_zone=%s)",
                      device_dict['id'], zone.id if zone else None)
+
         super().__init__(client, device_dict, raw_json, assigned_zone=zone)
 
     def __repr__(self):
