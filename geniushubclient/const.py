@@ -154,6 +154,15 @@ ATTRS_ISSUE = {
     'detail_keys': []
 }
 
+STATE_ATTRS = {
+    'SwitchBinary': 'outputOnOff',  # #      DCCR/PLUG, RADR
+    'Battery': 'batteryLevel',  # #          VALV/ROMT, RADR, ROMS
+    'HEATING_1': 'setTemperature',  # #      VALV/ROMT, RADR
+    'TEMPERATURE': 'measuredTemperature',  # VALV/ROMT, RADR, ROMS
+    'LUMINANCE': 'luminance',  # #                            ROMS
+    'Motion': 'occupancyTrigger'  # #                         ROMS
+}
+
 # This is from Vendor's bower.js
 DEVICES_MODEL = [
     {

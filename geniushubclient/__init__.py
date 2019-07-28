@@ -2,18 +2,16 @@
 
    see: https://my.geniushub.co.uk/docs
    """
-# import asyncio
 from hashlib import sha256
-from typing import List  # Any, Dict, List, Set, Tuple, Optional
+from typing import Dict, List  # Any, Dict, List, Set, Tuple, Optional
 
-import json
 import logging
 import re
 
 import aiohttp
 
 from .const import (
-    ATTRS_DEVICE, ATTRS_ISSUE, ATTRS_ZONE,
+    ATTRS_DEVICE, ATTRS_ZONE, STATE_ATTRS,
     DEFAULT_TIMEOUT_V1, DEFAULT_TIMEOUT_V3,
     ITYPE_TO_TYPE, IMODE_TO_MODE, MODE_TO_IMODE, IDAY_TO_DAY,
     LEVEL_TO_TEXT, DESCRIPTION_TO_TEXT,
@@ -23,9 +21,8 @@ logging.basicConfig()
 _LOGGER = logging.getLogger(__name__)
 
 # pylint3 --max-line-length=100
-# p#ylint: disable=fixme, missing-docstring
-# p#ylint: disable=too-many-locals, too-many-branches, too-many-statements
-# p#ylint: disable=too-many-arguments
+# pylint: disable=fixme
+# pylint: disable=too-many-branches, too-many-locals, too-many-statements
 
 
 def natural_sort(dict_list, dict_key):
@@ -36,12 +33,12 @@ def natural_sort(dict_list, dict_key):
     return sorted(dict_list, key=alphanum_key)
 
 
-def _get_zones_from_zones_v3(raw_json) -> list:
+def _get_zones_from_zones_v3(raw_json) -> List:
     """Extract Zones from /v3/zones JSON."""
     return raw_json
 
 
-def _get_devices_from_data_manager(raw_json) -> list:
+def _get_devices_from_data_manager(raw_json) -> List:
     """Extract Devices from /v3/data_manager JSON."""
     result = []
     for site in [x for x in raw_json['childNodes'].values()
@@ -58,7 +55,7 @@ def _get_devices_from_data_manager(raw_json) -> list:
     return result
 
 
-def _get_devices_from_zones_v3(raw_json) -> list:
+def _get_devices_from_zones_v3(raw_json) -> List:
     """Extract Devices from /v3/zones JSON."""
     result = []
     for zone in raw_json:
@@ -69,7 +66,7 @@ def _get_devices_from_zones_v3(raw_json) -> list:
     return result
 
 
-def _get_issues_from_zones_v3(raw_json) -> list:
+def _get_issues_from_zones_v3(raw_json) -> List:
     """Extract Issues from /v3/zones JSON."""
     result = []
     for zone in raw_json:
@@ -83,8 +80,10 @@ def _get_issues_from_zones_v3(raw_json) -> list:
 
 class GeniusHubClient():  # pylint: disable=too-many-instance-attributes
     """The class for a connection to a Genius Hub."""
+
+    # pylint: disable=too-many-arguments
     def __init__(self, hub_id, username=None, password=None, session=None,
-                 debug=False) -> None:  # pylint: disable=too-many-arguments
+                 debug=False) -> None:
         if debug is True:
             _LOGGER.setLevel(logging.DEBUG)
             _LOGGER.debug("Debug mode is explicitly enabled.")
@@ -192,12 +191,10 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
             self.device_objs = []
             self.device_by_id = {}
 
-    def _convert_zone(self, raw_dict) -> dict:
+    def _convert_zone(self, raw_dict) -> Dict:
         """Convert a v3 zone's dict/json to the v1 schema."""
         if self._client.api_version == 1:
             return raw_dict
-
-        # _LOGGER.debug("_convert_zone(): raw_dict=%s", raw_dict)
 
         result = {}
         result['id'] = raw_dict['iID']
@@ -223,17 +220,17 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
             In Footprint Mode:
                 Solid icon: occupancy detected; sufficient to call for heat
 
-        l = parseInt(i.iFlagExpectedKit) & e.equipmentTypes.Kit_PIR              # has a PIR
-        u = parseInt(i.iMode) === e.zoneModes.Mode_Footprint                     # in Footprint mode
-        d = null != (s=i.zoneReactive) ? s.bTriggerOn: void 0                    # ???
-        c = parseInt(i.iActivity) || 0                                           # ???
-        o = t.isInFootprintNightMode(i)                                          # night time
+            l = parseInt(i.iFlagExpectedKit) & e.equipmentTypes.Kit_PIR          # has a PIR
+            u = parseInt(i.iMode) === e.zoneModes.Mode_Footprint                 # in Footprint mode
+            d = null != (s=i.zoneReactive) ? s.bTriggerOn: void 0                # ???
+            c = parseInt(i.iActivity) || 0                                       # ???
+            o = t.isInFootprintNightMode(i)                                      # night time
 
-        u && l && d && !o ? n : c > 0 ? r : a
+            u && l && d && !o ? n : c > 0 ? r : a
 
-        n = "<i class='icon hg-icon-full-man   occupancy active' data-clickable='true'></i>"
-        r = "<i class='icon hg-icon-hollow-man occupancy active' data-clickable='true'></i>"
-        a = "<i class='icon hg-icon-full-man   occupancy'        data-clickable='false'></i>"
+            n = "<i class='icon hg-icon-full-man   occupancy active' data-clickable='true'></i>"
+            r = "<i class='icon hg-icon-hollow-man occupancy active' data-clickable='true'></i>"
+            a = "<i class='icon hg-icon-full-man   occupancy'        data-clickable='false'></i>"
         """
         if raw_dict['iFlagExpectedKit'] & KIT_TYPES.PIR:
             # pylint: disable=invalid-name
@@ -327,15 +324,13 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
 
         return result
 
-    def _convert_device(self, raw_dict) -> dict:
+    def _convert_device(self, raw_dict) -> Dict:
         """Convert a v3 device's dict/json to the v1 schema.
 
         Sets id, type, assignedZones and state.
         """
         if self._client.api_version == 1:
             return raw_dict
-
-        # _LOGGER.debug("_convert_device(): raw_dict=%s", raw_dict)
 
         def _check_fingerprint(node, device):
             """Check the device type against its 'fingerprint'."""
@@ -415,28 +410,17 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
 
         result['state'] = state = {}  # 4. Set state...
 
-        MAP = {
-            'SwitchBinary': 'outputOnOff',  # #      DCCR/PLUG, RADR
-            'Battery': 'batteryLevel',  # #          VALV/ROMT, RADR, ROMS
-            'HEATING_1': 'setTemperature',  # #      VALV/ROMT, RADR
-            'TEMPERATURE': 'measuredTemperature',  # VALV/ROMT, RADR, ROMS
-            'LUMINANCE': 'luminance',  # #                            ROMS
-            'Motion': 'occupancyTrigger'  # #                         ROMS
-        }
-
         # the following order should be preserved
-        state.update([(v, node[k]['val']) for k, v in MAP.items() if k in node])
+        state.update([(v, node[k]['val']) for k, v in STATE_ATTRS.items() if k in node])
         if 'outputOnOff' in state:  # this one should be a bool
             state['outputOnOff'] = bool(state['outputOnOff'])
 
         return result
 
-    def _convert_issue(self, raw_dict) -> dict:
+    def _convert_issue(self, raw_dict) -> Dict:
         """Convert a v3 issues's dict/json to the v1 schema."""
         if self._client.api_version == 1:
             return raw_dict
-
-        # _LOGGER.debug("_convert_issue(): raw_dict=%s", raw_dict)
 
         description = DESCRIPTION_TO_TEXT.get(raw_dict['id'], raw_dict)
 
@@ -474,7 +458,7 @@ class GeniusHub(GeniusObject):
         return self.info
 
     @property
-    def info(self) -> dict:
+    def info(self) -> Dict:
         """Return all information for the hub."""
         # x.get("/v3/auth/test", { username: e, password: t, timeout: n })
         keys = ['device_objs', 'device_by_id', 'device_by_zone_id',
@@ -482,7 +466,7 @@ class GeniusHub(GeniusObject):
         return {k: v for k, v in self.__dict__.items() if k[:1] != '_' and k not in keys}
 
     @property
-    def zones(self) -> list:
+    def zones(self) -> List:
         """Return a list of Zones known to the Hub.
 
           v1/zones/summary: id, name
@@ -493,7 +477,7 @@ class GeniusHub(GeniusObject):
         return [z.info for z in self.zone_objs]
 
     @property
-    def devices(self) -> list:
+    def devices(self) -> List:
         """Return a list of Devices known to the Hub.
 
           v1/devices/summary: id, type
@@ -502,7 +486,7 @@ class GeniusHub(GeniusObject):
         return natural_sort([d.info for d in self.device_objs], 'id')
 
     @property
-    def issues(self) -> list:
+    def issues(self) -> List:
         """Return a list of Issues known to the Hub.
 
           v1/issues: description, level
@@ -572,7 +556,7 @@ class GeniusHub(GeniusObject):
             self._issues_raw = _get_issues_from_zones_v3(self._zones_test)
             self._devices_raw = _get_devices_from_data_manager(self._devices_test)
 
-        elif self._client.api_version == 1:
+        elif self._client.api_version == 1:  # TODO: this needs checking!
             self._zones_raw = await self._client.request('GET', 'zones')
             self._issues_raw = await self._client.request('GET', 'issues')
             self._devices_raw = await self._client.request('GET', 'devices')
@@ -621,7 +605,7 @@ class GeniusZone(GeniusObject):
                 if k in ATTRS_ZONE['summary_keys']}
 
     @property
-    def info(self) -> dict:
+    def info(self) -> Dict:
         """Return all information for the zone."""
         if self._client.verbosity == 3:
             return self._raw_json
@@ -637,7 +621,7 @@ class GeniusZone(GeniusObject):
         return {k: v for k, v in self.__dict__.items() if k in keys}
 
     @property
-    def devices(self) -> list:
+    def devices(self) -> List:
         """Return information for devices assigned to a zone.
 
           This is a v1 API: GET /zones/{zoneId}devices
@@ -645,7 +629,7 @@ class GeniusZone(GeniusObject):
         return natural_sort([d.info for d in self.device_objs], 'id')
 
     @property
-    def issues(self) -> list:
+    def issues(self) -> List:
         """Return a list of Issues known to the Zone."""
         raise NotImplementedError
 
@@ -654,11 +638,9 @@ class GeniusZone(GeniusObject):
 
           mode is in {'off', 'timer', footprint', 'override'}
         """
-        # TODO: device-specific logic to prevent placing into an invalid mode
-        # TODO: e.g. zones only support footprint if they have a PIR
         allowed_modes = [ZONE_MODES.Off, ZONE_MODES.Override, ZONE_MODES.Timer]
 
-        if hasattr(self, 'occupied'):
+        if hasattr(self, 'occupied'):  # has a PIR (movement sensor)
             allowed_modes += [ZONE_MODES.Footprint]
         allowed_mode_strs = [IMODE_TO_MODE[i] for i in allowed_modes]
 
@@ -675,18 +657,15 @@ class GeniusZone(GeniusObject):
                       self.id, mode, mode_str)
 
         if self._client.api_version == 1:
-            # v1 API uses strings
-            url = 'zones/{}/mode'
+            url = 'zones/{}/mode'  # v1 API uses strings
             resp = await self._client.request('PUT', url.format(self.id), data=mode_str)
-        else:
-            # v3 API uses dicts
-            # TODO: check PUT(POST?) vs PATCH
-            url = 'zone/{}'
+        else:  # self._client.api_version == 1
+            url = 'zone/{}'  # v3 API uses dicts  # TODO: check: is it PUT(POST?) vs PATCH
             resp = await self._client.request('PATCH', url.format(self.id), data={'iMode': mode})
 
         if resp:  # for v1, resp = None?
             resp = resp['data'] if resp['error'] == 0 else resp
-        _LOGGER.debug("set_mode(%s): done, response = %s", self.id, resp)
+        _LOGGER.debug("Zone(%s).set_mode(): response = %s", self.id, resp)
 
     async def set_override(self, setpoint=None, duration=3600):
         """Set the zone to override to a certain temperature.
@@ -694,7 +673,7 @@ class GeniusZone(GeniusObject):
           duration is in seconds
           setpoint is in degrees Celsius
         """
-        setpoint = setpoint if setpoint is not None else self.setpoint
+        setpoint = setpoint if setpoint is not None else self.setpoint  # pylint: disable=no-member
 
         _LOGGER.debug("Zone(%s).set_override(setpoint=%s, duration=%s)...",
                       self.id, setpoint, duration)
@@ -712,8 +691,7 @@ class GeniusZone(GeniusObject):
 
         if resp:  # for v1, resp = None?
             resp = resp['data'] if resp['error'] == 0 else resp
-        _LOGGER.debug(
-            "set_override_temp(%s): done, response = %s", self.id, resp)
+        _LOGGER.debug("Zone(%s).set_override_temp(): response = %s", self.id, resp)
 
 
 class GeniusDevice(GeniusObject):  # pylint: disable=too-few-public-methods
@@ -730,7 +708,7 @@ class GeniusDevice(GeniusObject):  # pylint: disable=too-few-public-methods
                 if k in ATTRS_DEVICE['summary_keys']}
 
     @property
-    def info(self) -> dict:
+    def info(self) -> Dict:
         """Return all information for the device."""
         if self._client.verbosity == 3:
             return self._raw_json
