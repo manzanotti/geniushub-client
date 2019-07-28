@@ -172,12 +172,12 @@ class GeniusHubClient():  # pylint: disable=too-many-instance-attributes
 class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instance-attributes
     """The base class for any Genius object: Hub, Zone or Device."""
 
-    def __init__(self, client, obj_dict, raw_dict, assigned_zone=None) -> None:
+    def __init__(self, client, obj_dict, raw_json, assigned_zone=None) -> None:
         self.id = None  # prevents non-member lint errors                        # noqa; pylint: disable=invalid-name
         self.__dict__.update(obj_dict)  # create self.id, etc.
 
         self._client = client
-        self._raw_json = raw_dict
+        self._raw_json = raw_json
 
         if isinstance(self, GeniusHub):
             self.zone_objs = []
@@ -191,9 +191,6 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
         else:  # GeniusHub, GeniusZone
             self.device_objs = []
             self.device_by_id = {}
-
-    def __repr__(self):
-        return str(self.info)
 
     def _convert_zone(self, raw_dict) -> dict:
         """Convert a v3 zone's dict/json to the v1 schema."""
@@ -462,68 +459,6 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
 
         return {'description': description, 'level': level}
 
-#   # def _subset_dict(self, item_dict_raw, convert_to_v1,
-    #                  summary_keys, detail_keys):
-    #     if self._client.verbosity >= 3:
-    #         return item_dict_raw
-
-    #     item_dict = convert_to_v1(item_dict_raw)
-
-    #     if self._client.verbosity >= 2:
-    #         return item_dict
-
-    #     if self._client.verbosity >= 1:
-    #         keys = summary_keys + detail_keys
-    #     else:
-    #         keys = summary_keys
-
-    #     return {k: item_dict[k] for k in keys if k in item_dict}
-#
-    def _subset_list_old(self, item_list_raw, convert_to_v1,
-                     summary_keys, detail_keys) -> list:
-        item_list = [convert_to_v1(i) for i in item_list_raw]
-
-        if self._client.verbosity >= 3:
-            return item_list_raw
-
-        if self._client.verbosity >= 2:
-            return item_list
-
-        if self._client.verbosity >= 1:
-            keys = summary_keys + detail_keys
-        else:
-            keys = summary_keys
-
-        result = [{k: item[k] for k in keys if k in item}
-                  for item in item_list]
-
-        return result
-
-#   # def _subset_list(self, object_list, item_list_raw, summary_keys, detail_keys) -> list:
-    #     if self._client.verbosity >= 3:
-    #         return item_list_raw
-
-    #     item_list = [convert_to_v1(i) for i in item_list_raw]
-
-    #     if self._client.verbosity >= 2:
-    #         return item_list
-
-    #     if self._client.verbosity >= 1:
-    #         keys = summary_keys + detail_keys
-    #     else:
-    #         keys = summary_keys
-
-    #     result = [{k: item[k] for k in keys if k in item}
-    #               for item in item_list]
-
-    #     return result
-#
-    def _without_keys(self, keys) -> dict:
-        """Return self.__dict__ after removing unwanted keys."""
-        _dict = {k: v for k, v in self.__dict__.items()
-                 if k[:1] != '_' and k not in keys}
-        return _dict
-
 
 class GeniusHub(GeniusObject):
     """The class for a Genius Hub."""
@@ -535,13 +470,16 @@ class GeniusHub(GeniusObject):
         self._zones_raw = self._devices_raw = self._issues_raw = None
         self._zones_test = self._devices_test = None
 
+    def __repr__(self):
+        return self.info
+
     @property
     def info(self) -> dict:
         """Return all information for the hub."""
         # x.get("/v3/auth/test", { username: e, password: t, timeout: n })
         keys = ['device_objs', 'device_by_id', 'device_by_zone_id',
                 'zone_objs', 'zone_by_id', 'zone_by_name']
-        return self._without_keys(keys)
+        return {k: v for k, v in self.__dict__.items() if k[:1] != '_' and k not in keys}
 
     @property
     def zones(self) -> list:
@@ -640,12 +578,12 @@ class GeniusHub(GeniusObject):
             self._devices_raw = await self._client.request('GET', 'devices')
 
         else:   # self._client.api_version == 3:
-            json = await self._client.request('GET', 'zones')
-            self._zones_raw = _get_zones_from_zones_v3(json['data'])
-            self._issues_raw = _get_issues_from_zones_v3(json['data'])
+            response = await self._client.request('GET', 'zones')
+            self._zones_raw = _get_zones_from_zones_v3(response['data'])
+            self._issues_raw = _get_issues_from_zones_v3(response['data'])
 
-            json = await self._client.request('GET', 'data_manager')
-            self._devices_raw = _get_devices_from_data_manager(json['data'])
+            response = await self._client.request('GET', 'data_manager')
+            self._devices_raw = _get_devices_from_data_manager(response['data'])
 
         # pylint: disable=expression-not-assigned
         [_populate_zone(z) for z in self._zones_raw]
@@ -678,20 +616,25 @@ class GeniusZone(GeniusObject):
 
         self.name = self.setpoint = None  # prevents non-member lint errors
 
+    def __repr__(self):
+        return {k: v for k, v in self.__dict__.items()
+                if k in ATTRS_ZONE['summary_keys']}
+
     @property
     def info(self) -> dict:
         """Return all information for the zone."""
-        # self.hub.zones_json
-        # if self._client.verbosity >= 2:
-        #     return self.hub.zones_json
+        if self._client.verbosity == 3:
+            return self._raw_json
 
-        # if self._client.verbosity >= 1:
-        #     keys = summary_keys + detail_keys
-        # else:
-        #     keys = summary_keys
+        if self._client.verbosity == 2:
+            return {k: v for k, v in self.__dict__.items()
+                    if k[:1] != '_' and k not in ['device_objs', 'device_by_id']}
 
-        keys = ['device_by_id', 'device_objs', 'hub']
-        return self._without_keys(keys)
+        keys = ATTRS_ZONE['summary_keys']
+        if self._client.verbosity == 1:
+            keys += ATTRS_ZONE['detail_keys']
+
+        return {k: v for k, v in self.__dict__.items() if k in keys}
 
     @property
     def devices(self) -> list:
@@ -781,8 +724,22 @@ class GeniusDevice(GeniusObject):  # pylint: disable=too-few-public-methods
                      device_dict['id'], zone.id if zone else None)
         super().__init__(client, device_dict, raw_json, assigned_zone=zone)
 
+    def __repr__(self):
+        return {k: v for k, v in self.__dict__.items()
+                if k in ATTRS_DEVICE['summary_keys']}
+
     @property
     def info(self) -> dict:
         """Return all information for the device."""
-        keys = ['hub', 'assigned_zone']
-        return self._without_keys(keys)
+        if self._client.verbosity == 3:
+            return self._raw_json
+
+        if self._client.verbosity == 2:
+            return {k: v for k, v in self.__dict__.items()
+                    if k[:1] != '_' and k not in ['assigned_zone']}
+
+        keys = ATTRS_DEVICE['summary_keys']
+        if self._client.verbosity == 1:
+            keys += ATTRS_DEVICE['detail_keys']
+
+        return {k: v for k, v in self.__dict__.items() if k in keys}
