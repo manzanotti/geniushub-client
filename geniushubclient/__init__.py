@@ -368,14 +368,13 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
                 _LOGGER.warning("Device %s, '%s': typed only by its fingerprint!",
                                 device['id'], device['type'])
 
-            # elif (device['type'] == fingerprint or
-            elif device['type'][:21] == fingerprint:  # "Dual Channel Receiver"
-                _LOGGER.debug("Device %s, '%s': matches its fingerprint.",
-                              device['id'], device['type'])
-
-            else:  # device['type'] != device_type:
+            elif device['type'][:21] != fingerprint:  # "Dual Channel Receiver"
                 _LOGGER.error("Device %s, '%s': doesn't match its fingerprint: '%s'!",
                               device['id'], device['type'], fingerprint)
+
+            # else:
+            #     _LOGGER.debug("Device %s, '%s': matches its fingerprint.",
+            #                   device['id'], device['type'])
 
         result = {}
 
@@ -441,8 +440,6 @@ class GeniusHub(GeniusObject):
     """The class for a Genius Hub."""
 
     def __init__(self, client, hub_dict) -> None:
-        _LOGGER.info("Creating GeniusHub()")
-
         super().__init__(client, hub_dict, {})
 
         self._zones_raw = self._devices_raw = self._issues_raw = None
@@ -502,8 +499,6 @@ class GeniusHub(GeniusObject):
                 self.zone_by_id[zone_dict['id']] = zone
                 self.zone_by_name[zone_dict['name']] = zone
 
-                _LOGGER.debug("Found a new Zone: %s", zone_dict['id'])
-
             return zone_dict['id'], zone
 
         def _populate_device(device_raw):
@@ -519,7 +514,6 @@ class GeniusHub(GeniusObject):
                 self.device_objs.append(device)
 
                 self.device_by_id[device_dict['id']] = device
-                _LOGGER.debug("Found a new Device: %s", device_dict['id'])
 
             if zone:
                 try:  # does the parent Zone already know about this device?
@@ -533,7 +527,7 @@ class GeniusHub(GeniusObject):
         def _populate_issue(issue_raw):
             issue_dict = self._convert_issue(issue_raw)
 
-            _LOGGER.debug("Found a new Issue: %s)", issue_dict)
+            _LOGGER.info("Found an Issue: %s)", issue_dict)
 
             return issue_dict
 
@@ -571,9 +565,9 @@ class GeniusTestHub(GeniusHub):
     """The test class for a Genius Hub - uses a test file."""
 
     def __init__(self, client, hub_dict, zones_json, device_json) -> None:
-        _LOGGER.warning("Creating GeniusTestHub()")
-
         super().__init__(client, hub_dict)
+
+        _LOGGER.info("Using GeniusTestHub()")
 
         self._zones_test = zones_json
         self._devices_test = device_json
@@ -583,8 +577,6 @@ class GeniusZone(GeniusObject):
     """The class for a Genius Zone."""
 
     def __init__(self, client, zone_dict, raw_json) -> None:
-        _LOGGER.debug("Creating GeniusZone(id=%s)", zone_dict['id'])
-
         super().__init__(client, zone_dict, raw_json)
 
     def __repr__(self):
@@ -685,9 +677,6 @@ class GeniusDevice(GeniusObject):  # pylint: disable=too-few-public-methods
     """The class for a Genius Device."""
 
     def __init__(self, client, device_dict, raw_json, zone=None) -> None:
-        _LOGGER.debug("Creating GeniusDevice(id=%s, assigned_zone=%s)",
-                     device_dict['id'], zone.id if zone else None)
-
         super().__init__(client, device_dict, raw_json, assigned_zone=zone)
 
     def __repr__(self):
