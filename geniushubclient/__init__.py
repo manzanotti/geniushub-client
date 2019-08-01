@@ -2,6 +2,7 @@
 
    see: https://my.geniushub.co.uk/docs
    """
+from datetime import datetime
 from hashlib import sha256
 from typing import Dict, List  # Any, Dict, List, Set, Tuple, Optional
 
@@ -12,7 +13,7 @@ import aiohttp
 
 from .const import (
     ATTRS_DEVICE, ATTRS_ZONE, STATE_ATTRS,
-    DEFAULT_TIMEOUT_V1, DEFAULT_TIMEOUT_V3,
+    DEFAULT_TIMEOUT_V1, DEFAULT_TIMEOUT_V3, HUB_SW_VERSION,
     ITYPE_TO_TYPE, IMODE_TO_MODE, MODE_TO_IMODE, IDAY_TO_DAY,
     LEVEL_TO_TEXT, DESCRIPTION_TO_TEXT,
     ZONE_TYPES, ZONE_MODES, KIT_TYPES)
@@ -25,12 +26,22 @@ _LOGGER = logging.getLogger(__name__)
 # pylint: disable=too-many-branches, too-many-locals, too-many-statements
 
 
-def natural_sort(dict_list, dict_key):
-    """Return a list that is case-insensitively sorted, with '11' after '2'."""
+def natural_sort(dict_list, dict_key) -> List[Dict]:
+    """Return a case-insensitively sorted list, with '11' after '2-2'."""
     # noqa; pylint: disable=missing-docstring, multiple-statements
     def alphanum_key(k): return [int(c) if c.isdigit() else c.lower()
                                  for c in re.split('([0-9]+)', k[dict_key])]
     return sorted(dict_list, key=alphanum_key)
+
+
+def _get_version_from_zones_v3(raw_json) -> Dict:
+    """Extract Version from /v3/zones JSON."""
+    date_time_str = raw_json[0]['strBuildDate']
+    date_time_obj = datetime.strptime(date_time_str, '%b %d %Y')
+    for date_time_idx in HUB_SW_VERSION.keys():
+        if datetime.strptime(date_time_idx, '%b %d %Y') <= date_time_obj:
+            version = HUB_SW_VERSION[date_time_idx]
+    return {"hubSoftwareVersion": version}
 
 
 def _get_zones_from_zones_v3(raw_json) -> List:
@@ -135,7 +146,8 @@ class GeniusHubClient():  # pylint: disable=too-many-instance-attributes
             ) as resp:
                 response = await resp.json(content_type=None)
 
-        # except concurrent.futures._base.TimeoutError as err:
+        # cept concurrent.futures._base.TimeoutError: ???
+        # cept aiohttp.client_exceptions.ClientResponseError: 502, message='Bad Gateway'
         except aiohttp.client_exceptions.ServerDisconnectedError as err:
             _LOGGER.debug("_request(): ServerDisconnected, retrying (msg=%s)", err)
             _session = aiohttp.ClientSession()
@@ -442,7 +454,6 @@ class GeniusHub(GeniusObject):
     def __init__(self, client, hub_dict) -> None:
         super().__init__(client, hub_dict, {})
 
-        self._zones_raw = self._devices_raw = self._issues_raw = None
         self._zones_test = self._devices_test = None
 
     def __repr__(self):
@@ -464,7 +475,6 @@ class GeniusHub(GeniusObject):
           v1/zones:         id, name, type, mode, temperature, setpoint,
           occupied, override, schedule
         """
-        # return self._subset_list(self.zone_objs, self._zones_raw, **ATTRS_ZONE)
         return [z.info for z in self.zone_objs]
 
     @property
@@ -474,6 +484,8 @@ class GeniusHub(GeniusObject):
           v1/devices/summary: id, type
           v1/devices:         id, type, assignedZones, state
         """
+        if self._client.verbosity == 3:
+            return [d.info for d in self.device_objs]
         return natural_sort([d.info for d in self.device_objs], 'id')
 
     @property
@@ -532,28 +544,33 @@ class GeniusHub(GeniusObject):
             return issue_dict
 
         if isinstance(self, GeniusTestHub):  # a hack for testing
-            self._client.api_version = 3
-            self._zones_raw = _get_zones_from_zones_v3(self._zones_test)
-            self._issues_raw = _get_issues_from_zones_v3(self._zones_test)
-            self._devices_raw = _get_devices_from_data_manager(self._devices_test)
+            zones = self._zones_test
+            devices = self._devices_test
+
+            issues = _get_issues_from_zones_v3(zones)
+            self.version = _get_version_from_zones_v3(zones)
 
         elif self._client.api_version == 1:  # TODO: this needs checking!
-            self._zones_raw = await self._client.request('GET', 'zones')
-            self._issues_raw = await self._client.request('GET', 'issues')
-            self._devices_raw = await self._client.request('GET', 'devices')
+            zones = await self._client.request('GET', 'zones')
+            devices = await self._client.request('GET', 'devices')
+
+            issues = await self._client.request('GET', 'issues')
+            self.version = await self._client.request('GET', 'version')
 
         else:   # self._client.api_version == 3:
-            response = await self._client.request('GET', 'zones')
-            self._zones_raw = _get_zones_from_zones_v3(response['data'])
-            self._issues_raw = _get_issues_from_zones_v3(response['data'])
+            zones_json = await self._client.request('GET', 'zones')
+            devices_json = await self._client.request('GET', 'data_manager')
 
-            response = await self._client.request('GET', 'data_manager')
-            self._devices_raw = _get_devices_from_data_manager(response['data'])
+            zones = _get_zones_from_zones_v3(zones_json['data'])
+            devices = _get_devices_from_data_manager(devices_json['data'])
+
+            issues = _get_issues_from_zones_v3(zones)
+            self.version = _get_version_from_zones_v3(zones)
 
         # pylint: disable=expression-not-assigned
-        [_populate_zone(z) for z in self._zones_raw]
-        [_populate_device(d) for d in self._devices_raw]
-        self._issues = [_populate_issue(i) for i in self._issues_raw]
+        [_populate_zone(z) for z in zones]
+        [_populate_device(d) for d in devices]
+        self._issues = [_populate_issue(i) for i in issues]
 
     async def reboot(self):
         """Reboot the hub."""
@@ -569,6 +586,7 @@ class GeniusTestHub(GeniusHub):
 
         _LOGGER.info("Using GeniusTestHub()")
 
+        self._client.api_version = 3
         self._zones_test = zones_json
         self._devices_test = device_json
 
