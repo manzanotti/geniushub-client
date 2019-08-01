@@ -36,12 +36,11 @@ def natural_sort(dict_list, dict_key) -> List[Dict]:
 
 def _get_version_from_zones_v3(raw_json) -> Dict:
     """Extract Version from /v3/zones JSON."""
-    date_time_str = raw_json[0]['strBuildDate']
-    date_time_obj = datetime.strptime(date_time_str, '%b %d %Y')
-    for date_time_idx in HUB_SW_VERSION.keys():
-        if datetime.strptime(date_time_idx, '%b %d %Y') <= date_time_obj:
-            version = HUB_SW_VERSION[date_time_idx]
-    return {"hubSoftwareVersion": version}
+    build_date = datetime.strptime(raw_json[0]['strBuildDate'], '%b %d %Y')
+
+    for date_time_idx in HUB_SW_VERSION:
+        if datetime.strptime(date_time_idx, '%b %d %Y') <= build_date:
+            return {"hubSoftwareVersion": HUB_SW_VERSION[date_time_idx]}
 
 
 def _get_zones_from_zones_v3(raw_json) -> List:
@@ -454,7 +453,7 @@ class GeniusHub(GeniusObject):
     def __init__(self, client, hub_dict) -> None:
         super().__init__(client, hub_dict, {})
 
-        self._zones_test = self._devices_test = None
+        self._test_json = {}
 
     def __repr__(self):
         return self.info
@@ -543,21 +542,21 @@ class GeniusHub(GeniusObject):
 
             return issue_dict
 
-        if isinstance(self, GeniusTestHub):  # a hack for testing
-            zones = self._zones_test
-            devices = self._devices_test
-
-            issues = _get_issues_from_zones_v3(zones)
-            self.version = _get_version_from_zones_v3(zones)
-
-        elif self._client.api_version == 1:  # TODO: this needs checking!
+        if self._client.api_version == 1:
             zones = await self._client.request('GET', 'zones')
             devices = await self._client.request('GET', 'devices')
 
             issues = await self._client.request('GET', 'issues')
             self.version = await self._client.request('GET', 'version')
 
-        else:   # self._client.api_version == 3:
+        elif isinstance(self, GeniusTestHub):  # a hack for testing
+            zones = self._test_json['zones']
+            devices = self._test_json['devices']
+
+            issues = _get_issues_from_zones_v3(zones)
+            self.version = _get_version_from_zones_v3(zones)
+
+        else:  # self._client.api_version == 3:
             zones_json = await self._client.request('GET', 'zones')
             devices_json = await self._client.request('GET', 'data_manager')
 
@@ -567,9 +566,8 @@ class GeniusHub(GeniusObject):
             issues = _get_issues_from_zones_v3(zones)
             self.version = _get_version_from_zones_v3(zones)
 
-        # pylint: disable=expression-not-assigned
-        [_populate_zone(z) for z in zones]
-        [_populate_device(d) for d in devices]
+        [_populate_zone(z) for z in zones]  # pylint: disable=expression-not-assigned
+        [_populate_device(d) for d in devices]  # pylint: disable=expression-not-assigned
         self._issues = [_populate_issue(i) for i in issues]
 
     async def reboot(self):
@@ -587,8 +585,8 @@ class GeniusTestHub(GeniusHub):
         _LOGGER.info("Using GeniusTestHub()")
 
         self._client.api_version = 3
-        self._zones_test = zones_json
-        self._devices_test = device_json
+        self._test_json['zones'] = zones_json
+        self._test_json['devices'] = device_json
 
 
 class GeniusZone(GeniusObject):
