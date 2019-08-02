@@ -4,6 +4,18 @@ from types import SimpleNamespace
 DEFAULT_TIMEOUT_V1 = 300
 DEFAULT_TIMEOUT_V3 = 20
 
+# see: https://docs.geniushub.co.uk/pages/viewpage.action?pageId=14221432
+HUB_SW_VERSION = {
+    "Dec 31 9999": "5.3.2+",
+    "Jul 23 2019": "5.3.2",  # #          confirmed in testing
+    "Jun 25 2019": "5.3.0",
+    "Dec 20 2018": "5.2.10 (beta)",
+    "Dec 19 2018": "5.2.10",  # #         confirmed in testing
+    "Jul 11 2018": "5.2.4",
+    "Jan 05 2018": "5.2.2",
+    "Jan 01 1000": "<5.2.2",
+}
+
 API_STATUS_ERROR = {
     400: 'The request body or request parameters are invalid.',
     401: 'The authorization information is missing or invalid.',
