@@ -261,6 +261,7 @@ workflows:
           post-steps:
             - normalize_json:
                 test_type: "devices"
+                file_type: "curl"
             - *persist_to_workspace
 
       - diff_devices:
@@ -282,6 +283,7 @@ workflows:
           post-steps:
             - normalize_json:
                 test_type: "issues"
+                file_type: "curl"
             - *persist_to_workspace
 
       - diff_issues:
