@@ -70,8 +70,8 @@ commands:
             curl -X GET https://my.geniushub.co.uk/v1/<< parameters.test_type >> -H "authorization: Bearer ${HUB_TOKEN}" --connect-timeout 300 | \
               tee ${TEST_RESULTS}/<< parameters.test_type >>/curl.json
 
-  prep_v1_curl:
-    description: "get v1 response via cURL"
+  normalize_json:
+    description: "convert JSON to s standard formatL"
     parameters:
       test_type:
         type: string
@@ -82,7 +82,8 @@ commands:
           no_output_timeout: 60
           command: |
             . venv/bin/activate
-            cat ${TEST_RESULTS}/<< parameters.test_type >>/curl.json | python -c "import sys, json; print(json.load(sys.stdin))" | \
+            cat ${TEST_RESULTS}/<< parameters.test_type >>/curl.json | \
+              python -c "import sys, json; print(json.dumps(json.load(sys.stdin), indent=4, sort_keys=True))" | \
               tee ${TEST_RESULTS}/<< parameters.test_type >>/curl.json
 
   get_v1_app:
@@ -228,7 +229,7 @@ workflows:
             - *restore_cache
             - *attach_workspace
           post-steps:
-            - prep_v1_curl:
+            - normalize_json:
                 test_type: "zones"
             - *persist_to_workspace
 
@@ -249,7 +250,7 @@ workflows:
             - *restore_cache
             - *attach_workspace
           post-steps:
-            - prep_v1_curl:
+            - normalize_json:
                 test_type: "devices"
             - *persist_to_workspace
 
@@ -270,7 +271,7 @@ workflows:
             - *restore_cache
             - *attach_workspace
           post-steps:
-            - prep_v1_curl:
+            - normalize_json:
                 test_type: "issues"
             - *persist_to_workspace
 
