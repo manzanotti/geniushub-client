@@ -187,7 +187,7 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
         self.__dict__.update(obj_dict)  # create self.id, etc.
 
         self._client = client
-        self._raw = raw_json
+        self._raw_json = raw_json
         self._attrs = {}
 
         if isinstance(self, GeniusHub):
@@ -210,7 +210,7 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
     def info(self) -> Dict:
         """Return all information for the object."""
         if self._client.verbosity == 3:
-            return self._raw
+            return self._raw_json
 
         if self._client.verbosity == 2:
             return {k: v for k, v in self.__dict__.items() if k[:1] != '_' and
