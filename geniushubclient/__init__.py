@@ -188,6 +188,7 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
 
         self._client = client
         self._raw = raw_json
+        self._attrs = {}
 
         if isinstance(self, GeniusHub):
             self.zone_objs = []
@@ -200,6 +201,26 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
         else:  # GeniusHub, GeniusZone
             self.device_objs = []
             self.device_by_id = {}
+
+    def __repr__(self):
+        return {k: v for k, v in self.__dict__.items()
+                if k in self._attrs['summary_keys']}
+
+    @property
+    def info(self) -> Dict:
+        """Return all information for the object."""
+        if self._client.verbosity == 3:
+            return self._raw
+
+        if self._client.verbosity == 2:
+            return {k: v for k, v in self.__dict__.items() if k[:1] != '_' and
+                    k not in ['device_objs', 'device_by_id', 'assigned_zone']}
+
+        keys = self._attrs['summary_keys']
+        if self._client.verbosity == 1:
+            keys += self._attrs['detail_keys']
+
+        return {k: v for k, v in self.__dict__.items() if k in keys}
 
     def _convert_zone(self, raw_dict) -> Dict:
         """Convert a v3 zone's dict/json to the v1 schema."""
@@ -468,7 +489,8 @@ class GeniusHub(GeniusObject):
         # x.get("/v3/auth/test", { username: e, password: t, timeout: n })
         keys = ['device_objs', 'device_by_id', 'device_by_zone_id',
                 'zone_objs', 'zone_by_id', 'zone_by_name']
-        return {k: v for k, v in self.__dict__.items() if k[:1] != '_' and k not in keys}
+        return {k: v for k, v in self.__dict__.items() if k[:1] != '_' and
+                k not in keys}
 
     @property
     def zones(self) -> List:
@@ -591,25 +613,7 @@ class GeniusZone(GeniusObject):
     def __init__(self, client, zone_dict, raw_json) -> None:
         super().__init__(client, zone_dict, raw_json)
 
-    def __repr__(self):
-        return {k: v for k, v in self.__dict__.items()
-                if k in ATTRS_ZONE['summary_keys']}
-
-    @property
-    def info(self) -> Dict:
-        """Return all information for the zone."""
-        if self._client.verbosity == 3:
-            return self._raw_json
-
-        if self._client.verbosity == 2:
-            return {k: v for k, v in self.__dict__.items()
-                    if k[:1] != '_' and k not in ['device_objs', 'device_by_id']}
-
-        keys = ATTRS_ZONE['summary_keys']
-        if self._client.verbosity == 1:
-            keys += ATTRS_ZONE['detail_keys']
-
-        return {k: v for k, v in self.__dict__.items() if k in keys}
+        self._attrs = ATTRS_ZONE
 
     @property
     def devices(self) -> List:
@@ -691,22 +695,4 @@ class GeniusDevice(GeniusObject):  # pylint: disable=too-few-public-methods
     def __init__(self, client, device_dict, raw_json, zone=None) -> None:
         super().__init__(client, device_dict, raw_json, assigned_zone=zone)
 
-    def __repr__(self):
-        return {k: v for k, v in self.__dict__.items()
-                if k in ATTRS_DEVICE['summary_keys']}
-
-    @property
-    def info(self) -> Dict:
-        """Return all information for the device."""
-        if self._client.verbosity == 3:
-            return self._raw_json
-
-        if self._client.verbosity == 2:
-            return {k: v for k, v in self.__dict__.items()
-                    if k[:1] != '_' and k not in ['assigned_zone']}
-
-        keys = ATTRS_DEVICE['summary_keys']
-        if self._client.verbosity == 1:
-            keys += ATTRS_DEVICE['detail_keys']
-
-        return {k: v for k, v in self.__dict__.items() if k in keys}
+        self._attrs = ATTRS_DEVICE
