@@ -54,6 +54,22 @@ aliases:
 
 
 commands:
+  normalize_json:
+    description: "convert JSON to a standard format"
+    parameters:
+      test_type:
+        type: string
+        default: "issues"
+    steps:
+      - run:
+          name: prepare cURL response
+          no_output_timeout: 60
+          command: |
+            . venv/bin/activate
+            cat ${TEST_RESULTS}/<< parameters.test_type >>/curl.json | \
+              python -c "import sys, json; print(json.dumps(json.load(sys.stdin), indent=4, sort_keys=True))" | \
+              tee ${TEST_RESULTS}/<< parameters.test_type >>/curl.json
+
   get_v1_curl:
     description: "get v1 response via cURL"
     parameters:
@@ -70,22 +86,6 @@ commands:
             curl -X GET https://my.geniushub.co.uk/v1/<< parameters.test_type >> -H "authorization: Bearer ${HUB_TOKEN}" --connect-timeout 300 | \
               tee ${TEST_RESULTS}/<< parameters.test_type >>/curl.json
 
-  normalize_json:
-    description: "convert JSON to s standard formatL"
-    parameters:
-      test_type:
-        type: string
-        default: "issues"
-    steps:
-      - run:
-          name: prepare cURL response
-          no_output_timeout: 60
-          command: |
-            . venv/bin/activate
-            cat ${TEST_RESULTS}/<< parameters.test_type >>/curl.json | \
-              python -c "import sys, json; print(json.dumps(json.load(sys.stdin), indent=4, sort_keys=True))" | \
-              tee ${TEST_RESULTS}/<< parameters.test_type >>/curl.json
-
   get_v1_app:
     description: "get v1 response via app"
     parameters:
@@ -99,7 +99,6 @@ commands:
           command: |
             mkdir -p ${TEST_RESULTS}/<< parameters.test_type >>
 
-            . venv/bin/activate
             python ghclient.py ${HUB_TOKEN} << parameters.test_type >> -v | \
               tee ${TEST_RESULTS}/<< parameters.test_type >>/v1.json
 
@@ -116,7 +115,6 @@ commands:
           command: |
             mkdir -p ${TEST_RESULTS}/<< parameters.test_type >>
 
-            . venv/bin/activate
             python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} << parameters.test_type >> -v | \
               tee ${TEST_RESULTS}/<< parameters.test_type >>/v3.json
 
