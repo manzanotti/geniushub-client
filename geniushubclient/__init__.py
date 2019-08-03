@@ -369,6 +369,7 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
                 if device['type']:
                     _LOGGER.debug("Device %s, '%s': has no confirming fingerprint!",
                                   device['id'], device['type'])
+                    device['type'] = None
                 else:
                     _LOGGER.error("Device %s: has no type, and no fingerprint!",
                                   device['id'])
