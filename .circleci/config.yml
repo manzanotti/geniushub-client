@@ -68,7 +68,7 @@ commands:
           command: |
             . venv/bin/activate
             cat ${TEST_RESULTS}/<< parameters.test_type >>/<< parameters.file_type >>.json | \
-              python -c "import sys, json; print(json.dumps(json.load(sys.stdin, indent=4, sort_keys=True, object_hook=lambda x: int(x) if isinstance(x, float) else x)))" | \
+              python -c "import sys, json; print(json.dumps(json.load(sys.stdin), indent=4, sort_keys=True))" | \
               tee ${TEST_RESULTS}/<< parameters.test_type >>/<< parameters.file_type >>.json
 
   get_v1_curl:
@@ -104,7 +104,7 @@ commands:
 
             python ghclient.py ${HUB_TOKEN} << parameters.test_type >> -v | \
               python -c "import sys, json; print(json.dumps(json.load(sys.stdin), indent=4, sort_keys=True))" | \
-              tee ${TEST_RESULTS}/<< parameters.test_type >>/v1.json
+              tee ${TEST_RESULTS}/<< parameters.test_type >>/v1.json | head -n 20
 
   get_v3_app:
     description: "get v3 response via app"
@@ -122,8 +122,8 @@ commands:
             . venv/bin/activate
 
             python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} << parameters.test_type >> -v | \
-              python -c "import sys, json; print(json.dumps(json.load(sys.stdin, object_hook=lambda x: int(x) if isinstance(x, float) else x), indent=4, sort_keys=True))" | \
-              tee ${TEST_RESULTS}/<< parameters.test_type >>/v3.json
+              python -c "import sys, json; print(json.dumps(json.load(sys.stdin), indent=4, sort_keys=True))" | \
+              tee ${TEST_RESULTS}/<< parameters.test_type >>/v3.json | head -n 20
 
   diff_files:
     description: "compare outputs"
