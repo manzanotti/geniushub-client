@@ -247,10 +247,9 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
             # pylint: disable=invalid-name
             u = raw_dict['iMode'] == ZONE_MODES.Footprint
             d = raw_dict['zoneReactive']['bTriggerOn']
-            c = raw_dict['iActivity'] or 0                                       # noqa: ignore=F841; pylint: disable=unused-variable
+            c = raw_dict['iActivity'] or 0
             o = raw_dict['objFootprint']['bIsNight']
-            # i suspect -1 should be True
-            result['occupied'] = True if u and d and (not o) else -1 if c > 0 else False
+            result['occupied'] = True if u and d and (not o) else True if c > 0 else False
 
         if raw_dict['iType'] in [ZONE_TYPES.OnOffTimer,
                                  ZONE_TYPES.ControlSP,
