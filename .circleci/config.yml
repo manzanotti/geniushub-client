@@ -232,9 +232,9 @@ workflows:
             - *restore_cache
             - *attach_workspace
           post-steps:
-            - normalize_json: {"test_type": "zones", "test_file": "curl"}
-            - normalize_json: {"test_type": "zones", "test_file": "v1"}
-            - normalize_json: {"test_type": "zones", "test_file": "v3"}
+            - normalize_json: {"test_type": "zones", "file_type": "curl"}
+            - normalize_json: {"test_type": "zones", "file_type": "v1"}
+            - normalize_json: {"test_type": "zones", "file_type": "v3"}
             - *persist_to_workspace
 
       - diff_zones:
