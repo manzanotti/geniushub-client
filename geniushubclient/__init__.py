@@ -431,16 +431,23 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
 
         if '{zone_name}' in description and '{device_type}' in description:
             zone = raw_dict['data']['location']  # or: raw_dict['_zone_name']
-            device = self.device_by_id[raw_dict['data']['nodeID']].type
+            try:
+                device = self.device_by_id[raw_dict['data']['nodeID']].type
+            except AttributeError:
+                device = 'undefined'
+
             description = description.format(zone_name=zone, device_type=device)
 
         elif '{zone_name}' in description:
             # raw_dict['data'] is not avalable as no device?
-            zone = raw_dict['_zone_name']
-            description = description.format(zone_name=zone)
+            description = description.format(zone_name=raw_dict['_zone_name'])
 
         elif '{device_type}' in description:
-            device = self.device_by_id[raw_dict['data']['nodeID']].type
+            try:
+                device = self.device_by_id[raw_dict['data']['nodeID']].type
+            except AttributeError:
+                device = 'undefined'
+
             description = description.format(device_type=device)
 
         level = LEVEL_TO_TEXT.get(raw_dict['level'], raw_dict['level'])
