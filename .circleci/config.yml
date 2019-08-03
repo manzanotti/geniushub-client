@@ -218,15 +218,8 @@ workflows:
             - *restore_cache
             - *attach_workspace
           post-steps:
+            - diff_zones
             - *persist_to_workspace
-
-      - diff_zones:
-          requires:
-            - get_zones
-          pre-steps:
-            - *attach_workspace
-          post-steps:
-            - *store_artifacts
 
       - get_devices:
           requires:
