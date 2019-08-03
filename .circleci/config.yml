@@ -68,7 +68,7 @@ commands:
           command: |
             . venv/bin/activate
             cat ${TEST_RESULTS}/<< parameters.test_type >>/<< parameters.file_type >>.json | \
-              python -c "import sys, json; print(json.dumps(json.load(sys.stdin, object_hook=lambda x: int(x) if isinstance(x, float) else x), indent=4, sort_keys=True))" | \
+              python -c "import sys, json; print(json.dumps(json.load(sys.stdin, indent=4, sort_keys=True, object_hook=lambda x: int(x) if isinstance(x, float) else x)))" | \
               tee ${TEST_RESULTS}/<< parameters.test_type >>/<< parameters.file_type >>.json
 
   get_v1_curl:
