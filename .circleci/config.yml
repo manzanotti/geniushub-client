@@ -99,6 +99,8 @@ commands:
           command: |
             mkdir -p ${TEST_RESULTS}/<< parameters.test_type >>
 
+            . venv/bin/activate
+
             python ghclient.py ${HUB_TOKEN} << parameters.test_type >> -v | \
               tee ${TEST_RESULTS}/<< parameters.test_type >>/v1.json
 
@@ -114,6 +116,8 @@ commands:
           no_output_timeout: 120
           command: |
             mkdir -p ${TEST_RESULTS}/<< parameters.test_type >>
+
+            . venv/bin/activate
 
             python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} << parameters.test_type >> -v | \
               tee ${TEST_RESULTS}/<< parameters.test_type >>/v3.json
