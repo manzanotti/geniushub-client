@@ -54,27 +54,19 @@ aliases:
 
 
 commands:
-  initialise:
-    description: "Initialise "
-    parameters:
-      test_type: {type: string}
-    steps:
-      - run:
-          name: get v1 response via cURL
-          no_output_timeout: 60
-          command: |
-            mkdir -p ${TEST_RESULTS}/<< parameters.test_type >>
-            . venv/bin/activate
-
   get_v1_curl:
     description: "get v1 response via cURL"
     parameters:
-      test_type: {type: string}
+      test_type:
+        type: string
+        default: "issues"
     steps:
       - run:
           name: get v1 response via cURL
           no_output_timeout: 330
           command: |
+            mkdir -p ${TEST_RESULTS}/<< parameters.test_type >>
+
             curl -X GET https://my.geniushub.co.uk/v1/<< parameters.test_type >> -H "authorization: Bearer ${HUB_TOKEN}" --connect-timeout 300 | \
               python -c "import sys, json; print(json.dumps(json.load(sys.stdin, parse_float=lambda x: int(float(x))), indent=4, sort_keys=True))" | \
               tee ${TEST_RESULTS}/<< parameters.test_type >>/curl.json
@@ -82,12 +74,18 @@ commands:
   get_v1_app:
     description: "get v1 response via app"
     parameters:
-      test_type: {type: string}
+      test_type:
+        type: string
+        default: "issues"
     steps:
       - run:
           name: get v1 response via app
           no_output_timeout: 330
           command: |
+            mkdir -p ${TEST_RESULTS}/<< parameters.test_type >>
+
+            . venv/bin/activate
+
             python ghclient.py ${HUB_TOKEN} << parameters.test_type >> -v | \
               python -c "import sys, json; print(json.dumps(json.load(sys.stdin, parse_float=lambda x: int(float(x))), indent=4, sort_keys=True))" | \
               tee ${TEST_RESULTS}/<< parameters.test_type >>/v1.json
@@ -95,12 +93,18 @@ commands:
   get_v3_app:
     description: "get v3 response via app"
     parameters:
-      test_type: {type: string}
+      test_type:
+        type: string
+        default: "issues"
     steps:
       - run:
           name: get v3 response via app
           no_output_timeout: 120
           command: |
+            mkdir -p ${TEST_RESULTS}/<< parameters.test_type >>
+
+            . venv/bin/activate
+
             python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} << parameters.test_type >> -v | \
               python -c "import sys, json; print(json.dumps(json.load(sys.stdin, parse_float=lambda x: int(float(x))), indent=4, sort_keys=True))" | \
               tee ${TEST_RESULTS}/<< parameters.test_type >>/v3.json
@@ -108,8 +112,12 @@ commands:
   diff_files:
     description: "compare outputs"
     parameters:
-      test_type: {type: string}
-      api_ver:   {type: string}
+      test_type:
+        type: string
+        default: "issues"
+      api_ver:
+        type: string
+        default: "issues"
     steps:
       - run:
           name: diff files
@@ -134,8 +142,8 @@ jobs:
 
   test_issues:
     <<: *testbed_environment
+    parallelism: 1
     steps:
-      - initialise:  {test_type: "issues"}
       - get_v1_app:  {test_type: "issues"}
       - get_v3_app:  {test_type: "issues"}
       - get_v1_curl: {test_type: "issues"}
@@ -144,8 +152,8 @@ jobs:
 
   test_devices:
     <<: *testbed_environment
+    parallelism: 1
     steps:
-      - initialise:  {test_type: "devices"}
       - get_v1_app:  {test_type: "devices"}
       - get_v3_app:  {test_type: "devices"}
       - get_v1_curl: {test_type: "devices"}
@@ -154,8 +162,8 @@ jobs:
 
   test_zones:
     <<: *testbed_environment
+    parallelism: 1
     steps:
-      - initialise:  {test_type: "zones"}
       - get_v1_app:  {test_type: "zones"}
       - get_v3_app:  {test_type: "zones"}
       - get_v1_curl: {test_type: "zones"}
