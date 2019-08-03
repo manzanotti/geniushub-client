@@ -55,20 +55,21 @@ aliases:
 
 commands:
   normalize_json:
-    description: "convert JSON to a standard format"
+    description: "convert files to a standard format"
     parameters:
       test_type:
         type: string
-        default: "issues"
+      file_type:
+        type: string
     steps:
       - run:
-          name: prepare cURL response
+          name: convert a single file
           no_output_timeout: 60
           command: |
             . venv/bin/activate
-            cat ${TEST_RESULTS}/<< parameters.test_type >>/curl.json | \
+            cat ${TEST_RESULTS}/<< parameters.test_type >>/<< parameters.file_type >>.json | \
               python -c "import sys, json; print(json.dumps(json.load(sys.stdin), indent=4, sort_keys=True))" | \
-              tee ${TEST_RESULTS}/<< parameters.test_type >>/curl.json
+              tee ${TEST_RESULTS}/<< parameters.test_type >>/<< parameters.file_type >>.json
 
   get_v1_curl:
     description: "get v1 response via cURL"
@@ -231,8 +232,9 @@ workflows:
             - *restore_cache
             - *attach_workspace
           post-steps:
-            - normalize_json:
-                test_type: "zones"
+            - normalize_json: {"test_type": "zones", "test_type": "curl"}
+            - normalize_json: {"test_type": "zones", "test_type": "v1"}
+            - normalize_json: {"test_type": "zones", "test_type": "v3"}
             - *persist_to_workspace
 
       - diff_zones:
@@ -246,7 +248,6 @@ workflows:
       - get_devices:
           requires:
             - make_testbed
-            - get_zones
           pre-steps:
             - checkout
             - *restore_cache
@@ -267,7 +268,7 @@ workflows:
       - get_issues:
           requires:
             - make_testbed
-            - get_devices
+            - diff_zones
           pre-steps:
             - checkout
             - *restore_cache
