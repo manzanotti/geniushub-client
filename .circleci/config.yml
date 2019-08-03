@@ -54,23 +54,6 @@ aliases:
 
 
 commands:
-  normalize_json:
-    description: "convert files to a standard format"
-    parameters:
-      test_type:
-        type: string
-      file_type:
-        type: string
-    steps:
-      - run:
-          name: convert a single file
-          no_output_timeout: 60
-          command: |
-            . venv/bin/activate
-            cat ${TEST_RESULTS}/<< parameters.test_type >>/<< parameters.file_type >>.json | \
-              python -c "import sys, json; print(json.dumps(json.load(sys.stdin), indent=4, sort_keys=True))" | \
-              tee ${TEST_RESULTS}/<< parameters.test_type >>/<< parameters.file_type >>.json
-
   get_v1_curl:
     description: "get v1 response via cURL"
     parameters:
@@ -253,9 +236,6 @@ workflows:
             - *restore_cache
             - *attach_workspace
           post-steps:
-            - normalize_json:
-                test_type: "devices"
-                file_type: "curl"
             - *persist_to_workspace
 
       - diff_devices:
@@ -269,15 +249,11 @@ workflows:
       - get_issues:
           requires:
             - make_testbed
-            - diff_zones
           pre-steps:
             - checkout
             - *restore_cache
             - *attach_workspace
           post-steps:
-            - normalize_json:
-                test_type: "issues"
-                file_type: "curl"
             - *persist_to_workspace
 
       - diff_issues:
