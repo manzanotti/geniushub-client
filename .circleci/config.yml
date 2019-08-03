@@ -140,7 +140,7 @@ jobs:
     <<: *testbed_environment
     steps: *refresh_cache
 
-  get_issues:
+  test_issues:
     <<: *testbed_environment
     parallelism: 1
     steps:
@@ -150,7 +150,7 @@ jobs:
       - diff_files:  {test_type: "issues", api_ver: "v1"}
       - diff_files:  {test_type: "issues", api_ver: "v3"}
 
-  get_devices:
+  test_devices:
     <<: *testbed_environment
     parallelism: 1
     steps:
@@ -160,7 +160,7 @@ jobs:
       - diff_files:  {test_type: "devices", api_ver: "v1"}
       - diff_files:  {test_type: "devices", api_ver: "v3"}
 
-  get_zones:
+  test_zones:
     <<: *testbed_environment
     parallelism: 1
     steps:
@@ -177,7 +177,7 @@ workflows:
     jobs:
       - make_testbed
 
-      - get_zones:
+      - test_zones:
           requires:
             - make_testbed
           pre-steps:
@@ -187,7 +187,7 @@ workflows:
           post-steps:
             - *persist_to_workspace
 
-      - get_devices:
+      - test_devices:
           requires:
             - make_testbed
           pre-steps:
@@ -197,15 +197,7 @@ workflows:
           post-steps:
             - *persist_to_workspace
 
-      - diff_devices:
-          requires:
-            - get_devices
-          pre-steps:
-            - *attach_workspace
-          post-steps:
-            - *store_artifacts
-
-      - get_issues:
+      - test_issues:
           requires:
             - make_testbed
           pre-steps:
@@ -214,11 +206,3 @@ workflows:
             - *attach_workspace
           post-steps:
             - *persist_to_workspace
-
-      - diff_issues:
-          requires:
-            - get_issues
-          pre-steps:
-            - *attach_workspace
-          post-steps:
-            - *store_artifacts
