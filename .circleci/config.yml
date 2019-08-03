@@ -172,6 +172,12 @@ jobs:
           test_type: "zones"
       - get_v1_curl:
           test_type: "zones"
+      - diff_files:
+          test_type: "zones"
+          api_ver: "v1"
+      - diff_files:
+          test_type: "zones"
+          api_ver: "v3"
 
   diff_issues:
     <<: *testbed_environment
@@ -218,7 +224,6 @@ workflows:
             - *restore_cache
             - *attach_workspace
           post-steps:
-            - diff_zones
             - *persist_to_workspace
 
       - get_devices:
