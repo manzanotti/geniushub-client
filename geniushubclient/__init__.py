@@ -187,13 +187,12 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
         self.__dict__.update(obj_dict)  # create self.id, etc.
 
         self._client = client
-        self._raw_json = raw_json
+        self._raw = raw_json
 
         if isinstance(self, GeniusHub):
             self.zone_objs = []
             self.zone_by_id = {}
             self.zone_by_name = {}
-            self._issues = []
 
         if isinstance(self, GeniusDevice):
             self.assigned_zone = assigned_zone  # TODO: rename to _zone?
@@ -364,10 +363,11 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
             elif 'Indicator' in node:
                 fingerprint = "Room Thermostat"
 
-            else:  # ... no/invalid device fingerprint!
+            else:
+                # ... no/invalid device fingerprint!
                 if device['type']:
-                    _LOGGER.debug("Device %s, '%s': has no confirming fingerprint!",
-                                  device['id'], device['type'])
+                    _LOGGER.warning("Device %s, '%s': has no fingerprint, so set undefined.",
+                                    device['id'], device['type'])
                     del device['type']
                 else:
                     _LOGGER.error("Device %s: has no type, and no fingerprint!",
@@ -382,10 +382,6 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
             elif device['type'][:21] != fingerprint:  # "Dual Channel Receiver"
                 _LOGGER.error("Device %s, '%s': doesn't match its fingerprint: '%s'!",
                               device['id'], device['type'], fingerprint)
-
-            # else:
-            #     _LOGGER.debug("Device %s, '%s': matches its fingerprint.",
-            #                   device['id'], device['type'])
 
         result = {}
 
@@ -460,6 +456,7 @@ class GeniusHub(GeniusObject):
     def __init__(self, client, hub_dict) -> None:
         super().__init__(client, hub_dict, {})
 
+        self._zones = self._devices = self.issues = self.version = None
         self._test_json = {}
 
     def __repr__(self):
@@ -493,14 +490,6 @@ class GeniusHub(GeniusObject):
         if self._client.verbosity == 3:
             return [d.info for d in self.device_objs]
         return natural_sort([d.info for d in self.device_objs], 'id')
-
-    @property
-    def issues(self) -> List:
-        """Return a list of Issues known to the Hub.
-
-          v1/issues: description, level
-        """
-        return self._issues
 
     async def update(self):
         """Update the Hub with its latest state data."""
@@ -550,32 +539,32 @@ class GeniusHub(GeniusObject):
             return issue_dict
 
         if self._client.api_version == 1:
-            zones = await self._client.request('GET', 'zones')
-            devices = await self._client.request('GET', 'devices')
+            self._raw_zones = await self._client.request('GET', 'zones')
+            self._raw_devices = await self._client.request('GET', 'devices')
 
-            issues = await self._client.request('GET', 'issues')
+            self._raw_issues = await self._client.request('GET', 'issues')
             self.version = await self._client.request('GET', 'version')
 
         elif isinstance(self, GeniusTestHub):  # a hack for testing
-            zones = self._test_json['zones']
-            devices = self._test_json['devices']
+            self._raw_zones = self._test_json['zones']
+            self._raw_devices = self._test_json['devices']
 
-            issues = _get_issues_from_zones_v3(zones)
-            self.version = _get_version_from_zones_v3(zones)
+            self._raw_issues = _get_issues_from_zones_v3(self._raw_zones)
+            self.version = _get_version_from_zones_v3(self._raw_zones)
 
         else:  # self._client.api_version == 3:
             zones_json = await self._client.request('GET', 'zones')
             devices_json = await self._client.request('GET', 'data_manager')
 
-            zones = _get_zones_from_zones_v3(zones_json['data'])
-            devices = _get_devices_from_data_manager(devices_json['data'])
+            self._raw_zones = _get_zones_from_zones_v3(zones_json['data'])
+            self._raw_devices = _get_devices_from_data_manager(devices_json['data'])
 
-            issues = _get_issues_from_zones_v3(zones)
-            self.version = _get_version_from_zones_v3(zones)
+            self._raw_issues = _get_issues_from_zones_v3(self._raw_zones)
+            self.version = _get_version_from_zones_v3(self._raw_zones)
 
-        [_populate_zone(z) for z in zones]  # pylint: disable=expression-not-assigned
-        [_populate_device(d) for d in devices]  # pylint: disable=expression-not-assigned
-        self._issues = [_populate_issue(i) for i in issues]
+        [_populate_zone(z) for z in self._raw_zones]  # pylint: disable=expression-not-assigned
+        [_populate_device(d) for d in self._raw_devices]  # pylint: disable=expression-not-assigned
+        self.issues = [_populate_issue(i) for i in self._raw_issues]
 
     async def reboot(self):
         """Reboot the hub."""
