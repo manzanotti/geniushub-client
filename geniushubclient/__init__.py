@@ -468,9 +468,7 @@ class GeniusHub(GeniusObject):
     def info(self) -> Dict:
         """Return all information for the hub."""
         # x.get("/v3/auth/test", { username: e, password: t, timeout: n })
-        keys = ['device_objs', 'device_by_id', 'device_by_zone_id',
-                'zone_objs', 'zone_by_id', 'zone_by_name']
-        return {k: v for k, v in self.data.items() if k[:1] != '_' and k not in keys}
+        return self.version
 
     @property
     def zones(self) -> List:
