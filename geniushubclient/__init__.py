@@ -125,7 +125,7 @@ class GeniusHubClient():  # pylint: disable=too-many-instance-attributes
 
     async def request(self, method, url, data=None):
         """Perform a request."""
-        _LOGGER.warn("_request(method=%s, url=%s, data=%s)", method, url, data)
+        _LOGGER.debug("_request(method=%s, url=%s, data=%s)", method, url, data)
 
         http_method = {
             "GET": self._session.get,
@@ -147,9 +147,10 @@ class GeniusHubClient():  # pylint: disable=too-many-instance-attributes
             # await self._session.close()
 
         # cept concurrent.futures._base.TimeoutError: ???
-        # cept aiohttp.client_exceptions.ClientResponseError: 502, message='Bad Gateway'
-        except aiohttp.client_exceptions.ServerDisconnectedError as err:
-            _LOGGER.warn("_request(): ServerDisconnected (msg=%s), retrying", err)
+        # cept aiohttp.ClientResponseError: 502, message='Bad Gateway'
+        # cept aiohttp.ClientResponseError: 401, message='Unauthorized'
+        except aiohttp.ServerDisconnectedError as err:
+            _LOGGER.debug("_request(): ServerDisconnectedError (msg=%s), retrying.", err)
             async with http_method(
                 self._url_base + url,
                 json=data,
