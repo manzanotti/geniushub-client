@@ -183,12 +183,12 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
     """The base class for any Genius object: Hub, Zone or Device."""
 
     def __init__(self, client, obj_dict, raw_json, assigned_zone=None) -> None:
-        self.id = None  # prevents non-member lint errors                        # noqa; pylint: disable=invalid-name
-        self.__dict__.update(obj_dict)  # create self.id, etc.
-
         self._client = client
-        self._raw_json = raw_json
+        self._raw_data = raw_json
         self._attrs = {}
+
+        self.id = obj_dict['id']  # pylint: disable=invalid-name
+        self.data = obj_dict
 
         if isinstance(self, GeniusHub):
             self.zone_objs = []
@@ -203,24 +203,23 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
             self.device_by_id = {}
 
     def __repr__(self):
-        return {k: v for k, v in self.__dict__.items()
-                if k in self._attrs['summary_keys']}
+        return {k: v for k, v in self.data if k in self._attrs['summary_keys']}
 
     @property
     def info(self) -> Dict:
         """Return all information for the object."""
         if self._client.verbosity == 3:
-            return self._raw_json
+            return self._raw_data
 
         if self._client.verbosity == 2:
-            return {k: v for k, v in self.__dict__.items() if k[:1] != '_' and
+            return {k: v for k, v in self.data.items() if k[:1] != '_' and
                     k not in ['device_objs', 'device_by_id', 'assigned_zone']}
 
         keys = self._attrs['summary_keys']
         if self._client.verbosity == 1:
             keys += self._attrs['detail_keys']
 
-        return {k: v for k, v in self.__dict__.items() if k in keys}
+        return {k: v for k, v in self.data.items() if k in keys}
 
     def _convert_zone(self, raw_dict) -> Dict:
         """Convert a v3 zone's dict/json to the v1 schema."""
@@ -440,25 +439,17 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
         description = DESCRIPTION_TO_TEXT.get(raw_dict['id'], raw_dict)
 
         if '{zone_name}' in description and '{device_type}' in description:
-            zone = raw_dict['data']['location']  # or: raw_dict['_zone_name']
-            try:
-                device = self.device_by_id[raw_dict['data']['nodeID']].type
-            except AttributeError:
-                device = 'undefined'
+            description = description.format(
+                zone_name=raw_dict['data']['location'],  # or: raw_dict['_zone_name']
+                device_type=self.device_by_id[raw_dict['data']['nodeID']].type)
 
-            description = description.format(zone_name=zone, device_type=device)
-
-        elif '{zone_name}' in description:
-            # raw_dict['data'] is not avalable as no device?
-            description = description.format(zone_name=raw_dict['_zone_name'])
+        elif '{zone_name}' in description:  # TODO: raw_dict['data'] is not avalable as no device?
+            description = description.format(
+                zone_name=raw_dict['_zone_name'])
 
         elif '{device_type}' in description:
-            try:
-                device = self.device_by_id[raw_dict['data']['nodeID']].type
-            except AttributeError:
-                device = 'undefined'
-
-            description = description.format(device_type=device)
+            description = description.format(
+                device_type=self.device_by_id[raw_dict['data']['nodeID']].type)
 
         level = LEVEL_TO_TEXT.get(raw_dict['level'], raw_dict['level'])
 
@@ -484,8 +475,7 @@ class GeniusHub(GeniusObject):
         # x.get("/v3/auth/test", { username: e, password: t, timeout: n })
         keys = ['device_objs', 'device_by_id', 'device_by_zone_id',
                 'zone_objs', 'zone_by_id', 'zone_by_name']
-        return {k: v for k, v in self.__dict__.items() if k[:1] != '_' and
-                k not in keys}
+        return {k: v for k, v in self.data.items() if k[:1] != '_' and k not in keys}
 
     @property
     def zones(self) -> List:
@@ -610,6 +600,11 @@ class GeniusZone(GeniusObject):
         self._attrs = ATTRS_ZONE
 
     @property
+    def name(self) -> str:
+        """Return the name of the zone."""
+        return self.data['name']
+
+    @property
     def devices(self) -> List:
         """Return information for devices assigned to a zone.
 
@@ -690,3 +685,9 @@ class GeniusDevice(GeniusObject):  # pylint: disable=too-few-public-methods
         super().__init__(client, device_dict, raw_json, assigned_zone=zone)
 
         self._attrs = ATTRS_DEVICE
+
+    @property
+    def type(self) -> Optional[str]:
+        """Return the type of the device."""
+        device_type = self.data.get('type')
+        return device_type if device_type is not None else 'undefined'
