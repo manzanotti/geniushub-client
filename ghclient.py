@@ -110,7 +110,7 @@ async def main(loop):
         except KeyError:
             raise KeyError("Device '%s' does not exist.", args[ZONE_ID])
 
-        print(device.info)
+        print(json.dumps(device.info))
 
     elif args[ZONE_ID]:
         try:  # is the zone_id is a str, or an int?
@@ -131,23 +131,23 @@ async def main(loop):
         elif args[TEMP]:
             await zone.set_override(args[TEMP], args[SECS])
         elif args[DEVICES]:
-            print(zone.devices)
+            print(json.dumps(zone.devices))
         elif args[ISSUES]:
-            print(zone.issues)
+            print(json.dumps(zone.issues))
         else:  # as per args[INFO]
-            print(zone.info)
+            print(json.dumps(zone.info))
 
     else:  # as per: args[HUB_ID]
         if args[REBOOT]:
             raise NotImplementedError()  # await hub.reboot()
         elif args[ZONES]:
-            print(hub.zones)
+            print(json.dumps(hub.zones))
         elif args[DEVICES]:
-            print(hub.devices)
+            print(json.dumps(hub.devices))
         elif args[ISSUES]:
-            print(hub.issues)
+            print(json.dumps(hub.issues))
         else:  # as per args[INFO]
-            print(hub.info)
+            print(json.dumps(hub.info))
 
     await session.close()
 

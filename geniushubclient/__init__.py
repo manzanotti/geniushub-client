@@ -4,7 +4,7 @@
    """
 from datetime import datetime
 from hashlib import sha256
-from typing import Dict, List  # Any, Dict, List, Set, Tuple, Optional
+from typing import Dict, Optional, List  # Any, Set, Tuple
 
 import logging
 import re
@@ -144,12 +144,13 @@ class GeniusHubClient():  # pylint: disable=too-many-instance-attributes
                 raise_for_status=True
             ) as resp:
                 response = await resp.json(content_type=None)
+            # await self._session.close()
 
         # cept concurrent.futures._base.TimeoutError: ???
-        # cept aiohttp.client_exceptions.ClientResponseError: 502, message='Bad Gateway'
-        except aiohttp.client_exceptions.ServerDisconnectedError as err:
-            _LOGGER.debug("_request(): ServerDisconnected, retrying (msg=%s)", err)
-            _session = aiohttp.ClientSession()
+        # cept aiohttp.ClientResponseError: 502, message='Bad Gateway'
+        # cept aiohttp.ClientResponseError: 401, message='Unauthorized'
+        except aiohttp.ServerDisconnectedError as err:
+            _LOGGER.debug("_request(): ServerDisconnectedError (msg=%s), retrying.", err)
             async with http_method(
                 self._url_base + url,
                 json=data,
@@ -159,7 +160,6 @@ class GeniusHubClient():  # pylint: disable=too-many-instance-attributes
                 raise_for_status=True
             ) as resp:
                 response = await resp.json(content_type=None)
-            await _session.close()
 
         if method != 'GET':
             _LOGGER.debug("_request(): response=%s", response)
@@ -188,12 +188,12 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
 
         self._client = client
         self._raw_json = raw_json
+        self._attrs = {}
 
         if isinstance(self, GeniusHub):
             self.zone_objs = []
             self.zone_by_id = {}
             self.zone_by_name = {}
-            self._issues = []
 
         if isinstance(self, GeniusDevice):
             self.assigned_zone = assigned_zone  # TODO: rename to _zone?
@@ -201,6 +201,26 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
         else:  # GeniusHub, GeniusZone
             self.device_objs = []
             self.device_by_id = {}
+
+    def __repr__(self):
+        return {k: v for k, v in self.__dict__.items()
+                if k in self._attrs['summary_keys']}
+
+    @property
+    def info(self) -> Dict:
+        """Return all information for the object."""
+        if self._client.verbosity == 3:
+            return self._raw_json
+
+        if self._client.verbosity == 2:
+            return {k: v for k, v in self.__dict__.items() if k[:1] != '_' and
+                    k not in ['device_objs', 'device_by_id', 'assigned_zone']}
+
+        keys = self._attrs['summary_keys']
+        if self._client.verbosity == 1:
+            keys += self._attrs['detail_keys']
+
+        return {k: v for k, v in self.__dict__.items() if k in keys}
 
     def _convert_zone(self, raw_dict) -> Dict:
         """Convert a v3 zone's dict/json to the v1 schema."""
@@ -247,10 +267,9 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
             # pylint: disable=invalid-name
             u = raw_dict['iMode'] == ZONE_MODES.Footprint
             d = raw_dict['zoneReactive']['bTriggerOn']
-            c = raw_dict['iActivity'] or 0                                       # noqa: ignore=F841; pylint: disable=unused-variable
+            c = raw_dict['iActivity'] or 0
             o = raw_dict['objFootprint']['bIsNight']
-            # i suspect -1 should be True
-            result['occupied'] = True if u and d and (not o) else -1 if c > 0 else False
+            result['occupied'] = True if u and d and (not o) else True if c > 0 else False
 
         if raw_dict['iType'] in [ZONE_TYPES.OnOffTimer,
                                  ZONE_TYPES.ControlSP,
@@ -343,13 +362,16 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
         if self._client.api_version == 1:
             return raw_dict
 
-        def _check_fingerprint(node, device):
+        def _check_fingerprint(node, device) -> Optional[str]:
             """Check the device type against its 'fingerprint'."""
             if 'SwitchBinary' in node:
                 if 'TEMPERATURE' in node:
                     fingerprint = "Electric Switch"
                 elif 'SwitchAllMode' in node:
                     fingerprint = "Smart Plug"
+                elif node['SwitchBinary']['path'].count('/') == 3:
+                    fingerprint = "Dual Channel Receiver - Channel {}".format(
+                        device['id'][-1])
                 else:
                     fingerprint = "Dual Channel Receiver"
 
@@ -366,47 +388,36 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
                 fingerprint = "Room Thermostat"
 
             else:  # ... no/invalid device fingerprint!
-                if device['type']:
-                    _LOGGER.debug("Device %s, '%s': has no confirming fingerprint!",
-                                  device['id'], device['type'])
+                if device['_type']:
+                    _LOGGER.warning("Device %s, '%s': has no fingerprint, so left undefined.",
+                                    device['id'], device['_type'])
                 else:
                     _LOGGER.error("Device %s: has no type, and no fingerprint!",
                                   device['id'])
-                return
+                return None
 
-            if not device['type']:
-                device['type'] = fingerprint
-                _LOGGER.warning("Device %s, '%s': typed only by its fingerprint!",
-                                device['id'], device['type'])
+            if not device['_type']:
+                _LOGGER.info("Device %s, '%s': typed only by its fingerprint!",
+                             device['id'], fingerprint)
+                return fingerprint
 
-            elif device['type'][:21] != fingerprint:  # "Dual Channel Receiver"
+            elif device['_type'][:21] != fingerprint:  # "Dual Channel Receiver"
                 _LOGGER.error("Device %s, '%s': doesn't match its fingerprint: '%s'!",
-                              device['id'], device['type'], fingerprint)
-
-            # else:
-            #     _LOGGER.debug("Device %s, '%s': matches its fingerprint.",
-            #                   device['id'], device['type'])
+                              device['id'], device['_type'], fingerprint)
+            return device['_type']
 
         result = {}
 
         result['id'] = raw_dict['addr']  # 1. Set id (addr)
-        result['type'] = None  # 2. Set type...
 
         node = raw_dict['childNodes']['_cfg']['childValues']
-        if node:
-            result['type'] = node['name']['val']
-            result['_sku'] = node['sku']['val']
+        result['_type'] = node['name']['val'] if node else None
+        result['_sku'] = node['sku']['val'] if node else None
 
         node = raw_dict['childValues']
-        # hack: find any Dual Channel Receiver(s), to 'force' that type
-        if 'SwitchBinary' in node and result['type'] is None and \
-                node['SwitchBinary']['path'].count('/') == 3:
-            result['type'] = 'Dual Channel Receiver - Channel {}'.format(
-                result['id'][-1])
-            _LOGGER.debug("Device %s, '%s': typed by its fingerprint (this is OK).",
-                          result['id'], result['type'])
-        else:
-            _check_fingerprint(node, result)  # ... confirm type, set if needed
+        device_type = _check_fingerprint(node, result)
+        if device_type:  # there is no {'type': None}
+            result['type'] = device_type
 
         result['assignedZones'] = [{'name': None}]  # 3. Set assignedZones...
         if node['location']['val']:
@@ -430,16 +441,23 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
 
         if '{zone_name}' in description and '{device_type}' in description:
             zone = raw_dict['data']['location']  # or: raw_dict['_zone_name']
-            device = self.device_by_id[raw_dict['data']['nodeID']].type
+            try:
+                device = self.device_by_id[raw_dict['data']['nodeID']].type
+            except AttributeError:
+                device = 'undefined'
+
             description = description.format(zone_name=zone, device_type=device)
 
         elif '{zone_name}' in description:
             # raw_dict['data'] is not avalable as no device?
-            zone = raw_dict['_zone_name']
-            description = description.format(zone_name=zone)
+            description = description.format(zone_name=raw_dict['_zone_name'])
 
         elif '{device_type}' in description:
-            device = self.device_by_id[raw_dict['data']['nodeID']].type
+            try:
+                device = self.device_by_id[raw_dict['data']['nodeID']].type
+            except AttributeError:
+                device = 'undefined'
+
             description = description.format(device_type=device)
 
         level = LEVEL_TO_TEXT.get(raw_dict['level'], raw_dict['level'])
@@ -453,6 +471,7 @@ class GeniusHub(GeniusObject):
     def __init__(self, client, hub_dict) -> None:
         super().__init__(client, hub_dict, {})
 
+        self._zones = self._devices = self.issues = self.version = None
         self._test_json = {}
 
     def __repr__(self):
@@ -464,7 +483,8 @@ class GeniusHub(GeniusObject):
         # x.get("/v3/auth/test", { username: e, password: t, timeout: n })
         keys = ['device_objs', 'device_by_id', 'device_by_zone_id',
                 'zone_objs', 'zone_by_id', 'zone_by_name']
-        return {k: v for k, v in self.__dict__.items() if k[:1] != '_' and k not in keys}
+        return {k: v for k, v in self.__dict__.items() if k[:1] != '_' and
+                k not in keys}
 
     @property
     def zones(self) -> List:
@@ -486,14 +506,6 @@ class GeniusHub(GeniusObject):
         if self._client.verbosity == 3:
             return [d.info for d in self.device_objs]
         return natural_sort([d.info for d in self.device_objs], 'id')
-
-    @property
-    def issues(self) -> List:
-        """Return a list of Issues known to the Hub.
-
-          v1/issues: description, level
-        """
-        return self._issues
 
     async def update(self):
         """Update the Hub with its latest state data."""
@@ -543,32 +555,32 @@ class GeniusHub(GeniusObject):
             return issue_dict
 
         if self._client.api_version == 1:
-            zones = await self._client.request('GET', 'zones')
-            devices = await self._client.request('GET', 'devices')
+            self._raw_zones = await self._client.request('GET', 'zones')
+            self._raw_devices = await self._client.request('GET', 'devices')
 
-            issues = await self._client.request('GET', 'issues')
+            self._raw_issues = await self._client.request('GET', 'issues')
             self.version = await self._client.request('GET', 'version')
 
         elif isinstance(self, GeniusTestHub):  # a hack for testing
-            zones = self._test_json['zones']
-            devices = self._test_json['devices']
+            self._raw_zones = self._test_json['zones']
+            self._raw_devices = self._test_json['devices']
 
-            issues = _get_issues_from_zones_v3(zones)
-            self.version = _get_version_from_zones_v3(zones)
+            self._raw_issues = _get_issues_from_zones_v3(self._raw_zones)
+            self.version = _get_version_from_zones_v3(self._raw_zones)
 
         else:  # self._client.api_version == 3:
             zones_json = await self._client.request('GET', 'zones')
             devices_json = await self._client.request('GET', 'data_manager')
 
-            zones = _get_zones_from_zones_v3(zones_json['data'])
-            devices = _get_devices_from_data_manager(devices_json['data'])
+            self._raw_zones = _get_zones_from_zones_v3(zones_json['data'])
+            self._raw_devices = _get_devices_from_data_manager(devices_json['data'])
 
-            issues = _get_issues_from_zones_v3(zones)
-            self.version = _get_version_from_zones_v3(zones)
+            self._raw_issues = _get_issues_from_zones_v3(self._raw_zones)
+            self.version = _get_version_from_zones_v3(self._raw_zones)
 
-        [_populate_zone(z) for z in zones]  # pylint: disable=expression-not-assigned
-        [_populate_device(d) for d in devices]  # pylint: disable=expression-not-assigned
-        self._issues = [_populate_issue(i) for i in issues]
+        [_populate_zone(z) for z in self._raw_zones]  # pylint: disable=expression-not-assigned
+        [_populate_device(d) for d in self._raw_devices]  # pylint: disable=expression-not-assigned
+        self.issues = [_populate_issue(i) for i in self._raw_issues]
 
     async def reboot(self):
         """Reboot the hub."""
@@ -595,25 +607,7 @@ class GeniusZone(GeniusObject):
     def __init__(self, client, zone_dict, raw_json) -> None:
         super().__init__(client, zone_dict, raw_json)
 
-    def __repr__(self):
-        return {k: v for k, v in self.__dict__.items()
-                if k in ATTRS_ZONE['summary_keys']}
-
-    @property
-    def info(self) -> Dict:
-        """Return all information for the zone."""
-        if self._client.verbosity == 3:
-            return self._raw_json
-
-        if self._client.verbosity == 2:
-            return {k: v for k, v in self.__dict__.items()
-                    if k[:1] != '_' and k not in ['device_objs', 'device_by_id']}
-
-        keys = ATTRS_ZONE['summary_keys']
-        if self._client.verbosity == 1:
-            keys += ATTRS_ZONE['detail_keys']
-
-        return {k: v for k, v in self.__dict__.items() if k in keys}
+        self._attrs = ATTRS_ZONE
 
     @property
     def devices(self) -> List:
@@ -695,22 +689,4 @@ class GeniusDevice(GeniusObject):  # pylint: disable=too-few-public-methods
     def __init__(self, client, device_dict, raw_json, zone=None) -> None:
         super().__init__(client, device_dict, raw_json, assigned_zone=zone)
 
-    def __repr__(self):
-        return {k: v for k, v in self.__dict__.items()
-                if k in ATTRS_DEVICE['summary_keys']}
-
-    @property
-    def info(self) -> Dict:
-        """Return all information for the device."""
-        if self._client.verbosity == 3:
-            return self._raw_json
-
-        if self._client.verbosity == 2:
-            return {k: v for k, v in self.__dict__.items()
-                    if k[:1] != '_' and k not in ['assigned_zone']}
-
-        keys = ATTRS_DEVICE['summary_keys']
-        if self._client.verbosity == 1:
-            keys += ATTRS_DEVICE['detail_keys']
-
-        return {k: v for k, v in self.__dict__.items() if k in keys}
+        self._attrs = ATTRS_DEVICE
