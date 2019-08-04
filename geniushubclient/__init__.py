@@ -184,21 +184,16 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
 
     def __init__(self, client, obj_dict, raw_json, assigned_zone=None) -> None:
         self._client = client
-        self._raw_data = raw_json
-        self._attrs = {}
 
         self.id = obj_dict['id']  # pylint: disable=invalid-name
-        self.data = obj_dict
+        self.data = self._raw_data = self._attrs = None
 
         if isinstance(self, GeniusHub):
             self.zone_objs = []
             self.zone_by_id = {}
             self.zone_by_name = {}
 
-        if isinstance(self, GeniusDevice):
-            self.assigned_zone = assigned_zone  # TODO: rename to _zone?
-
-        else:  # GeniusHub, GeniusZone
+        if not isinstance(self, GeniusDevice):  # GeniusHub, GeniusZone
             self.device_objs = []
             self.device_by_id = {}
 
@@ -500,22 +495,25 @@ class GeniusHub(GeniusObject):
     async def update(self):
         """Update the Hub with its latest state data."""
 
-        def _populate_zone(zone_raw):
-            zone_dict = self._convert_zone(zone_raw)
+        def _populate_zone(zone_raw_dict):
+            zone_dict = self._convert_zone(zone_raw_dict)
 
             try:  # does the hub already know about this zone?
                 zone = self.zone_by_id[zone_dict['id']]
             except KeyError:
-                zone = GeniusZone(self._client, zone_dict, zone_raw)
+                zone = GeniusZone(self._client, zone_dict, zone_raw_dict)
                 self.zone_objs.append(zone)
 
                 self.zone_by_id[zone_dict['id']] = zone
                 self.zone_by_name[zone_dict['name']] = zone
 
+            zone.data = zone_dict
+            zone._raw_data = zone_raw_dict
+
             return zone_dict['id'], zone
 
-        def _populate_device(device_raw):
-            device_dict = self._convert_device(device_raw)
+        def _populate_device(device_raw_dict):
+            device_dict = self._convert_device(device_raw_dict)
 
             zone_name = device_dict['assignedZones'][0]['name']
             zone = self.zone_by_name[zone_name] if zone_name else None
@@ -523,10 +521,13 @@ class GeniusHub(GeniusObject):
             try:  # does the Hub already know about this device?
                 device = self.device_by_id[device_dict['id']]
             except KeyError:
-                device = GeniusDevice(self._client, device_dict, device_raw, zone)
+                device = GeniusDevice(self._client, device_dict, device_raw_dict, zone)
                 self.device_objs.append(device)
 
                 self.device_by_id[device_dict['id']] = device
+
+            device.data = device_dict
+            device._raw_data = device_raw_dict
 
             if zone:
                 try:  # does the parent Zone already know about this device?
@@ -603,6 +604,11 @@ class GeniusZone(GeniusObject):
     def name(self) -> str:
         """Return the name of the zone."""
         return self.data['name']
+
+    @property
+    def type(self) -> Optional[str]:
+        """Return the type of the zone."""
+        return self.data.get('type')
 
     @property
     def devices(self) -> List:
@@ -684,6 +690,7 @@ class GeniusDevice(GeniusObject):  # pylint: disable=too-few-public-methods
     def __init__(self, client, device_dict, raw_json, zone=None) -> None:
         super().__init__(client, device_dict, raw_json, assigned_zone=zone)
 
+        self.assigned_zone = zone  # TODO: use @property
         self._attrs = ATTRS_DEVICE
 
     @property
