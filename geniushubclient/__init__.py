@@ -149,7 +149,7 @@ class GeniusHubClient():  # pylint: disable=too-many-instance-attributes
         # cept concurrent.futures._base.TimeoutError: ???
         # cept aiohttp.client_exceptions.ClientResponseError: 502, message='Bad Gateway'
         except aiohttp.client_exceptions.ServerDisconnectedError as err:
-            _LOGGER.warn("_request(): ServerDisconnected, retrying (msg=%s)", err)
+            _LOGGER.warn("_request(): ServerDisconnected (msg=%s), retrying", err)
             async with http_method(
                 self._url_base + url,
                 json=data,
@@ -368,6 +368,9 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
                     fingerprint = "Electric Switch"
                 elif 'SwitchAllMode' in node:
                     fingerprint = "Smart Plug"
+                elif node['SwitchBinary']['path'].count('/') == 3:
+                    fingerprint = "Dual Channel Receiver - Channel {}".format(
+                        device['id'][-1])
                 else:
                     fingerprint = "Dual Channel Receiver"
 
@@ -393,8 +396,8 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
                 return None
 
             if not device['_type']:
-                _LOGGER.warning("Device %s, '%s': typed only by its fingerprint!",
-                                device['id'], fingerprint)
+                _LOGGER.info("Device %s, '%s': typed only by its fingerprint!",
+                             device['id'], fingerprint)
                 return fingerprint
 
             elif device['_type'][:21] != fingerprint:  # "Dual Channel Receiver"
@@ -411,17 +414,9 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
         result['_sku'] = node['sku']['val'] if node else None
 
         node = raw_dict['childValues']
-        # hack: find any Dual Channel Receiver(s), to 'force' that type
-        if 'SwitchBinary' in node and result['_type'] is None and \
-                node['SwitchBinary']['path'].count('/') == 3:
-            result['type'] = 'Dual Channel Receiver - Channel {}'.format(
-                result['id'][-1])
-            _LOGGER.debug("Device %s, '%s': typed by its fingerprint (this is OK).",
-                          result['id'], result['type'])
-        else:  # ... confirm type, set if needed
-            device_type = _check_fingerprint(node, result)
-            if device_type:
-                result['type'] = device_type
+        device_type = _check_fingerprint(node, result)
+        if device_type:  # there is no {'type': None}
+            result['type'] = device_type
 
         result['assignedZones'] = [{'name': None}]  # 3. Set assignedZones...
         if node['location']['val']:
