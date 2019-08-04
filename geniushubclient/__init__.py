@@ -4,7 +4,7 @@
    """
 from datetime import datetime
 from hashlib import sha256
-from typing import Dict, List  # Any, Dict, List, Set, Tuple, Optional
+from typing import Dict, Optional, List  # Any, Set, Tuple
 
 import logging
 import re
@@ -125,7 +125,7 @@ class GeniusHubClient():  # pylint: disable=too-many-instance-attributes
 
     async def request(self, method, url, data=None):
         """Perform a request."""
-        _LOGGER.debug("_request(method=%s, url=%s, data=%s)", method, url, data)
+        _LOGGER.warn("_request(method=%s, url=%s, data=%s)", method, url, data)
 
         http_method = {
             "GET": self._session.get,
@@ -144,12 +144,12 @@ class GeniusHubClient():  # pylint: disable=too-many-instance-attributes
                 raise_for_status=True
             ) as resp:
                 response = await resp.json(content_type=None)
+            # await self._session.close()
 
         # cept concurrent.futures._base.TimeoutError: ???
         # cept aiohttp.client_exceptions.ClientResponseError: 502, message='Bad Gateway'
         except aiohttp.client_exceptions.ServerDisconnectedError as err:
-            _LOGGER.debug("_request(): ServerDisconnected, retrying (msg=%s)", err)
-            _session = aiohttp.ClientSession()
+            _LOGGER.warn("_request(): ServerDisconnected, retrying (msg=%s)", err)
             async with http_method(
                 self._url_base + url,
                 json=data,
@@ -159,7 +159,6 @@ class GeniusHubClient():  # pylint: disable=too-many-instance-attributes
                 raise_for_status=True
             ) as resp:
                 response = await resp.json(content_type=None)
-            await _session.close()
 
         if method != 'GET':
             _LOGGER.debug("_request(): response=%s", response)
@@ -362,7 +361,7 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
         if self._client.api_version == 1:
             return raw_dict
 
-        def _check_fingerprint(node, device):
+        def _check_fingerprint(node, device) -> Optional[str]:
             """Check the device type against its 'fingerprint'."""
             if 'SwitchBinary' in node:
                 if 'TEMPERATURE' in node:
@@ -384,46 +383,45 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
             elif 'Indicator' in node:
                 fingerprint = "Room Thermostat"
 
-            else:
-                # ... no/invalid device fingerprint!
-                if device['type']:
-                    _LOGGER.warning("Device %s, '%s': has no fingerprint, so set undefined.",
-                                    device['id'], device['type'])
-                    del device['type']
+            else:  # ... no/invalid device fingerprint!
+                if device['_type']:
+                    _LOGGER.warning("Device %s, '%s': has no fingerprint, so left undefined.",
+                                    device['id'], device['_type'])
                 else:
                     _LOGGER.error("Device %s: has no type, and no fingerprint!",
                                   device['id'])
-                return
+                return None
 
-            if not device['type']:
-                device['type'] = fingerprint
+            if not device['_type']:
                 _LOGGER.warning("Device %s, '%s': typed only by its fingerprint!",
-                                device['id'], device['type'])
+                                device['id'], fingerprint)
+                return fingerprint
 
-            elif device['type'][:21] != fingerprint:  # "Dual Channel Receiver"
+            elif device['_type'][:21] != fingerprint:  # "Dual Channel Receiver"
                 _LOGGER.error("Device %s, '%s': doesn't match its fingerprint: '%s'!",
-                              device['id'], device['type'], fingerprint)
+                              device['id'], device['_type'], fingerprint)
+            return device['_type']
 
         result = {}
 
         result['id'] = raw_dict['addr']  # 1. Set id (addr)
-        result['type'] = None  # 2. Set type...
 
         node = raw_dict['childNodes']['_cfg']['childValues']
-        if node:
-            result['type'] = node['name']['val']
-            result['_sku'] = node['sku']['val']
+        result['_type'] = node['name']['val'] if node else None
+        result['_sku'] = node['sku']['val'] if node else None
 
         node = raw_dict['childValues']
         # hack: find any Dual Channel Receiver(s), to 'force' that type
-        if 'SwitchBinary' in node and result['type'] is None and \
+        if 'SwitchBinary' in node and result['_type'] is None and \
                 node['SwitchBinary']['path'].count('/') == 3:
             result['type'] = 'Dual Channel Receiver - Channel {}'.format(
                 result['id'][-1])
             _LOGGER.debug("Device %s, '%s': typed by its fingerprint (this is OK).",
                           result['id'], result['type'])
-        else:
-            _check_fingerprint(node, result)  # ... confirm type, set if needed
+        else:  # ... confirm type, set if needed
+            device_type = _check_fingerprint(node, result)
+            if device_type:
+                result['type'] = device_type
 
         result['assignedZones'] = [{'name': None}]  # 3. Set assignedZones...
         if node['location']['val']:
