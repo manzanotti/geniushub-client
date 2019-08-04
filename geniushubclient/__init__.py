@@ -389,7 +389,7 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
 
             else:  # ... no/invalid device fingerprint!
                 if device['_type']:
-                    _LOGGER.warning("Device %s, '%s': has no fingerprint, so left undefined.",
+                    _LOGGER.warning("Device %s, '%s': has no fingerprint, so has no type.",
                                     device['id'], device['_type'])
                 else:
                     _LOGGER.error("Device %s: has no type, and no fingerprint!",
@@ -471,7 +471,8 @@ class GeniusHub(GeniusObject):
     def __init__(self, client, hub_dict) -> None:
         super().__init__(client, hub_dict, {})
 
-        self._zones = self._devices = self.issues = self.version = None
+        self.issues = self.version = None
+        self._raw_zones = self._raw_devices = self._raw_issues = None
         self._test_json = {}
 
     def __repr__(self):
@@ -503,9 +504,8 @@ class GeniusHub(GeniusObject):
           v1/devices/summary: id, type
           v1/devices:         id, type, assignedZones, state
         """
-        if self._client.verbosity == 3:
-            return [d.info for d in self.device_objs]
-        return natural_sort([d.info for d in self.device_objs], 'id')
+        key = 'addr' if self._client.verbosity == 3 else 'id'
+        return natural_sort([d.info for d in self.device_objs], key)
 
     async def update(self):
         """Update the Hub with its latest state data."""
