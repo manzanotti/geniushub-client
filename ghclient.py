@@ -95,7 +95,7 @@ async def main(loop):
                              username=args[USERNAME],
                              password=args[PASSWORD],
                              session=session,
-                             debug=False)
+                             debug=True)
 
     client.verbosity = args[VERBOSE]
 
