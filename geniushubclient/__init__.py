@@ -22,7 +22,69 @@ logging.basicConfig()
 _LOGGER = logging.getLogger(__name__)
 
 # pylint3 --max-line-length=100
-# pylint: disable=fixme, disable=too-many-branches, too-many-locals, too-many-statements
+# pylint: disable=fixme, too-many-branches, too-many-locals, too-many-statements
+
+
+def natural_sort(dict_list, dict_key) -> List[Dict]:
+    """Return a case-insensitively sorted list, with '11' after '2-2'."""
+    # noqa; pylint: disable=missing-docstring, multiple-statements
+    def alphanum_key(k): return [int(c) if c.isdigit() else c.lower()
+                                 for c in re.split('([0-9]+)', k[dict_key])]
+    return sorted(dict_list, key=alphanum_key)
+
+
+def _zones_via_zones_v3(raw_json) -> List:
+    """Extract Zones from /v3/zones JSON."""
+    return raw_json['data']
+
+
+def _devices_via_data_mgr_v3(raw_json) -> List:
+    """Extract Devices from /v3/data_manager JSON."""
+    result = []
+    for site in [x for x in raw_json['data']['childNodes'].values()
+                 if x['addr'] != 'WeatherData']:
+        for device in [x for x in site['childNodes'].values() if x['addr'] != '1']:
+            result.append(device)
+            for channel in [x for x in device['childNodes'].values()
+                            if x['addr'] != '_cfg']:
+                temp = dict(channel)
+                temp['addr'] = '{}-{}'.format(device['addr'], channel['addr'])
+                result.append(temp)
+    return result
+
+
+def _devices_via_zones_v3(raw_json) -> List:
+    """Extract Devices from /v3/zones JSON - ** unsued/stale code **."""
+    result = []
+    for zone in raw_json['data']:
+        for device in [x for x in zone['nodes'].values()
+                       if x['addr'] not in ['WeatherData']]:  # ['1', 'WeatherData']
+            result.append(device)
+    return result
+
+
+def _issues_via_zones_v3(raw_json) -> List:
+    """Extract Issues from /v3/zones JSON."""
+    result = []
+    for zone in raw_json['data']:
+        for issue in zone['lstIssues']:
+            if 'data' not in issue:  # issues only have this data if there's a device?
+                issue['data'] = {}
+            issue['data']['location'] = zone['strName']
+            # sue['data']['nodeType'] = hub.device_by_id[zone['data']['nodeID']].data['type']
+            result.append(issue)
+    return result
+
+
+def _version_via_zones_v3(raw_json) -> Dict:
+    """Extract Version from /v3/zones JSON."""
+    build_date = datetime.strptime(raw_json['data'][0]['strBuildDate'], '%b %d %Y')
+
+    for date_time_idx in HUB_SW_VERSION:
+        if datetime.strptime(date_time_idx, '%b %d %Y') <= build_date:
+            result = {"hubSoftwareVersion": HUB_SW_VERSION[date_time_idx]}
+            break
+    return result
 
 
 class GeniusHub():  # pylint: disable=too-many-instance-attributes
@@ -48,8 +110,7 @@ class GeniusHub():  # pylint: disable=too-many-instance-attributes
         else:  # self.api_version == 3
             sha = sha256()
             sha.update((username + password).encode('utf-8'))
-            self._auth = aiohttp.BasicAuth(
-                login=username, password=sha.hexdigest())
+            self._auth = aiohttp.BasicAuth(login=username, password=sha.hexdigest())
             self._url_base = 'http://{}:1223/v3/'.format(hub_id)
             self._headers = {"Connection": "close"}
             self._timeout = aiohttp.ClientTimeout(total=DEFAULT_TIMEOUT_V3)
@@ -64,8 +125,10 @@ class GeniusHub():  # pylint: disable=too-many-instance-attributes
         self.zone_by_id = {}
         self.zone_by_name = {}
 
-        self.device_objs = []
         self.device_by_id = {}
+        self.device_objs = []
+
+        self.issue_objs = []
 
     def __repr__(self):
         return self.info
@@ -82,59 +145,6 @@ class GeniusHub():  # pylint: disable=too-many-instance-attributes
         else:
             raise ValueError("'{}' is not valid for verbosity. "
                              "The permissible range is (0-3).".format(value))
-
-    def natural_sort(self, dict_list, dict_key) -> List[Dict]:
-        """Return a case-insensitively sorted list, with '11' after '2-2'."""
-        # noqa; pylint: disable=missing-docstring, multiple-statements
-        def alphanum_key(k): return [int(c) if c.isdigit() else c.lower()
-                                    for c in re.split('([0-9]+)', k[dict_key])]
-        return sorted(dict_list, key=alphanum_key)
-
-    def _zones_via_zones_v3(self, raw_json) -> List:
-        """Extract Zones from /v3/zones JSON."""
-        return raw_json['data']
-
-    def _devices_via_data_mgr_v3(self, raw_json) -> List:
-        """Extract Devices from /v3/data_manager JSON."""
-        result = []
-        for site in [x for x in raw_json['data']['childNodes'].values()
-                     if x['addr'] != 'WeatherData']:
-            for device in [x for x in site['childNodes'].values()
-                           if x['addr'] != '1']:
-                result.append(device)
-                for channel in [x for x in device['childNodes'].values()
-                                if x['addr'] != '_cfg']:
-                    temp = dict(channel)
-                    temp['addr'] = '{}-{}'.format(device['addr'], channel['addr'])
-                    result.append(temp)
-        return result
-
-    def _devices_via_zones_v3(self, raw_json) -> List:
-        """Extract Devices from /v3/zones JSON."""
-        result = []
-        for zone in raw_json['data']:
-            for device in [x for x in zone['nodes'].values()
-                           if x['addr'] not in ['WeatherData']]:  # ['1', 'WeatherData']
-                result.append(device)
-        return result
-
-    def _issues_via_zones_v3(self, raw_json) -> List:
-        """Extract Issues from /v3/zones JSON - ** old code **."""
-        result = []
-        for zone in raw_json['data']:
-            for issue in zone['lstIssues']:
-                # TODO: might better be as an ID +/- convert to a comprehension
-                issue['_zone_name'] = zone['strName']  # some issues wont have this data
-                result.append(issue)
-        return result
-
-    def _version_via_zones_v3(self, raw_json) -> Dict:
-        """Extract Version from /v3/zones JSON."""
-        build_date = datetime.strptime(raw_json['data'][0]['strBuildDate'], '%b %d %Y')
-
-        for date_time_idx in HUB_SW_VERSION:
-            if datetime.strptime(date_time_idx, '%b %d %Y') <= build_date:
-                return {"hubSoftwareVersion": HUB_SW_VERSION[date_time_idx]}
 
     async def request(self, method, url, data=None):
         """Perform a request."""
@@ -202,7 +212,7 @@ class GeniusHub():  # pylint: disable=too-many-instance-attributes
           v1/devices:         id, type, assignedZones, state
         """
         key = 'addr' if self.verbosity == 3 else 'id'
-        return self.natural_sort([d.info for d in self.device_objs], key)
+        return natural_sort([d.info for d in self.device_objs], key)
 
     @property
     def issues(self) -> List:
@@ -211,26 +221,26 @@ class GeniusHub():  # pylint: disable=too-many-instance-attributes
 
     async def _update(self):
         """Update the Hub with its latest state data."""
-        for zone_raw_dict in self._zones:
+        for raw_zone in self._zones:
             try:  # does the hub already know about this zone?
-                zone = self.zone_by_id[zone_raw_dict['iID']]
+                zone = self.zone_by_id[raw_zone['iID']]
             except KeyError:
-                zone = GeniusZone(self, zone_raw_dict)
+                zone = GeniusZone(raw_zone, self)
 
                 self.zone_objs.append(zone)
                 self.zone_by_id[zone.data['id']] = zone
                 self.zone_by_name[zone.data['name']] = zone
 
-        for device_raw_dict in self._devices:
+        for raw_device in self._devices:
             try:  # does the Hub already know about this device?
-                device = self.device_by_id[device_raw_dict['addr']]
+                device = self.device_by_id[raw_device['addr']]
             except KeyError:
-                device = GeniusDevice(self, device_raw_dict, zone)  # TODO: remove zone?
+                device = GeniusDevice(raw_device, self)
 
                 self.device_objs.append(device)
                 self.device_by_id[device.data['id']] = device
 
-            zone_name = device.data['assignedZones'][0]['name']  # or device_raw_dict ??, can use id?
+            zone_name = device.data['assignedZones'][0]['name']
             zone = self.zone_by_name[zone_name] if zone_name else None
 
             if zone:
@@ -240,11 +250,7 @@ class GeniusHub():  # pylint: disable=too-many-instance-attributes
                     zone.device_objs.append(device)
                     zone.device_by_id[device.data['id']] = device
 
-        self.issue_objs = []
-        for issue_raw_dict in self._issues:
-            issue = GeniusIssue(self, issue_raw_dict)
-
-            self.issue_objs.append(issue)
+        self.issue_objs = [GeniusIssue(raw_issue, self) for raw_issue in self._issues]
 
     async def update(self):
         """Update the Hub with its latest state data."""
@@ -255,10 +261,10 @@ class GeniusHub():  # pylint: disable=too-many-instance-attributes
             self.version = await self.request('GET', 'version')
 
         else:  # self.api_version == 3:
-            self._zones = self._zones_via_zones_v3(await self.request('GET', 'zones'))
-            self._devices = self._devices_via_data_mgr_v3(await self.request('GET', 'data_manager'))
-            self._issues = self._issues_via_zones_v3({'data': self._zones})
-            self.version = self._version_via_zones_v3({'data': self._zones})
+            self._zones = _zones_via_zones_v3(await self.request('GET', 'zones'))
+            self._devices = _devices_via_data_mgr_v3(await self.request('GET', 'data_manager'))
+            self._issues = _issues_via_zones_v3({'data': self._zones})
+            self.version = _version_via_zones_v3({'data': self._zones})
 
         await self._update()  # now convert all the raw JSON
 
@@ -282,8 +288,8 @@ class GeniusTestHub(GeniusHub):
         """Update the Hub with its latest state data."""
         self._zones = self._test_json['zones']
         self._devices = self._test_json['devices']
-        self._issues = self._issues_via_zones_v3({'data': self._zones})
-        self.version = self._version_via_zones_v3({'data': self._zones})
+        self._issues = _issues_via_zones_v3({'data': self._zones})
+        self.version = _version_via_zones_v3({'data': self._zones})
 
         await self._update()  # now convert all the raw JSON
 
@@ -306,9 +312,10 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
         if self._hub.verbosity == 3:
             return self._raw
 
-        if self._hub.verbosity == 2:
-            return {k: v for k, v in self.data.items() if k[:1] != '_' and
-                    k not in ['device_objs', 'device_by_id', 'assigned_zone']}  # TODO: are these still needed?
+        if self._hub.verbosity == 2:  # probably same as verbosity == 1:
+            # return {k: v for k, v in self.data.items() if k[:1] != '_' and
+            #         k not in ['device_objs', 'device_by_id', 'assigned_zone']}
+            return self.data
 
         keys = self._attrs['summary_keys']
         if self._hub.verbosity == 1:
@@ -320,11 +327,11 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
 class GeniusZone(GeniusObject):
     """The class for a Genius Zone."""
 
-    def __init__(self, hub, raw_json) -> None:
+    def __init__(self, raw_dict, hub) -> None:
         super().__init__(hub, ATTRS_ZONE)
 
-        self._raw = raw_json
-        self.data = raw_json if self._hub.api_version == 1 else self._convert(raw_json)
+        self._raw = raw_dict
+        self.data = raw_dict if self._hub.api_version == 1 else self._convert(raw_dict)
 
         self.id = self.data['id']  # pylint: disable=invalid-name
         self.type = self.data.get('type')  # TODO: once, some devices didn't have a type
@@ -332,7 +339,7 @@ class GeniusZone(GeniusObject):
         self.device_objs = []
         self.device_by_id = {}
 
-    def _convert(self, raw_dict) -> Dict:
+    def _convert(self, raw_dict) -> Dict:  # pylint: disable=no-self-use
         """Convert a v3 zone's dict/json to the v1 schema."""
         result = {}
         result['id'] = raw_dict['iID']
@@ -472,7 +479,7 @@ class GeniusZone(GeniusObject):
 
           This is a v1 API: GET /zones/{zoneId}devices
         """
-        return natural_sort([d.info for d in self.device_objs], 'id')
+        return natural_sort([d.info for d in self.device_objs], 'id')  # TODO: what about 'addr'
 
     @property
     def issues(self) -> List:
@@ -543,15 +550,15 @@ class GeniusZone(GeniusObject):
 class GeniusDevice(GeniusObject):  # pylint: disable=too-few-public-methods
     """The class for a Genius Device."""
 
-    def __init__(self, client, raw_json, zone=None) -> None:
-        super().__init__(client, ATTRS_DEVICE)
+    def __init__(self, raw_dict, hub) -> None:
+        super().__init__(hub, ATTRS_DEVICE)
 
-        self._raw = raw_json
-        self.data = raw_json if self._hub.api_version == 1 else self._convert(raw_json)
+        self._raw = raw_dict
+        self.data = raw_dict if self._hub.api_version == 1 else self._convert(raw_dict)
 
         self.id = self.data['id']  # pylint: disable=invalid-name
 
-    def _convert(self, raw_dict) -> Dict:
+    def _convert(self, raw_dict) -> Dict:  # pylint: disable=no-self-use
         """Convert a v3 device's dict/json to the v1 schema.
 
         Sets id, type, assignedZones and state.
@@ -629,24 +636,24 @@ class GeniusDevice(GeniusObject):  # pylint: disable=too-few-public-methods
 class GeniusIssue(GeniusObject):  # pylint: disable=too-few-public-methods
     """The class for a Genius Issue."""
 
-    def __init__(self, client, raw_json, zone=None) -> None:
-        super().__init__(client, ATTRS_ISSUE)
+    def __init__(self, raw_dict, hub) -> None:
+        super().__init__(hub, ATTRS_ISSUE)
 
-        self._raw = raw_json
-        self.data = raw_json if self._hub.api_version == 1 else self._convert(raw_json)
+        self._raw = raw_dict
+        self.data = raw_dict if self._hub.api_version == 1 else self._convert(raw_dict, hub)
 
         _LOGGER.info("Found an Issue: %s)", self.data)
 
-    def _convert(self, raw_dict) -> Dict:
+    def _convert(self, raw_dict, hub) -> Dict:  # pylint: disable=no-self-use
         """Convert a v3 issues's dict/json to the v1 schema."""
         _LOGGER.debug("Found an Issue (raw JSON): %s)", raw_dict)
 
         description = DESCRIPTION_TO_TEXT[raw_dict['id']]
 
-        if '{zone_name}' in description:  # TODO: raw_dict['data'] is not avalable as no device?
-            zone_name = raw_dict['_zone_name']
+        if '{zone_name}' in description:
+            zone_name = raw_dict['data']['location']
         if '{device_type}' in description:
-            device_type = self._hub.device_by_id[raw_dict['data']['nodeID']].data['type']
+            device_type = hub.device_by_id[raw_dict['data']['nodeID']].data['type']
 
         if '{zone_name}' in description and '{device_type}' in description:
             description = description.format(zone_name=zone_name, device_type=device_type)
