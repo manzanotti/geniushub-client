@@ -410,8 +410,7 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
 
         node = raw_dict['childValues']
         device_type = _check_fingerprint(node, result)
-        if device_type:  # there is no {'type': None}
-            result['type'] = device_type
+        result['type'] = device_type if device_type else "Unrecognised Device"
 
         result['assignedZones'] = [{'name': None}]  # 3. Set assignedZones...
         if node['location']['val']:
