@@ -22,8 +22,7 @@ logging.basicConfig()
 _LOGGER = logging.getLogger(__name__)
 
 # pylint3 --max-line-length=100
-# pylint: disable=fixme
-# pylint: disable=too-many-branches, too-many-locals, too-many-statements
+# pylint: disable=fixme, disable=too-many-branches, too-many-locals, too-many-statements
 
 
 class GeniusHub():  # pylint: disable=too-many-instance-attributes
@@ -642,21 +641,20 @@ class GeniusIssue(GeniusObject):  # pylint: disable=too-few-public-methods
 
     def _convert(self, raw_dict) -> Dict:
         """Convert a v3 issues's dict/json to the v1 schema."""
-        description = DESCRIPTION_TO_TEXT.get(raw_dict['id'], raw_dict)
+        _LOGGER.debug("Found an Issue (raw JSON): %s)", raw_dict)
+
+        description = DESCRIPTION_TO_TEXT[raw_dict['id']]
+
+        if '{zone_name}' in description:  # TODO: raw_dict['data'] is not avalable as no device?
+            zone_name = raw_dict['_zone_name']
+        if '{device_type}' in description:
+            device_type = self._hub.device_by_id[raw_dict['data']['nodeID']].data['type']
 
         if '{zone_name}' in description and '{device_type}' in description:
-            description = description.format(
-                zone_name=raw_dict['data']['location'],  # or: raw_dict['_zone_name']
-                device_type=self._hub.device_by_id[raw_dict['data']['nodeID']].data['type'])
-
-        elif '{zone_name}' in description:  # TODO: raw_dict['data'] is not avalable as no device?
-            description = description.format(
-                zone_name=raw_dict['_zone_name'])
-
+            description = description.format(zone_name=zone_name, device_type=device_type)
+        elif '{zone_name}' in description:
+            description = description.format(zone_name=zone_name)
         elif '{device_type}' in description:
-            description = description.format(
-                device_type=self._hub.device_by_id[raw_dict['data']['nodeID']].data['type'])
+            description = description.format(device_type=device_type)
 
-        level = LEVEL_TO_TEXT.get(raw_dict['level'], raw_dict['level'])
-
-        return {'description': description, 'level': level}
+        return {'description': description, 'level': LEVEL_TO_TEXT[raw_dict['level']]}
