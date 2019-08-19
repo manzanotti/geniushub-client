@@ -208,7 +208,6 @@ class GeniusHub():  # pylint: disable=too-many-instance-attributes
     @property
     def issues(self) -> List:
         """Return a list of Issues known to the Hub."""
-        key = 'addr' if self.verbosity == 3 else 'id'
         return [i.info for i in self.issue_objs]
 
     async def _update(self):
