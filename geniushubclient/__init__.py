@@ -222,8 +222,9 @@ class GeniusHub():  # pylint: disable=too-many-instance-attributes
     async def _update(self):
         """Update the Hub with its latest state data."""
         for raw_zone in self._zones:
+            key = 'id' if self.api_version == 1 else 'iID'
             try:  # does the hub already know about this zone?
-                zone = self.zone_by_id[raw_zone['iID']]
+                zone = self.zone_by_id[key]
             except KeyError:
                 zone = GeniusZone(raw_zone, self)
 
@@ -232,18 +233,17 @@ class GeniusHub():  # pylint: disable=too-many-instance-attributes
                 self.zone_by_name[zone.data['name']] = zone
 
         for raw_device in self._devices:
+            key = 'id' if self.api_version == 1 else 'addr'
             try:  # does the Hub already know about this device?
-                device = self.device_by_id[raw_device['addr']]
+                device = self.device_by_id[raw_device[key]]
             except KeyError:
                 device = GeniusDevice(raw_device, self)
 
                 self.device_objs.append(device)
                 self.device_by_id[device.data['id']] = device
 
-            zone_name = device.data['assignedZones'][0]['name']  # TODO: test a device not assigned to a zone
-            zone = self.zone_by_name[zone_name] if zone_name else None
-
-            if zone:
+            if len(device.data['assignedZones']) > 0:  # TODO: test a device not assigned to a zone
+                zone = self.zone_by_name[device.data['assignedZones'][0]['name']]
                 try:  # does the parent Zone already know about this device?
                     device = zone.device_by_id[device.data['id']]  # TODO: what happends if None???
                 except KeyError:
