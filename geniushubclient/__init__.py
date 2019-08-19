@@ -646,9 +646,8 @@ class GeniusIssue(GeniusObject):  # pylint: disable=too-few-public-methods
 
     def _convert(self, raw_dict, hub) -> Dict:  # pylint: disable=no-self-use
         """Convert a v3 issues's dict/json to the v1 schema."""
-        _LOGGER.debug("Found an Issue (raw JSON): %s)", raw_dict)
-
-        description = DESCRIPTION_TO_TEXT[raw_dict['id']]
+        description = DESCRIPTION_TO_TEXT.get(raw_dict['id'], raw_dict['id'])
+        level = LEVEL_TO_TEXT.get(raw_dict['level'], str(raw_dict['level']))
 
         if '{zone_name}' in description:
             zone_name = raw_dict['data']['location']
@@ -662,4 +661,4 @@ class GeniusIssue(GeniusObject):  # pylint: disable=too-few-public-methods
         elif '{device_type}' in description:
             description = description.format(device_type=device_type)
 
-        return {'description': description, 'level': LEVEL_TO_TEXT[raw_dict['level']]}
+        return {'description': description, 'level': level}
