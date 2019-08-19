@@ -62,7 +62,7 @@ import re
 import aiohttp
 from docopt import docopt
 
-from geniushubclient import GeniusHubClient, GeniusHub, GeniusTestHub
+from geniushubclient import GeniusHub, GeniusTestHub
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -91,15 +91,16 @@ async def main(loop):
 
     session = aiohttp.ClientSession()
 
-    client = GeniusHubClient(hub_id=args[HUB_ID],
-                             username=args[USERNAME],
-                             password=args[PASSWORD],
-                             session=session,
-                             debug=True)
+    hub = GeniusHub(
+        hub_id=args[HUB_ID],
+        username=args[USERNAME],
+        password=args[PASSWORD],
+        session=session,
+        debug=False
+    )
 
-    client.verbosity = args[VERBOSE]
+    hub.verbosity = args[VERBOSE]
 
-    hub = client.hub  # client.hub = GeniusHub(client, {'id': hub_id})
     await hub.update()  # initialise: enumerate all zones, devices & issues
 
     if args[DEVICE_ID]:
