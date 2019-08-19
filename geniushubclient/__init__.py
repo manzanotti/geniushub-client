@@ -242,8 +242,9 @@ class GeniusHub():  # pylint: disable=too-many-instance-attributes
                 self.device_objs.append(device)
                 self.device_by_id[device.data['id']] = device
 
-            if len(device.data['assignedZones']) > 0:  # TODO: test a device not assigned to a zone
-                zone = self.zone_by_name[device.data['assignedZones'][0]['name']]
+            zone_name = device.data['assignedZones'][0]['name']
+            if zone_name:
+                zone = self.zone_by_name[zone_name]
                 try:  # does the parent Zone already know about this device?
                     device = zone.device_by_id[device.data['id']]  # TODO: what happends if None???
                 except KeyError:
