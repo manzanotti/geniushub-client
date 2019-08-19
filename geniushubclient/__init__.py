@@ -613,8 +613,7 @@ class GeniusDevice(GeniusObject):  # pylint: disable=too-few-public-methods
 
         node = raw_dict['childValues']
         device_type = _check_fingerprint(node, result)
-        if device_type:  # there is no {'type': None}
-            result['type'] = device_type
+        result['type'] = device_type if device_type else "Unrecognised Device"
 
         result['assignedZones'] = [{'name': None}]  # 3. Set assignedZones...
         if node['location']['val']:
@@ -628,12 +627,6 @@ class GeniusDevice(GeniusObject):  # pylint: disable=too-few-public-methods
             state['outputOnOff'] = bool(state['outputOnOff'])
 
         return result
-
-    @property
-    def type(self) -> Optional[str]:
-        """Return the type of the device, which can change."""
-        device_type = self.data.get('type')
-        return device_type if device_type is not None else 'undefined'  # TODO: once, some devices didn't have a type
 
 
 class GeniusIssue(GeniusObject):  # pylint: disable=too-few-public-methods
