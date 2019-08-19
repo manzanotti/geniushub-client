@@ -102,7 +102,6 @@ async def main(loop):
     hub.verbosity = args[VERBOSE]
 
     await hub.update()  # initialise: enumerate all zones, devices & issues
-    await hub.update()  # initialise: enumerate all zones, devices & issues
 
     if args[DEVICE_ID]:
         key = args[DEVICE_ID]  # a device_id is always a str, never an int
