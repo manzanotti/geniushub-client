@@ -271,14 +271,12 @@ class GeniusHub():  # pylint: disable=too-many-instance-attributes
 class GeniusTestHub(GeniusHub):
     """The test class for a Genius Hub - uses a test file."""
 
-    def __init__(self, client, hub_dict, zones_json, device_json) -> None:
-        super().__init__(client, hub_dict)
+    def __init__(self, zones_json, device_json, session=None, debug=None) -> None:
+        super().__init__("test_hub", username="user", session=session, debug=debug)
         _LOGGER.info("Using GeniusTestHub()")
 
         self._test_json['zones'] = zones_json
         self._test_json['devices'] = device_json
-
-        self.api_version = 3
 
     async def update(self):
         """Update the Hub with its latest state data."""
