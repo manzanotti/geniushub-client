@@ -86,7 +86,7 @@ curl --user ${USERNAME}:${HASH} -X GET http://${HUB_ADDRESS}:1223/v3/zones
  ```python
 import asyncio
 import aiohttp
-from geniushubclient import GeniusHubClient
+from geniushubclient import GeniusHub
 
 my_session = aiohttp.ClientSession()
 
