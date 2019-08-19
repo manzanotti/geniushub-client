@@ -647,7 +647,7 @@ class GeniusIssue(GeniusObject):  # pylint: disable=too-few-public-methods
         if '{zone_name}' in description and '{device_type}' in description:
             description = description.format(
                 zone_name=raw_dict['data']['location'],  # or: raw_dict['_zone_name']
-                device_type=self._hub.device_by_id[raw_dict['data']['nodeID']].type)
+                device_type=self._hub.device_by_id[raw_dict['data']['nodeID']].data['type'])
 
         elif '{zone_name}' in description:  # TODO: raw_dict['data'] is not avalable as no device?
             description = description.format(
@@ -655,7 +655,7 @@ class GeniusIssue(GeniusObject):  # pylint: disable=too-few-public-methods
 
         elif '{device_type}' in description:
             description = description.format(
-                device_type=self._hub.device_by_id[raw_dict['data']['nodeID']].type)
+                device_type=self._hub.device_by_id[raw_dict['data']['nodeID']].data['type'])
 
         level = LEVEL_TO_TEXT.get(raw_dict['level'], raw_dict['level'])
 
