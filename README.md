@@ -80,7 +80,9 @@ curl --user ${USERNAME}:${HASH} -X GET http://${HUB_ADDRESS}:1223/v3/zones
 ```
 
 ## Advanced Features
- When used as a library, there is the option to utilize the referencing module's own `aiohttp.ClientSession()` (recommended):
+ When used as a library, there is the option to utilize the referencing module's own `aiohttp.ClientSession()` (recommended).
+ 
+ Here is an example, but see **ghclient.py** for a definitive version:
  ```python
 import asyncio
 import aiohttp
@@ -91,11 +93,10 @@ my_session = aiohttp.ClientSession()
 ...
 
 if not (username or password):
-    client = GeniusHubClient(hub_id=hub_address, username, password, session=my_session)
+    hub = GeniusHub(hub_id=hub_address, username, password, session=my_session)
 else:
-    client = GeniusHubClient(hub_id=hub_token, session=my_session)
+    hub = GeniusHub(hub_id=hub_token, session=my_session)
 
-hub = client.hub
 await hub.update()  # enumerate all zones, devices and issues
 
 client.verbosity = 0  # same as v1/zones/summary, v1/devices/summary
