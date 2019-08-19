@@ -26,7 +26,7 @@ _LOGGER = logging.getLogger(__name__)
 # pylint: disable=too-many-branches, too-many-locals, too-many-statements
 
 
-class GeniusHubClient():  # pylint: disable=too-many-instance-attributes
+class GeniusHub():  # pylint: disable=too-many-instance-attributes
     """The class for a connection to a Genius Hub."""
     # pylint: disable=too-many-arguments
     def __init__(self, hub_id, username=None, password=None, session=None,
@@ -59,7 +59,7 @@ class GeniusHubClient():  # pylint: disable=too-many-instance-attributes
         hub_id = hub_id[:8] + "..." if len(hub_id) > 20 else hub_id
 
         self.issues = self.version = None
-        self._raw_zones = self._raw_devices = self._raw_issues = None
+        self._zones = self._devices = self._issues = None
         self._test_json = {}
 
         self.zone_objs = []
@@ -92,54 +92,51 @@ class GeniusHubClient():  # pylint: disable=too-many-instance-attributes
                                     for c in re.split('([0-9]+)', k[dict_key])]
         return sorted(dict_list, key=alphanum_key)
 
-    def _get_version_from_zones_v3(self, raw_json) -> Dict:
-        """Extract Version from /v3/zones JSON."""
-        build_date = datetime.strptime(raw_json[0]['strBuildDate'], '%b %d %Y')
-
-        for date_time_idx in HUB_SW_VERSION:
-            if datetime.strptime(date_time_idx, '%b %d %Y') <= build_date:
-                return {"hubSoftwareVersion": HUB_SW_VERSION[date_time_idx]}
-
-    def _get_zones_from_zones_v3(self, raw_json) -> List:
+    def _zones_via_zones_v3(self, raw_json) -> List:
         """Extract Zones from /v3/zones JSON."""
-        return raw_json
+        return raw_json['data']
 
-    def _get_devices_from_data_manager(self, raw_json) -> List:
+    def _devices_via_data_mgr_v3(self, raw_json) -> List:
         """Extract Devices from /v3/data_manager JSON."""
         result = []
-        for site in [x for x in raw_json['childNodes'].values()
-                    if x['addr'] != 'WeatherData']:
+        for site in [x for x in raw_json['data']['childNodes'].values()
+                     if x['addr'] != 'WeatherData']:
             for device in [x for x in site['childNodes'].values()
-                        if x['addr'] != '1']:
+                           if x['addr'] != '1']:
                 result.append(device)
                 for channel in [x for x in device['childNodes'].values()
                                 if x['addr'] != '_cfg']:
                     temp = dict(channel)
                     temp['addr'] = '{}-{}'.format(device['addr'], channel['addr'])
                     result.append(temp)
-
         return result
 
-    def _get_devices_from_zones_v3(self, raw_json) -> List:
+    def _devices_via_zones_v3(self, raw_json) -> List:
         """Extract Devices from /v3/zones JSON."""
         result = []
-        for zone in raw_json:
+        for zone in raw_json['data']:
             for device in [x for x in zone['nodes'].values()
-                        if x['addr'] not in ['WeatherData']]:  # ['1', 'WeatherData']
+                           if x['addr'] not in ['WeatherData']]:  # ['1', 'WeatherData']
                 result.append(device)
-
         return result
 
-    def _get_issues_from_zones_v3(self, raw_json) -> List:
-        """Extract Issues from /v3/zones JSON."""
+    def _issues_via_zones_v3(self, raw_json) -> List:
+        """Extract Issues from /v3/zones JSON - ** old code **."""
         result = []
-        for zone in raw_json:
+        for zone in raw_json['data']:
             for issue in zone['lstIssues']:
                 # TODO: might better be as an ID +/- convert to a comprehension
                 issue['_zone_name'] = zone['strName']  # some issues wont have this data
                 result.append(issue)
-
         return result
+
+    def _version_via_zones_v3(self, raw_json) -> Dict:
+        """Extract Version from /v3/zones JSON."""
+        build_date = datetime.strptime(raw_json['data'][0]['strBuildDate'], '%b %d %Y')
+
+        for date_time_idx in HUB_SW_VERSION:
+            if datetime.strptime(date_time_idx, '%b %d %Y') <= build_date:
+                return {"hubSoftwareVersion": HUB_SW_VERSION[date_time_idx]}
 
     async def request(self, method, url, data=None):
         """Perform a request."""
@@ -206,84 +203,64 @@ class GeniusHubClient():  # pylint: disable=too-many-instance-attributes
           v1/devices/summary: id, type
           v1/devices:         id, type, assignedZones, state
         """
-        key = 'addr' if self._client.verbosity == 3 else 'id'
-        return natural_sort([d.info for d in self.device_objs], key)
+        key = 'addr' if self.verbosity == 3 else 'id'
+        return self.natural_sort([d.info for d in self.device_objs], key)
 
     async def update(self):
         """Update the Hub with its latest state data."""
+        if self.api_version == 1:
+            self._zones = await self.request('GET', 'zones')
+            self._devices = await self.request('GET', 'devices')
+            self._issues = await self.request('GET', 'issues')
+            self.version = await self.request('GET', 'version')
 
-        def _populate_zone(zone_raw_dict):
+        elif isinstance(self, GeniusTestHub):  # a hack for testing
+            self._zones = self._test_json['zones']
+            self._devices = self._test_json['devices']
+            self._issues = self._issues_via_zones_v3({'data': self._zones})
+            self.version = self._version_via_zones_v3({'data': self._zones})
+
+        else:  # self.api_version == 3:
+            self._zones = self._zones_via_zones_v3(await self.request('GET', 'zones'))
+            self._devices = self._devices_via_data_mgr_v3(await self.request('GET', 'data_manager'))
+            self._issues = self._issues_via_zones_v3({'data': self._zones})
+            self.version = self._version_via_zones_v3({'data': self._zones})
+
+        for zone_raw_dict in self._zones:
             try:  # does the hub already know about this zone?
                 zone = self.zone_by_id[zone_raw_dict['iID']]
             except KeyError:
-                zone = GeniusZone(self._client, zone_raw_dict)
-                self.zone_objs.append(zone)
+                zone = GeniusZone(self, zone_raw_dict)
 
+                self.zone_objs.append(zone)
                 self.zone_by_id[zone.data['id']] = zone
                 self.zone_by_name[zone.data['name']] = zone
 
-            return zone.data['id'], zone
-
-        def _populate_device(device_raw_dict):
-            device_dict = self._convert_device(device_raw_dict)
-
-            zone_name = device_dict['assignedZones'][0]['name']
-            zone = self.zone_by_name[zone_name] if zone_name else None
-
+        for device_raw_dict in self._devices:
             try:  # does the Hub already know about this device?
-                device = self.device_by_id[device_dict['id']]
+                device = self.device_by_id[device_raw_dict['addr']]
             except KeyError:
-                device = GeniusDevice(self._client, device_raw_dict, zone)
+                device = GeniusDevice(self, device_raw_dict, zone)  # TODO: remove zone?
+
                 self.device_objs.append(device)
+                self.device_by_id[device.data['id']] = device
 
-                self.device_by_id[device_dict['id']] = device
-
-            device.data = device_dict
-            device._raw_data = device_raw_dict
+            zone_name = device.data['assignedZones'][0]['name']  # or device_raw_dict ??, can use id?
+            zone = self.zone_by_name[zone_name] if zone_name else None
 
             if zone:
                 try:  # does the parent Zone already know about this device?
-                    device = zone.device_by_id[device_dict['id']]  # TODO: what happends if None???
+                    device = zone.device_by_id[device.data['id']]  # TODO: what happends if None???
                 except KeyError:
-                    zone.device_by_id[device_dict['id']] = device
                     zone.device_objs.append(device)
+                    zone.device_by_id[device.data['id']] = device
 
-            return device_dict['id'], device
+        # self.issue_objs = []
+        # for issue_raw_dict in self._issues:
+        #     issue = GeniusIssue(self, issue_raw_dict)
 
-        def _populate_issue(issue_raw):
-            issue_dict = self._convert_issue(issue_raw)
-
-            _LOGGER.info("Found an Issue: %s)", issue_dict)
-
-            return issue_dict
-
-        if self._client.api_version == 1:
-            self._raw_zones = await self._client.request('GET', 'zones')
-            self._raw_devices = await self._client.request('GET', 'devices')
-
-            self._raw_issues = await self._client.request('GET', 'issues')
-            self.version = await self._client.request('GET', 'version')
-
-        elif isinstance(self, GeniusTestHub):  # a hack for testing
-            self._raw_zones = self._test_json['zones']
-            self._raw_devices = self._test_json['devices']
-
-            self._raw_issues = _get_issues_from_zones_v3(self._raw_zones)
-            self.version = _get_version_from_zones_v3(self._raw_zones)
-
-        else:  # self._client.api_version == 3:
-            zones_json = await self._client.request('GET', 'zones')
-            devices_json = await self._client.request('GET', 'data_manager')
-
-            self._raw_zones = _get_zones_from_zones_v3(zones_json['data'])
-            self._raw_devices = _get_devices_from_data_manager(devices_json['data'])
-
-            self._raw_issues = _get_issues_from_zones_v3(self._raw_zones)
-            self.version = _get_version_from_zones_v3(self._raw_zones)
-
-        [_populate_zone(z) for z in self._raw_zones]  # pylint: disable=expression-not-assigned
-        [_populate_device(d) for d in self._raw_devices]  # pylint: disable=expression-not-assigned
-        self.issues = [_populate_issue(i) for i in self._raw_issues]
+        #     self.issue_objs.append(issue)
+        #     _LOGGER.info("Found an Issue: %s)", issue.data)
 
     async def reboot(self):
         """Reboot the hub."""
@@ -291,7 +268,7 @@ class GeniusHubClient():  # pylint: disable=too-many-instance-attributes
         raise NotImplementedError
 
 
-class GeniusTestHub(GeniusHubClient):
+class GeniusTestHub(GeniusHub):
     """The test class for a Genius Hub - uses a test file."""
 
     def __init__(self, client, hub_dict, zones_json, device_json) -> None:
@@ -302,14 +279,14 @@ class GeniusTestHub(GeniusHubClient):
 
         super().__init__(client, hub_dict)
 
-        self._client.api_version = 3
+        self.api_version = 3
 
 
 class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instance-attributes
     """The base class for any Genius object: Zone, Device or Issue."""
 
-    def __init__(self, client, object_attrs) -> None:
-        self._client = client
+    def __init__(self, hub, object_attrs) -> None:
+        self._hub = hub
         self._attrs = object_attrs
 
         self.data = {}
@@ -321,15 +298,15 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
     @property
     def info(self) -> Dict:
         """Return all information for the object."""
-        if self._client.verbosity == 3:
+        if self._hub.verbosity == 3:
             return self._raw_data
 
-        if self._client.verbosity == 2:
+        if self._hub.verbosity == 2:
             return {k: v for k, v in self.data.items() if k[:1] != '_' and
                     k not in ['device_objs', 'device_by_id', 'assigned_zone']}  # TODO: are these still needed?
 
         keys = self._attrs['summary_keys']
-        if self._client.verbosity == 1:
+        if self._hub.verbosity == 1:
             keys += self._attrs['detail_keys']
 
         return {k: v for k, v in self.data.items() if k in keys}
@@ -338,8 +315,8 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
 class GeniusZone(GeniusObject):
     """The class for a Genius Zone."""
 
-    def __init__(self, client, raw_json) -> None:
-        super().__init__(client, ATTRS_ZONE)
+    def __init__(self, hub, raw_json) -> None:
+        super().__init__(hub, ATTRS_ZONE)
 
         self._raw_data = raw_json
         self.data = self._convert(raw_json)
@@ -350,7 +327,7 @@ class GeniusZone(GeniusObject):
 
     def _convert(self, raw_dict) -> Dict:
         """Convert a v3 zone's dict/json to the v1 schema."""
-        if self._client.api_version == 1:
+        if self._hub.api_version == 1:
             return raw_dict
 
         result = {}
@@ -526,12 +503,12 @@ class GeniusZone(GeniusObject):
         _LOGGER.debug("Zone(%s).set_mode(mode=%s, mode_str='%s')...",
                       self.id, mode, mode_str)
 
-        if self._client.api_version == 1:
+        if self._hub.api_version == 1:
             url = 'zones/{}/mode'  # v1 API uses strings
-            resp = await self._client.request('PUT', url.format(self.id), data=mode_str)
-        else:  # self._client.api_version == 1
+            resp = await self._hub.request('PUT', url.format(self.id), data=mode_str)
+        else:  # self._hub.api_version == 1
             url = 'zone/{}'  # v3 API uses dicts  # TODO: check: is it PUT(POST?) vs PATCH
-            resp = await self._client.request('PATCH', url.format(self.id), data={'iMode': mode})
+            resp = await self._hub.request('PATCH', url.format(self.id), data={'iMode': mode})
 
         if resp:  # for v1, resp = None?
             resp = resp['data'] if resp['error'] == 0 else resp
@@ -548,16 +525,16 @@ class GeniusZone(GeniusObject):
         _LOGGER.debug("Zone(%s).set_override(setpoint=%s, duration=%s)...",
                       self.id, setpoint, duration)
 
-        if self._client.api_version == 1:
+        if self._hub.api_version == 1:
             url = 'zones/{}/override'
             data = {'setpoint': setpoint, 'duration': duration}
-            resp = await self._client.request('POST', url.format(self.id), data=data)
+            resp = await self._hub.request('POST', url.format(self.id), data=data)
         else:
             url = 'zone/{}'
             data = {'iMode': ZONE_MODES.Boost,
                     'fBoostSP': setpoint,
                     'iBoostTimeRemaining': duration}
-            resp = await self._client.request('PATCH', url.format(self.id), data=data)
+            resp = await self._hub.request('PATCH', url.format(self.id), data=data)
 
         if resp:  # for v1, resp = None?
             resp = resp['data'] if resp['error'] == 0 else resp
@@ -579,7 +556,7 @@ class GeniusDevice(GeniusObject):  # pylint: disable=too-few-public-methods
 
         Sets id, type, assignedZones and state.
         """
-        if self._client.api_version == 1:
+        if self._hub.api_version == 1:
             return raw_dict
 
         def _check_fingerprint(node, device) -> Optional[str]:
@@ -670,7 +647,7 @@ class GeniusIssue(GeniusObject):  # pylint: disable=too-few-public-methods
 
     def _convert(self, raw_dict) -> Dict:
         """Convert a v3 issues's dict/json to the v1 schema."""
-        if self._client.api_version == 1:
+        if self._hub.api_version == 1:
             return raw_dict
 
         description = DESCRIPTION_TO_TEXT.get(raw_dict['id'], raw_dict)
