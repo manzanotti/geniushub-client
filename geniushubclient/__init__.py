@@ -56,9 +56,8 @@ class GeniusHub():  # pylint: disable=too-many-instance-attributes
             self._timeout = aiohttp.ClientTimeout(total=DEFAULT_TIMEOUT_V3)
 
         self._verbose = 1
-        hub_id = hub_id[:8] + "..." if len(hub_id) > 20 else hub_id
 
-        self.issues = self.version = None
+        self.version = None
         self._zones = self._devices = self._issues = None
         self._test_json = {}
 
@@ -206,7 +205,13 @@ class GeniusHub():  # pylint: disable=too-many-instance-attributes
         key = 'addr' if self.verbosity == 3 else 'id'
         return self.natural_sort([d.info for d in self.device_objs], key)
 
-    async def update(self):
+    @property
+    def issues(self) -> List:
+        """Return a list of Issues known to the Hub."""
+        key = 'addr' if self.verbosity == 3 else 'id'
+        return [i.info for i in self.issue_objs]
+
+    async def _update(self):
         """Update the Hub with its latest state data."""
         if self.api_version == 1:
             self._zones = await self.request('GET', 'zones')
@@ -255,12 +260,28 @@ class GeniusHub():  # pylint: disable=too-many-instance-attributes
                     zone.device_objs.append(device)
                     zone.device_by_id[device.data['id']] = device
 
-        # self.issue_objs = []
-        # for issue_raw_dict in self._issues:
-        #     issue = GeniusIssue(self, issue_raw_dict)
+        self.issue_objs = []
+        for issue_raw_dict in self._issues:
+            issue = GeniusIssue(self, issue_raw_dict)
 
-        #     self.issue_objs.append(issue)
-        #     _LOGGER.info("Found an Issue: %s)", issue.data)
+            self.issue_objs.append(issue)
+            _LOGGER.info("Found an Issue: %s)", issue.data)
+
+    async def update(self):
+        """Update the Hub with its latest state data."""
+        if self.api_version == 1:
+            self._zones = await self.request('GET', 'zones')
+            self._devices = await self.request('GET', 'devices')
+            self._issues = await self.request('GET', 'issues')
+            self.version = await self.request('GET', 'version')
+
+        else:  # self.api_version == 3:
+            self._zones = self._zones_via_zones_v3(await self.request('GET', 'zones'))
+            self._devices = self._devices_via_data_mgr_v3(await self.request('GET', 'data_manager'))
+            self._issues = self._issues_via_zones_v3({'data': self._zones})
+            self.version = self._version_via_zones_v3({'data': self._zones})
+
+        await self._update()  # now convert all the raw JSON
 
     async def reboot(self):
         """Reboot the hub."""
@@ -272,14 +293,22 @@ class GeniusTestHub(GeniusHub):
     """The test class for a Genius Hub - uses a test file."""
 
     def __init__(self, client, hub_dict, zones_json, device_json) -> None:
+        super().__init__(client, hub_dict)
         _LOGGER.info("Using GeniusTestHub()")
 
         self._test_json['zones'] = zones_json
         self._test_json['devices'] = device_json
 
-        super().__init__(client, hub_dict)
-
         self.api_version = 3
+
+    async def update(self):
+        """Update the Hub with its latest state data."""
+        self._zones = self._test_json['zones']
+        self._devices = self._test_json['devices']
+        self._issues = self._issues_via_zones_v3({'data': self._zones})
+        self.version = self._version_via_zones_v3({'data': self._zones})
+
+        await self._update()  # now convert all the raw JSON
 
 
 class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instance-attributes
@@ -289,8 +318,7 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
         self._hub = hub
         self._attrs = object_attrs
 
-        self.data = {}
-        self._raw_data = {}
+        self.data = self._data = {}
 
     def __repr__(self):
         return {k: v for k, v in self.data if k in self._attrs['summary_keys']}
@@ -299,7 +327,7 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
     def info(self) -> Dict:
         """Return all information for the object."""
         if self._hub.verbosity == 3:
-            return self._raw_data
+            return self._data
 
         if self._hub.verbosity == 2:
             return {k: v for k, v in self.data.items() if k[:1] != '_' and
@@ -318,9 +346,11 @@ class GeniusZone(GeniusObject):
     def __init__(self, hub, raw_json) -> None:
         super().__init__(hub, ATTRS_ZONE)
 
-        self._raw_data = raw_json
+        self._data = raw_json
         self.data = self._convert(raw_json)
+
         self.id = self.data['id']  # pylint: disable=invalid-name
+        self.type = self.data.get('type')  # TODO: once, some devices didn't have a type
 
         self.device_objs = []
         self.device_by_id = {}
@@ -459,13 +489,8 @@ class GeniusZone(GeniusObject):
 
     @property
     def name(self) -> str:
-        """Return the name of the zone."""
+        """Return the name of the zone, which can change."""
         return self.data['name']
-
-    @property
-    def type(self) -> Optional[str]:
-        """Return the type of the zone."""
-        return self.data.get('type')  # TODO: once, some devices didn't have a type
 
     @property
     def devices(self) -> List:
@@ -547,8 +572,9 @@ class GeniusDevice(GeniusObject):  # pylint: disable=too-few-public-methods
     def __init__(self, client, raw_json, zone=None) -> None:
         super().__init__(client, ATTRS_DEVICE)
 
-        self._raw_data = raw_json
+        self._data = raw_json
         self.data = self._convert(raw_json)
+
         self.id = self.data['id']  # pylint: disable=invalid-name
 
     def _convert(self, raw_dict) -> Dict:
@@ -631,7 +657,7 @@ class GeniusDevice(GeniusObject):  # pylint: disable=too-few-public-methods
 
     @property
     def type(self) -> Optional[str]:
-        """Return the type of the device."""
+        """Return the type of the device, which can change."""
         device_type = self.data.get('type')
         return device_type if device_type is not None else 'undefined'  # TODO: once, some devices didn't have a type
 
@@ -642,7 +668,7 @@ class GeniusIssue(GeniusObject):  # pylint: disable=too-few-public-methods
     def __init__(self, client, raw_json, zone=None) -> None:
         super().__init__(client, ATTRS_ISSUE)
 
-        self._raw_data = raw_json
+        self._data = raw_json
         self.data = self._convert(raw_json)
 
     def _convert(self, raw_dict) -> Dict:
@@ -655,7 +681,7 @@ class GeniusIssue(GeniusObject):  # pylint: disable=too-few-public-methods
         if '{zone_name}' in description and '{device_type}' in description:
             description = description.format(
                 zone_name=raw_dict['data']['location'],  # or: raw_dict['_zone_name']
-                device_type=self.device_by_id[raw_dict['data']['nodeID']].type)
+                device_type=self._hub.device_by_id[raw_dict['data']['nodeID']].type)
 
         elif '{zone_name}' in description:  # TODO: raw_dict['data'] is not avalable as no device?
             description = description.format(
@@ -663,7 +689,7 @@ class GeniusIssue(GeniusObject):  # pylint: disable=too-few-public-methods
 
         elif '{device_type}' in description:
             description = description.format(
-                device_type=self.device_by_id[raw_dict['data']['nodeID']].type)
+                device_type=self._hub.device_by_id[raw_dict['data']['nodeID']].type)
 
         level = LEVEL_TO_TEXT.get(raw_dict['level'], raw_dict['level'])
 
