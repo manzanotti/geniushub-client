@@ -212,24 +212,6 @@ class GeniusHub():  # pylint: disable=too-many-instance-attributes
 
     async def _update(self):
         """Update the Hub with its latest state data."""
-        if self.api_version == 1:
-            self._zones = await self.request('GET', 'zones')
-            self._devices = await self.request('GET', 'devices')
-            self._issues = await self.request('GET', 'issues')
-            self.version = await self.request('GET', 'version')
-
-        elif isinstance(self, GeniusTestHub):  # a hack for testing
-            self._zones = self._test_json['zones']
-            self._devices = self._test_json['devices']
-            self._issues = self._issues_via_zones_v3({'data': self._zones})
-            self.version = self._version_via_zones_v3({'data': self._zones})
-
-        else:  # self.api_version == 3:
-            self._zones = self._zones_via_zones_v3(await self.request('GET', 'zones'))
-            self._devices = self._devices_via_data_mgr_v3(await self.request('GET', 'data_manager'))
-            self._issues = self._issues_via_zones_v3({'data': self._zones})
-            self.version = self._version_via_zones_v3({'data': self._zones})
-
         for zone_raw_dict in self._zones:
             try:  # does the hub already know about this zone?
                 zone = self.zone_by_id[zone_raw_dict['iID']]
@@ -264,7 +246,6 @@ class GeniusHub():  # pylint: disable=too-many-instance-attributes
             issue = GeniusIssue(self, issue_raw_dict)
 
             self.issue_objs.append(issue)
-            _LOGGER.info("Found an Issue: %s)", issue.data)
 
     async def update(self):
         """Update the Hub with its latest state data."""
@@ -317,7 +298,7 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
         self._hub = hub
         self._attrs = object_attrs
 
-        self.data = self._data = {}
+        self.data = self._raw = {}
 
     def __repr__(self):
         return {k: v for k, v in self.data if k in self._attrs['summary_keys']}
@@ -326,7 +307,7 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
     def info(self) -> Dict:
         """Return all information for the object."""
         if self._hub.verbosity == 3:
-            return self._data
+            return self._raw
 
         if self._hub.verbosity == 2:
             return {k: v for k, v in self.data.items() if k[:1] != '_' and
@@ -345,8 +326,8 @@ class GeniusZone(GeniusObject):
     def __init__(self, hub, raw_json) -> None:
         super().__init__(hub, ATTRS_ZONE)
 
-        self._data = raw_json
-        self.data = self._convert(raw_json)
+        self._raw = raw_json
+        self.data = raw_json if self._hub.api_version == 1 else self._convert(raw_json)
 
         self.id = self.data['id']  # pylint: disable=invalid-name
         self.type = self.data.get('type')  # TODO: once, some devices didn't have a type
@@ -356,9 +337,6 @@ class GeniusZone(GeniusObject):
 
     def _convert(self, raw_dict) -> Dict:
         """Convert a v3 zone's dict/json to the v1 schema."""
-        if self._hub.api_version == 1:
-            return raw_dict
-
         result = {}
         result['id'] = raw_dict['iID']
         result['name'] = raw_dict['strName']
@@ -571,8 +549,8 @@ class GeniusDevice(GeniusObject):  # pylint: disable=too-few-public-methods
     def __init__(self, client, raw_json, zone=None) -> None:
         super().__init__(client, ATTRS_DEVICE)
 
-        self._data = raw_json
-        self.data = self._convert(raw_json)
+        self._raw = raw_json
+        self.data = raw_json if self._hub.api_version == 1 else self._convert(raw_json)
 
         self.id = self.data['id']  # pylint: disable=invalid-name
 
@@ -581,9 +559,6 @@ class GeniusDevice(GeniusObject):  # pylint: disable=too-few-public-methods
 
         Sets id, type, assignedZones and state.
         """
-        if self._hub.api_version == 1:
-            return raw_dict
-
         def _check_fingerprint(node, device) -> Optional[str]:
             """Check the device type against its 'fingerprint'."""
             if 'SwitchBinary' in node:
@@ -667,14 +642,13 @@ class GeniusIssue(GeniusObject):  # pylint: disable=too-few-public-methods
     def __init__(self, client, raw_json, zone=None) -> None:
         super().__init__(client, ATTRS_ISSUE)
 
-        self._data = raw_json
-        self.data = self._convert(raw_json)
+        self._raw = raw_json
+        self.data = raw_json if self._hub.api_version == 1 else self._convert(raw_json)
+
+        _LOGGER.info("Found an Issue: %s)", self.data)
 
     def _convert(self, raw_dict) -> Dict:
         """Convert a v3 issues's dict/json to the v1 schema."""
-        if self._hub.api_version == 1:
-            return raw_dict
-
         description = DESCRIPTION_TO_TEXT.get(raw_dict['id'], raw_dict)
 
         if '{zone_name}' in description and '{device_type}' in description:
