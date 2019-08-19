@@ -240,7 +240,7 @@ class GeniusHub():  # pylint: disable=too-many-instance-attributes
                 self.device_objs.append(device)
                 self.device_by_id[device.data['id']] = device
 
-            zone_name = device.data['assignedZones'][0]['name']
+            zone_name = device.data['assignedZones'][0]['name']  # TODO: test a device not assigned to a zone
             zone = self.zone_by_name[zone_name] if zone_name else None
 
             if zone:
@@ -304,7 +304,9 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
         self.data = self._raw = {}
 
     def __repr__(self):
-        return {k: v for k, v in self.data if k in self._attrs['summary_keys']}
+        _LOGGER.warn("self.data = %s", self.data)
+        _LOGGER.warn("self._attrs = %s", self._attrs)
+        return {k: v for k, v in self.data.items() if k in self._attrs['summary_keys']}
 
     @property
     def info(self) -> Dict:
@@ -334,7 +336,6 @@ class GeniusZone(GeniusObject):
         self.data = raw_dict if self._hub.api_version == 1 else self._convert(raw_dict)
 
         self.id = self.data['id']  # pylint: disable=invalid-name
-        self.type = self.data.get('type')  # TODO: once, some devices didn't have a type
 
         self.device_objs = []
         self.device_by_id = {}
@@ -631,6 +632,11 @@ class GeniusDevice(GeniusObject):  # pylint: disable=too-few-public-methods
             state['outputOnOff'] = bool(state['outputOnOff'])
 
         return result
+
+    @property
+    def assigned_zone(self) -> object:
+        """Return the primary assigned zone, which can change."""
+        return self._hub.zone_by_name[self.data['assignedZones'][0]['name']]
 
 
 class GeniusIssue(GeniusObject):  # pylint: disable=too-few-public-methods

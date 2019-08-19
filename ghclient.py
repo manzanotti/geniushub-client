@@ -102,6 +102,7 @@ async def main(loop):
     hub.verbosity = args[VERBOSE]
 
     await hub.update()  # initialise: enumerate all zones, devices & issues
+    await hub.update()  # initialise: enumerate all zones, devices & issues
 
     if args[DEVICE_ID]:
         key = args[DEVICE_ID]  # a device_id is always a str, never an int
@@ -111,7 +112,7 @@ async def main(loop):
         except KeyError:
             raise KeyError("Device '%s' does not exist.", args[ZONE_ID])
 
-        print(json.dumps(device.info))
+        print(json.dumps(device.info))  # also: device.assigned_zone
 
     elif args[ZONE_ID]:
         try:  # is the zone_id is a str, or an int?
