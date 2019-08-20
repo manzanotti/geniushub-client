@@ -5,7 +5,7 @@ DEFAULT_TIMEOUT_V1 = 300
 DEFAULT_TIMEOUT_V3 = 20
 
 # see: https://docs.geniushub.co.uk/pages/viewpage.action?pageId=14221432
-HUB_SW_VERSION = {
+HUB_SW_VERSIONS = {
     "Dec 31 9999": "5.3.2+",
     "Jul 23 2019": "5.3.2",  # #          confirmed in testing
     "Jun 25 2019": "5.3.0",
@@ -108,12 +108,12 @@ IMODE_TO_MODE = {
 }
 MODE_TO_IMODE = {v: k for k, v in IMODE_TO_MODE.items()}
 
-LEVEL_TO_TEXT = {
+ISSUE_TEXT = {
     2: 'error',
     1: 'warning',
     0: 'information'
 }
-DESCRIPTION_TO_TEXT = {
+ISSUE_DESCRIPTION = {
     'manager:no_boiler_controller':
         'The hub does not have a boiler controller assigned',
     'manager:no_boiler_comms':
