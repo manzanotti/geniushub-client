@@ -13,10 +13,10 @@ import re
 import aiohttp
 
 from .const import (
-    ATTRS_DEVICE, ATTRS_ISSUE, ATTRS_ZONE, STATE_ATTRS,
-    DEFAULT_TIMEOUT_V1, DEFAULT_TIMEOUT_V3, HUB_SW_VERSION,
+    ATTRS_DEVICE, ATTRS_ZONE, STATE_ATTRS,
+    DEFAULT_TIMEOUT_V1, DEFAULT_TIMEOUT_V3, HUB_SW_VERSIONS,
     ITYPE_TO_TYPE, IMODE_TO_MODE, MODE_TO_IMODE, IDAY_TO_DAY,
-    LEVEL_TO_TEXT, DESCRIPTION_TO_TEXT,
+    ISSUE_TEXT, ISSUE_DESCRIPTION,
     ZONE_TYPES, ZONE_MODES, KIT_TYPES)
 
 logging.basicConfig()
@@ -81,9 +81,9 @@ def _version_via_zones_v3(raw_json) -> Dict:
     """Extract Version from /v3/zones JSON."""
     build_date = datetime.strptime(raw_json['data'][0]['strBuildDate'], '%b %d %Y')
 
-    for date_time_idx in HUB_SW_VERSION:
+    for date_time_idx in HUB_SW_VERSIONS:
         if datetime.strptime(date_time_idx, '%b %d %Y') <= build_date:
-            result = {"hubSoftwareVersion": HUB_SW_VERSION[date_time_idx]}
+            result = {"hubSoftwareVersion": HUB_SW_VERSIONS[date_time_idx]}
             break
     return result
 
@@ -221,8 +221,8 @@ class GeniusHub():  # pylint: disable=too-many-instance-attributes
             """Convert a v3 issues's dict/json to the v1 schema."""
             _LOGGER.debug("Found an (v3) Issue: %s)", raw_dict)
 
-            description = DESCRIPTION_TO_TEXT.get(raw_dict['id'], raw_dict['id'])
-            level = LEVEL_TO_TEXT.get(raw_dict['level'], str(raw_dict['level']))
+            description = ISSUE_DESCRIPTION.get(raw_dict['id'], raw_dict['id'])
+            level = ISSUE_TEXT.get(raw_dict['level'], str(raw_dict['level']))
 
             if '{zone_name}' in description:
                 zone_name = raw_dict['data']['location']
