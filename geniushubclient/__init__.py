@@ -722,6 +722,11 @@ class GeniusDevice(GeniusObject):  # pylint: disable=too-few-public-methods
         return result
 
     @property
+    def type(self) -> str:
+        """Return the type of the device, which can change."""
+        return self.data["type"]
+
+    @property
     def assigned_zone(self) -> object:
         """Return the primary assigned zone, which can change."""
         try:
