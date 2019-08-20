@@ -224,7 +224,7 @@ class GeniusHub():  # pylint: disable=too-many-instance-attributes
         for raw_zone in self._zones:
             key = 'id' if self.api_version == 1 else 'iID'
             try:  # does the hub already know about this zone?
-                zone = self.zone_by_id[key]
+                zone = self.zone_by_id[raw_zone[key]]
             except KeyError:
                 zone = GeniusZone(raw_zone, self)
 
