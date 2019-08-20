@@ -4,6 +4,7 @@
    """
 from datetime import datetime
 from hashlib import sha256
+import json
 from typing import Dict, Optional, List  # Any, Set, Tuple
 
 import logging
@@ -117,9 +118,9 @@ class GeniusHub():  # pylint: disable=too-many-instance-attributes
 
         self._verbose = 1
 
-        self.version = None
+        self.issues = self.version = None
         self._zones = self._devices = self._issues = None
-        self._test_json = {}
+        self._test_json = {}  # used with GeniusTestHub
 
         self.zone_objs = []
         self.zone_by_id = {}
@@ -130,8 +131,8 @@ class GeniusHub():  # pylint: disable=too-many-instance-attributes
 
         self.issue_objs = []
 
-    def __repr__(self):
-        return self.info
+    def __repr__(self) -> str:
+        return json.dumps(self.info)
 
     @property
     def verbosity(self) -> int:
@@ -214,13 +215,29 @@ class GeniusHub():  # pylint: disable=too-many-instance-attributes
         key = 'addr' if self.verbosity == 3 else 'id'
         return natural_sort([d.info for d in self.device_objs], key)
 
-    @property
-    def issues(self) -> List:
-        """Return a list of Issues known to the Hub."""
-        return [i.info for i in self.issue_objs]
-
     async def _update(self):
         """Update the Hub with its latest state data."""
+        def _convert(raw_dict) -> Dict:
+            """Convert a v3 issues's dict/json to the v1 schema."""
+            _LOGGER.debug("Found an (v3) Issue: %s)", raw_dict)
+
+            description = DESCRIPTION_TO_TEXT.get(raw_dict['id'], raw_dict['id'])
+            level = LEVEL_TO_TEXT.get(raw_dict['level'], str(raw_dict['level']))
+
+            if '{zone_name}' in description:
+                zone_name = raw_dict['data']['location']
+            if '{device_type}' in description:
+                device_type = self.device_by_id[raw_dict['data']['nodeID']].data['type']
+
+            if '{zone_name}' in description and '{device_type}' in description:
+                description = description.format(zone_name=zone_name, device_type=device_type)
+            elif '{zone_name}' in description:
+                description = description.format(zone_name=zone_name)
+            elif '{device_type}' in description:
+                description = description.format(device_type=device_type)
+
+            return {'description': description, 'level': level}
+
         for raw_zone in self._zones:
             key = 'id' if self.api_version == 1 else 'iID'
             try:  # does the hub already know about this zone?
@@ -251,7 +268,10 @@ class GeniusHub():  # pylint: disable=too-many-instance-attributes
                     zone.device_objs.append(device)
                     zone.device_by_id[device.data['id']] = device
 
-        self.issue_objs = [GeniusIssue(raw_issue, self) for raw_issue in self._issues]
+        if self.api_version == 1:
+            self.issues = self._issues
+        else:
+            self.issues = [_convert(raw_issue) for raw_issue in self._issues]
 
     async def update(self):
         """Update the Hub with its latest state data."""
@@ -304,10 +324,8 @@ class GeniusObject():  # pylint: disable=too-few-public-methods, too-many-instan
 
         self.data = self._raw = {}
 
-    def __repr__(self):
-        _LOGGER.warn("self.data = %s", self.data)
-        _LOGGER.warn("self._attrs = %s", self._attrs)
-        return {k: v for k, v in self.data.items() if k in self._attrs['summary_keys']}
+    def __repr__(self) -> str:
+        return json.dumps({k: v for k, v in self.data.items() if k in self._attrs['summary_keys']})
 
     @property
     def info(self) -> Dict:
@@ -637,35 +655,7 @@ class GeniusDevice(GeniusObject):  # pylint: disable=too-few-public-methods
     @property
     def assigned_zone(self) -> object:
         """Return the primary assigned zone, which can change."""
-        return self._hub.zone_by_name[self.data['assignedZones'][0]['name']]
-
-
-class GeniusIssue(GeniusObject):  # pylint: disable=too-few-public-methods
-    """The class for a Genius Issue."""
-
-    def __init__(self, raw_dict, hub) -> None:
-        super().__init__(hub, ATTRS_ISSUE)
-
-        self._raw = raw_dict
-        self.data = raw_dict if self._hub.api_version == 1 else self._convert(raw_dict, hub)
-
-        _LOGGER.info("Found an Issue: %s)", self.data)
-
-    def _convert(self, raw_dict, hub) -> Dict:  # pylint: disable=no-self-use
-        """Convert a v3 issues's dict/json to the v1 schema."""
-        description = DESCRIPTION_TO_TEXT.get(raw_dict['id'], raw_dict['id'])
-        level = LEVEL_TO_TEXT.get(raw_dict['level'], str(raw_dict['level']))
-
-        if '{zone_name}' in description:
-            zone_name = raw_dict['data']['location']
-        if '{device_type}' in description:
-            device_type = hub.device_by_id[raw_dict['data']['nodeID']].data['type']
-
-        if '{zone_name}' in description and '{device_type}' in description:
-            description = description.format(zone_name=zone_name, device_type=device_type)
-        elif '{zone_name}' in description:
-            description = description.format(zone_name=zone_name)
-        elif '{device_type}' in description:
-            description = description.format(device_type=device_type)
-
-        return {'description': description, 'level': level}
+        try:
+            return self._hub.zone_by_name[self.data['assignedZones'][0]['name']]
+        except KeyError:
+            return None

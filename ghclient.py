@@ -102,7 +102,7 @@ async def main(loop):
     hub.verbosity = args[VERBOSE]
 
     await hub.update()  # initialise: enumerate all zones, devices & issues
-    await hub.update()  # initialise: enumerate all zones, devices & issues
+    # ait hub.update()  # used for testing
 
     if args[DEVICE_ID]:
         key = args[DEVICE_ID]  # a device_id is always a str, never an int
@@ -110,9 +110,10 @@ async def main(loop):
         try:  # does a Device with this ID exist?
             device = hub.device_by_id[key]
         except KeyError:
-            raise KeyError("Device '%s' does not exist.", args[ZONE_ID])
+            raise KeyError("Device '{0}' does not exist (by addr).".format(args[DEVICE_ID]))
 
-        print(json.dumps(device.info))  # also: device.assigned_zone
+        print(device.info)  # detail depends upon verbosity (v=0..3)
+        # also device (v=0), device.data (v=1), device._raw (v=3), and device.assigned_zone
 
     elif args[ZONE_ID]:
         try:  # is the zone_id is a str, or an int?
@@ -126,7 +127,7 @@ async def main(loop):
         try:  # does a Zone with this ID exist?
             zone = find_zone_by_key[key]
         except KeyError:
-            raise KeyError("Zone '%s' does not exist.", args[ZONE_ID])
+            raise KeyError("Zone '{0}' does not exist (by name or ID).".format(args[ZONE_ID]))
 
         if args[MODE]:
             await zone.set_mode(args[MODE])
@@ -137,7 +138,8 @@ async def main(loop):
         elif args[ISSUES]:
             print(json.dumps(zone.issues))
         else:  # as per args[INFO]
-            print(json.dumps(zone.info))
+            print(json.dumps(zone.info))  # detail depends upon verbosity (v=0..2)
+            # also zone (v=0) zone.data (v=1) and zone._raw (v=3)
 
     else:  # as per: args[HUB_ID]
         if args[REBOOT]:
