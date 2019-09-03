@@ -62,6 +62,7 @@ KIT_SKU_TO_TEXT = {
     "DA-WRT-C": "Room Thermostat",
     "DA-WRV-B": "Radiator Valve",
     "DA-WRV-C": "Genius Valve",
+    "HO-DCR-C": "Dual Channel Receiver",
     "HO-ESW-D": "Electric Switch",
     "PH-PLG-C": "Smart Plug",
     "PH-WRS-B": "Room Sensor",

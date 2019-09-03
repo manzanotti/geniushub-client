@@ -55,6 +55,7 @@ Examples:
 """
 
 import asyncio
+import ast
 import json
 import logging
 import re
@@ -65,6 +66,8 @@ from docopt import docopt
 from geniushubclient import GeniusHub, GeniusTestHub
 
 _LOGGER = logging.getLogger(__name__)
+
+DEBUG_MODE = False
 
 
 HUB_ID = 'HUB-ID'
@@ -89,20 +92,38 @@ async def main(loop):
     args = docopt(__doc__)
     # print(args)
 
-    session = aiohttp.ClientSession()
+    session = aiohttp.ClientSession()  # test with/without
 
-    hub = GeniusHub(
-        hub_id=args[HUB_ID],
-        username=args[USERNAME],
-        password=args[PASSWORD],
-        session=session,
-        debug=False
-    )
+    # Option of providing test data (as list of Dicts, z = [{...}]), or leave both as None
+    if DEBUG_MODE:
+        with open("raw_zones.json", "r") as file:
+            z = ast.literal_eval(file.read())
+        with open("raw_devices.json", "r") as file:
+            d = ast.literal_eval(file.read())
+
+        hub = GeniusTestHub(
+            zones_json=z,
+            device_json=d,
+            session=session,
+            debug=True
+        )
+    else:
+        hub = GeniusHub(
+            hub_id=args[HUB_ID],
+            username=args[USERNAME],
+            password=args[PASSWORD],
+            session=session,
+            debug=False
+        )
 
     hub.verbosity = args[VERBOSE]
 
     await hub.update()  # initialise: enumerate all zones, devices & issues
-    # ait hub.update()  # used for testing
+    # ait hub.update()  # for testing, do twice in a row to check for no duplicates
+
+    # these can be used for debugging, above
+    # z = await hub._zones
+    # d = await hub._devices
 
     if args[DEVICE_ID]:
         key = args[DEVICE_ID]  # a device_id is always a str, never an int
@@ -145,15 +166,17 @@ async def main(loop):
         if args[REBOOT]:
             raise NotImplementedError()  # await hub.reboot()
         elif args[ZONES]:
-            print(json.dumps(hub.zones))
+            print(hub.zones)  # don't use json.dumps(hub.zones) if wanted for z = ...
         elif args[DEVICES]:
-            print(json.dumps(hub.devices))
+            print(hub.devices)  # don't use json.dumps(hub.devices) if wanted for d = ...
         elif args[ISSUES]:
-            print(json.dumps(hub.issues))
+            print(hub.issues)
         else:  # as per args[INFO]
-            print(json.dumps(hub.info))
+            print(hub.info)
+            print({'weatherData': hub.zone_by_id[0]._raw['weatherData']})
 
-    await session.close()
+    if session:
+        await session.close()
 
 
 if __name__ == '__main__':

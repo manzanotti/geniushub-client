@@ -66,7 +66,7 @@ def _devices_via_data_mgr_v3(raw_json) -> List:
                 x for x in device["childNodes"].values() if x["addr"] != "_cfg"
             ]:
                 temp = dict(channel)
-                temp["addr"] = "{}-{}".format(device["addr"], channel["addr"])
+                temp["addr"] = f"{device['addr']}-{channel['addr']}"
                 result.append(temp)
     return result
 
@@ -128,13 +128,13 @@ class GeniusHub:  # pylint: disable=too-many-instance-attributes
         if self.api_version == 1:
             self._auth = None
             self._url_base = "https://my.geniushub.co.uk/v1/"
-            self._headers = {"authorization": "Bearer " + hub_id}
+            self._headers = {"authorization": f"Bearer {hub_id}"}
             self._timeout = aiohttp.ClientTimeout(total=DEFAULT_TIMEOUT_V1)
         else:  # self.api_version == 3
             sha = sha256()
             sha.update((username + password).encode("utf-8"))
             self._auth = aiohttp.BasicAuth(login=username, password=sha.hexdigest())
-            self._url_base = "http://{}:1223/v3/".format(hub_id)
+            self._url_base = f"http://{hub_id}:1223/v3/"
             self._headers = {"Connection": "close"}
             self._timeout = aiohttp.ClientTimeout(total=DEFAULT_TIMEOUT_V3)
 
@@ -167,8 +167,7 @@ class GeniusHub:  # pylint: disable=too-many-instance-attributes
             self._verbose = value
         else:
             raise ValueError(
-                "'{}' is not valid for verbosity. "
-                "The permissible range is (0-3).".format(value)
+                f"{value} is not valid for verbosity. The permissible range is (0-3)."
             )
 
     async def request(self, method, url, data=None):
@@ -194,9 +193,6 @@ class GeniusHub:  # pylint: disable=too-many-instance-attributes
                 response = await resp.json(content_type=None)
             # await self._session.close()
 
-        # cept concurrent.futures._base.TimeoutError: ???
-        # cept aiohttp.ClientResponseError: 502, message='Bad Gateway'
-        # cept aiohttp.ClientResponseError: 401, message='Unauthorized'
         except aiohttp.ServerDisconnectedError as err:
             _LOGGER.debug(
                 "_request(): ServerDisconnectedError (msg=%s), retrying.", err
@@ -244,7 +240,7 @@ class GeniusHub:  # pylint: disable=too-many-instance-attributes
     async def _update(self):
         """Update the Hub with its latest state data."""
 
-        def _convert(raw_dict) -> Dict:
+        def _convert_issue(raw_dict) -> Dict:
             """Convert a v3 issues's dict/json to the v1 schema."""
             _LOGGER.debug("Found an (v3) Issue: %s)", raw_dict)
 
@@ -302,7 +298,7 @@ class GeniusHub:  # pylint: disable=too-many-instance-attributes
         if self.api_version == 1:
             self.issues = self._issues
         else:
-            self.issues = [_convert(raw_issue) for raw_issue in self._issues]
+            self.issues = [_convert_issue(raw_issue) for raw_issue in self._issues]
 
     async def update(self):
         """Update the Hub with its latest state data."""
@@ -332,7 +328,9 @@ class GeniusTestHub(GeniusHub):
     """The test class for a Genius Hub - uses a test file."""
 
     def __init__(self, zones_json, device_json, session=None, debug=None) -> None:
-        super().__init__("test_hub", username="user", session=session, debug=debug)
+        super().__init__(
+            "test_hub", username="test", password="xx", session=session, debug=debug
+        )
         _LOGGER.info("Using GeniusTestHub()")
 
         self._test_json["zones"] = zones_json
@@ -488,9 +486,16 @@ class GeniusZone(GeniusObject):
                             {"end": tm_last, "start": tm_next, "setpoint": sp_next}
                         )
 
-            except Exception as err:  # pylint: disable=broad-except
+            except (
+                AttributeError,
+                LookupError,
+                TypeError,
+                NameError,
+                ValueError,
+            ) as err:
                 _LOGGER.exception(
-                    "Failed to convert Timer schedule for Zone %s, " "message: %s",
+                    "Failed to convert Timer schedule for Zone %s, message: %s",
+                    "Note that the Zone's Timer schedule may not be correct.",
                     result["id"],
                     err,
                 )
@@ -522,9 +527,16 @@ class GeniusZone(GeniusObject):
                             {"end": tm_last, "start": tm_next, "setpoint": sp_next}
                         )
 
-            except Exception as err:  # pylint: disable=broad-except
+            except (
+                AttributeError,
+                LookupError,
+                TypeError,
+                UnboundLocalError,
+                ValueError,
+            ) as err:
                 _LOGGER.exception(
-                    "Failed to convert Footprint schedule for Zone %s, " "message: %s",
+                    "Failed to convert Footprint schedule for Zone %s, message: %s. ",
+                    "Note that the Zone's Footprint schedule may not be correct.",
                     result["id"],
                     err,
                 )
@@ -567,22 +579,20 @@ class GeniusZone(GeniusObject):
             mode_str = mode
             mode = MODE_TO_IMODE[mode_str]
         else:
-            raise TypeError("Zone.set_mode(): mode='{}' isn't valid.".format(mode))
+            raise TypeError(f"Zone.set_mode(): mode='{mode}' isn't valid.")
 
         _LOGGER.debug(
             "Zone(%s).set_mode(mode=%s, mode_str='%s')...", self.id, mode, mode_str
         )
 
         if self._hub.api_version == 1:
-            url = "zones/{}/mode"  # v1 API uses strings
-            resp = await self._hub.request("PUT", url.format(self.id), data=mode_str)
+            url = f"zones/{self.id}/mode"  # v1 API uses strings
+            resp = await self._hub.request("PUT", url, data=mode_str)
         else:  # self._hub.api_version == 1
             url = (
-                "zone/{}"
+                f"zone/{self.id}"
             )  # v3 API uses dicts  # TODO: check: is it PUT(POST?) vs PATCH
-            resp = await self._hub.request(
-                "PATCH", url.format(self.id), data={"iMode": mode}
-            )
+            resp = await self._hub.request("PATCH", url, data={"iMode": mode})
 
         if resp:  # for v1, resp = None?
             resp = resp["data"] if resp["error"] == 0 else resp
@@ -606,17 +616,17 @@ class GeniusZone(GeniusObject):
         )
 
         if self._hub.api_version == 1:
-            url = "zones/{}/override"
+            url = f"zones/{self.id}/override"
             data = {"setpoint": setpoint, "duration": duration}
-            resp = await self._hub.request("POST", url.format(self.id), data=data)
+            resp = await self._hub.request("POST", url, data=data)
         else:
-            url = "zone/{}"
+            url = f"zone/{self.id}"
             data = {
                 "iMode": ZONE_MODES.Boost,
                 "fBoostSP": setpoint,
                 "iBoostTimeRemaining": duration,
             }
-            resp = await self._hub.request("PATCH", url.format(self.id), data=data)
+            resp = await self._hub.request("PATCH", url, data=data)
 
         if resp:  # for v1, resp = None?
             resp = resp["data"] if resp["error"] == 0 else resp
@@ -648,9 +658,7 @@ class GeniusDevice(GeniusObject):  # pylint: disable=too-few-public-methods
                 elif "SwitchAllMode" in node:
                     fingerprint = "Smart Plug"
                 elif node["SwitchBinary"]["path"].count("/") == 3:
-                    fingerprint = "Dual Channel Receiver - Channel {}".format(
-                        device["id"][-1]
-                    )
+                    fingerprint = f"Dual Channel Receiver - Channel {device['id'][-1]}"
                 else:
                     fingerprint = "Dual Channel Receiver"
 
@@ -667,21 +675,23 @@ class GeniusDevice(GeniusObject):  # pylint: disable=too-few-public-methods
                 fingerprint = "Room Thermostat"
 
             else:  # ... no/invalid device fingerprint!
-                if device["_type"]:
+                if device["_type"] or device["_sku"]:
                     _LOGGER.warning(
-                        "Device %s, '%s': has no fingerprint, so has no type.",
+                        "Device %s (%s, '%s'): has no assigned type because it has no fingerprint!",
                         device["id"],
+                        device["_sku"],
                         device["_type"],
                     )
                 else:
                     _LOGGER.error(
-                        "Device %s: has no type, and no fingerprint!", device["id"]
+                        "Device %s: has no assigned type because it has no fingerprint!",
+                        device["id"],
                     )
                 return None
 
             if not device["_type"]:
                 _LOGGER.info(
-                    "Device %s, '%s': typed only by its fingerprint!",
+                    "Device %s '%s': has an assigned type only by its fingerprint.",
                     device["id"],
                     fingerprint,
                 )
@@ -689,11 +699,13 @@ class GeniusDevice(GeniusObject):  # pylint: disable=too-few-public-methods
 
             elif device["_type"][:21] != fingerprint:  # "Dual Channel Receiver"
                 _LOGGER.error(
-                    "Device %s, '%s': doesn't match its fingerprint: '%s'!",
+                    "Device %s, '%s': declared type (%s, '%s') doesn't match its fingerprint!",
                     device["id"],
-                    device["_type"],
                     fingerprint,
+                    device["_sku"],
+                    device["_type"],
                 )
+
             return device["_type"]
 
         result = {}
