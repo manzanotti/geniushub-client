@@ -58,7 +58,6 @@ import asyncio
 import ast
 import json
 import logging
-import re
 
 import aiohttp
 from docopt import docopt
@@ -70,21 +69,22 @@ _LOGGER = logging.getLogger(__name__)
 DEBUG_MODE = False
 
 
-HUB_ID = 'HUB-ID'
-ZONE_ID = '--zone'
-DEVICE_ID = '--device'
-USERNAME = '--user'
-PASSWORD = '--pass'
-MODE = '--mode'
-SECS = '--secs'
-TEMP = '--temp'
+HUB_ID = "HUB-ID"
+ZONE_ID = "--zone"
+DEVICE_ID = "--device"
+USERNAME = "--user"
+PASSWORD = "--pass"
+MODE = "--mode"
+SECS = "--secs"
+TEMP = "--temp"
 
-DEVICES = 'devices'
-ISSUES = 'issues'
-REBOOT = 'reboot'
-ZONES = 'zones'
+DEVICES = "devices"
+ISSUES = "issues"
+REBOOT = "reboot"
+ZONES = "zones"
 
-VERBOSE = '-v'
+VERBOSE = "-v"
+
 
 async def main(loop):
     """Return the JSON as requested."""
@@ -94,26 +94,21 @@ async def main(loop):
 
     session = aiohttp.ClientSession()  # test with/without
 
-    # Option of providing test data (as list of Dicts, z = [{...}]), or leave both as None
+    # Option of providing test data (as list of Dicts), or leave both as None
     if DEBUG_MODE:
         with open("raw_zones.json", "r") as file:
             z = ast.literal_eval(file.read())
         with open("raw_devices.json", "r") as file:
             d = ast.literal_eval(file.read())
 
-        hub = GeniusTestHub(
-            zones_json=z,
-            device_json=d,
-            session=session,
-            debug=True
-        )
+        hub = GeniusTestHub(zones_json=z, device_json=d, session=session, debug=True)
     else:
         hub = GeniusHub(
             hub_id=args[HUB_ID],
             username=args[USERNAME],
             password=args[PASSWORD],
             session=session,
-            debug=False
+            debug=False,
         )
 
     hub.verbosity = args[VERBOSE]
@@ -121,9 +116,9 @@ async def main(loop):
     await hub.update()  # initialise: enumerate all zones, devices & issues
     # ait hub.update()  # for testing, do twice in a row to check for no duplicates
 
-    # these can be used for debugging, above
-    # z = await hub._zones
-    # d = await hub._devices
+    # these can be used for debugging, above - save the files
+    # z = await hub._zones  # raw_zones.json
+    # d = await hub._devices  # raw_devices.json
 
     if args[DEVICE_ID]:
         key = args[DEVICE_ID]  # a device_id is always a str, never an int
@@ -131,7 +126,7 @@ async def main(loop):
         try:  # does a Device with this ID exist?
             device = hub.device_by_id[key]
         except KeyError:
-            raise KeyError("Device '{0}' does not exist (by addr).".format(args[DEVICE_ID]))
+            raise KeyError(f"Device '{args[DEVICE_ID]}' does not exist (by addr).")
 
         print(device.info)  # detail depends upon verbosity (v=0..3)
         # also device (v=0), device.data (v=1), device._raw (v=3), and device.assigned_zone
@@ -148,7 +143,7 @@ async def main(loop):
         try:  # does a Zone with this ID exist?
             zone = find_zone_by_key[key]
         except KeyError:
-            raise KeyError("Zone '{0}' does not exist (by name or ID).".format(args[ZONE_ID]))
+            raise KeyError(f"Zone '{args[ZONE_ID]}' does not exist (by name or ID).")
 
         if args[MODE]:
             await zone.set_mode(args[MODE])
@@ -166,20 +161,20 @@ async def main(loop):
         if args[REBOOT]:
             raise NotImplementedError()  # await hub.reboot()
         elif args[ZONES]:
-            print(hub.zones)  # don't use json.dumps(hub.zones) if wanted for z = ...
+            print(hub.zones)  # or: print(json.dumps(hub.zones))
         elif args[DEVICES]:
-            print(hub.devices)  # don't use json.dumps(hub.devices) if wanted for d = ...
+            print(hub.devices)  # or: print(json.dumps(hub.devices))
         elif args[ISSUES]:
             print(hub.issues)
         else:  # as per args[INFO]
             print(hub.info)
-            print({'weatherData': hub.zone_by_id[0]._raw['weatherData']})
+            print({"weatherData": hub.zone_by_id[0]._raw["weatherData"]})
 
     if session:
         await session.close()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     loop = asyncio.get_event_loop()
     loop.run_until_complete(main(loop))
     loop.close()
