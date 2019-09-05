@@ -165,7 +165,7 @@ async def main(loop):
         elif args[DEVICES]:
             print(json.dumps(hub.devices))
         elif args[ISSUES]:
-            print(hub.issues)
+            print(json.dumps(hub.issues))
         else:  # as per args[INFO]
             print(hub.info)
             print({"weatherData": hub.zone_by_id[0]._raw["weatherData"]})
