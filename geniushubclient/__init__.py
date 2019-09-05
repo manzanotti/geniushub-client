@@ -673,23 +673,17 @@ class GeniusDevice(GeniusObject):  # pylint: disable=too-few-public-methods
                     fp = "Dual Channel Receiver"
 
             if not device["_type"] or fp != device["_type"][:21]:
-                msg = f"Device {device['id']} (SKU={device['_sku']}): assigned type"
+                msg = f"Device {device['id']} (SKU={device['_sku']}): assigned type "
 
                 if fp is None:  # no/invalid device fingerprint!
-                    _LOGGER.warning(
-                        "%s ('%s') ignored as no fingerprint!", msg, device["_type"]
-                    )
-
+                    msg += f"('{device['_type']}') is ignored as no fingerprint!"
+                    _LOGGER.warning(msg)
                 elif not device["_type"]:
-                    _LOGGER.info("%s only via its fingerprint ('%s').", msg, fp)
-
+                    msg += f"only via its fingerprint ('{fp}')."
+                    _LOGGER.debug(msg)
                 else:
-                    _LOGGER.error(
-                        "%s ('%s') doesn't match fingerprint ('%s')!",
-                        msg,
-                        device["_type"],
-                        fp,
-                    )
+                    msg += f"('{device['_type']}') doesn't match fingerprint ('{fp}')!"
+                    _LOGGER.error(msg)
                     fp = device["_type"]  # prefer type over fingerprint
 
             return fp
