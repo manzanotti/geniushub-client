@@ -652,61 +652,47 @@ class GeniusDevice(GeniusObject):  # pylint: disable=too-few-public-methods
 
         def _check_fingerprint(node, device) -> Optional[str]:
             """Check the device type against its 'fingerprint'."""
-            if "SwitchBinary" in node:
-                if "TEMPERATURE" in node:
-                    fingerprint = "Electric Switch"
-                elif "SwitchAllMode" in node:
-                    fingerprint = "Smart Plug"
+            fp = None
+
+            if "Battery" in node and "SwitchBinary" not in node:
+                if "Motion" in node:  # or 'Tamper': PH-WRS-B
+                    fp = "Room Sensor"
+                elif "setback" in node:  # DA-WRV-C (else DA-WRV-B)
+                    fp = "Genius Valve" if "TEMPERATURE" in node else "Radiator Valve"
+                else:  # DA-WRT-C (else HO-WRT-B)
+                    fp = "Room Thermostat" if "Indicator" in node else "Room Thermostat"
+
+            elif "SwitchBinary" in node and "Battery" not in node:  # TODO: HO-SCR-C ?
+                if "SwitchAllMode" in node:  # PH-PLG-C
+                    fp = "Smart Plug"
+                elif "TEMPERATURE" in node:  # HO-ESW-D
+                    fp = "Electric Switch"
                 elif node["SwitchBinary"]["path"].count("/") == 3:
-                    fingerprint = f"Dual Channel Receiver - Channel {device['id'][-1]}"
-                else:
-                    fingerprint = "Dual Channel Receiver"
+                    fp = f"Dual Channel Receiver - Channel {device['id'][-1]}"
+                else:  # HO-DCR-C
+                    fp = "Dual Channel Receiver"
 
-            elif "setback" in node:
-                if "TEMPERATURE" in node:
-                    fingerprint = "Genius Valve"
-                else:
-                    fingerprint = "Radiator Valve"
+            if not device["_type"] or fp != device["_type"][:21]:
+                msg = f"Device {device['id']} (SKU={device['_sku']}): assigned type"
 
-            elif "Motion" in node:
-                fingerprint = "Room Sensor"
-
-            elif "Indicator" in node:
-                fingerprint = "Room Thermostat"
-
-            else:  # ... no/invalid device fingerprint!
-                if device["_type"] or device["_sku"]:
+                if fp is None:  # no/invalid device fingerprint!
                     _LOGGER.warning(
-                        "Device %s (%s, '%s'): has no assigned type because it has no fingerprint!",
-                        device["id"],
-                        device["_sku"],
-                        device["_type"],
+                        "%s ('%s') ignored as no fingerprint!", msg, device["_type"]
                     )
+
+                elif not device["_type"]:
+                    _LOGGER.info("%s only via its fingerprint ('%s').", msg, fp)
+
                 else:
                     _LOGGER.error(
-                        "Device %s: has no assigned type because it has no fingerprint!",
-                        device["id"],
+                        "%s ('%s') doesn't match fingerprint ('%s')!",
+                        msg,
+                        device["_type"],
+                        fp,
                     )
-                return None
+                    fp = device["_type"]  # prefer type over fingerprint
 
-            if not device["_type"]:
-                _LOGGER.info(
-                    "Device %s '%s': has an assigned type only by its fingerprint.",
-                    device["id"],
-                    fingerprint,
-                )
-                return fingerprint
-
-            elif device["_type"][:21] != fingerprint:  # "Dual Channel Receiver"
-                _LOGGER.error(
-                    "Device %s, '%s': declared type (%s, '%s') doesn't match its fingerprint!",
-                    device["id"],
-                    fingerprint,
-                    device["_sku"],
-                    device["_type"],
-                )
-
-            return device["_type"]
+            return fp
 
         result = {}
 

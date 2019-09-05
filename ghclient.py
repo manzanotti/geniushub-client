@@ -96,10 +96,10 @@ async def main(loop):
 
     # Option of providing test data (as list of Dicts), or leave both as None
     if DEBUG_MODE:
-        with open("raw_zones.json", "r") as file:
-            z = ast.literal_eval(file.read())
-        with open("raw_devices.json", "r") as file:
-            d = ast.literal_eval(file.read())
+        with open("raw_zones.json", "r") as fh:
+            z = ast.literal_eval(fh.read())
+        with open("raw_devices.json", "r") as fh:
+            d = ast.literal_eval(fh.read())
 
         hub = GeniusTestHub(zones_json=z, device_json=d, session=session, debug=True)
     else:
@@ -161,9 +161,9 @@ async def main(loop):
         if args[REBOOT]:
             raise NotImplementedError()  # await hub.reboot()
         elif args[ZONES]:
-            print(hub.zones)  # or: print(json.dumps(hub.zones))
+            print(json.dumps(hub.zones))
         elif args[DEVICES]:
-            print(hub.devices)  # or: print(json.dumps(hub.devices))
+            print(json.dumps(hub.devices))
         elif args[ISSUES]:
             print(hub.issues)
         else:  # as per args[INFO]

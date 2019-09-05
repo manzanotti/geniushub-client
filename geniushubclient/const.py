@@ -59,14 +59,16 @@ KIT_TYPES = SimpleNamespace(
     Luminance=512,
 )
 KIT_SKU_TO_TEXT = {
-    "DA-WRT-C": "Room Thermostat",
-    "DA-WRV-B": "Radiator Valve",
-    "DA-WRV-C": "Genius Valve",
     "HO-DCR-C": "Dual Channel Receiver",
+    "HO-SCR-C": "Single Channel Receiver",
     "HO-ESW-D": "Electric Switch",
     "PH-PLG-C": "Smart Plug",
     "PH-WRS-B": "Room Sensor",
-}
+    "DA-WRT-C": "Room Thermostat",
+    "HO-WRT-B": "Room Thermostat",
+    "DA-WRV-B": "Radiator Valve",
+    "DA-WRV-C": "Genius Valve",
+}  # DA=Danfoss; xCR=Channel Receiver, ESW=Elec Switch, WRx=Wireless Radio Sensor/Thermostat/Valve
 ZONE_FLAGS = SimpleNamespace(
     Frost=1,
     Timer=2,
@@ -154,7 +156,7 @@ STATE_ATTRS = {
     "HEATING_1": "setTemperature",  # #      VALV/ROMT, RADR
     "TEMPERATURE": "measuredTemperature",  # VALV/ROMT, RADR, ROMS
     "LUMINANCE": "luminance",  # #                            ROMS
-    "Motion": "occupancyTrigger",  # #                         ROMS
+    "Motion": "occupancyTrigger",  # #                        ROMS
 }
 
 # This is from Vendor's bower.js
