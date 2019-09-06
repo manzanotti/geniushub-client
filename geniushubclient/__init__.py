@@ -420,10 +420,11 @@ class GeniusZone(GeniusObject):
 
             occupancyIcon() = p && u && d && !s ? a : c > 0 ? o : r (NEW version)
                               u && l && d && !o ? n : c > 0 ? r : a (OLD version)
+
             Hint: the following returns "XX": true ? "XX" : "YY"
         """
 
-        def is_occupied_v1(node):  # pylint: disable=unused-variable
+        def is_occupied_v1(node):  # web app v5.2.4  # pylint: disable=unused-variable
             # pylint: disable=invalid-name
             u = node["iMode"] == ZONE_MODES.Footprint
             d = node["zoneReactive"]["bTriggerOn"]
@@ -432,14 +433,14 @@ class GeniusZone(GeniusObject):
 
             return True if u and d and (not o) else (True if c > 0 else False)
 
-        def is_occupied_v2(node):
+        def is_occupied_v2(node):  # web app v5.30
             # pylint: disable=invalid-name
             A = O = True  # noqa: E741
             R = False
 
             l = True  # noqa: E741                                               ???
-            p = int(node["iMode"]) == ZONE_MODES.Footprint | l  # #              Checked
-            u = int(node["iFlagExpectedKit"]) & KIT_TYPES.PIR  # #               Checked
+            p = node["iMode"] == ZONE_MODES.Footprint | l  # #                   Checked
+            u = node["iFlagExpectedKit"] & KIT_TYPES.PIR  # #                    Checked
             d = node["trigger"]["reactive"] & node["trigger"]["output"]  # #     Checked
             c = int(node["zoneReactive"]["fActivityLevel"])  # #                 Checked
             s = node["objFootprint"]["bIsNight"]  # #                            ???
