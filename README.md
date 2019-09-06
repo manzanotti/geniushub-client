@@ -105,7 +105,8 @@ print(hub.zones)
 client.verbosity = 1  # default, same as v1/zones, v1/devices, v1/issues
 print(hub.devices)
 
-print(hub.zone_by_id[3].temperature)
+print(hub.zone_by_id[3].data["temperature"])
+print(hub.device_by_id["2-2"].data)
 
 await session.close()
 ```
