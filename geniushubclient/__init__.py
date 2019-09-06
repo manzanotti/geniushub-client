@@ -241,7 +241,7 @@ class GeniusHub:  # pylint: disable=too-many-instance-attributes
         """Update the Hub with its latest state data."""
 
         def _convert_issue(raw_dict) -> Dict:
-            """Convert a v3 issues's dict/json to the v1 schema."""
+            """Convert a issues's v3 JSON to the v1 schema."""
             _LOGGER.debug("Found an (v3) Issue: %s)", raw_dict)
 
             description = ISSUE_DESCRIPTION.get(raw_dict["id"], raw_dict["id"])
@@ -393,7 +393,7 @@ class GeniusZone(GeniusObject):
         self.device_by_id = {}
 
     def _convert(self, raw_dict) -> Dict:  # pylint: disable=no-self-use
-        """Convert a v3 zone's dict/json to the v1 schema."""
+        """Convert a zone's v3 JSON to the v1 schema."""
         result = {}
         result["id"] = raw_dict["iID"]
         result["name"] = raw_dict["strName"]
@@ -645,10 +645,7 @@ class GeniusDevice(GeniusObject):  # pylint: disable=too-few-public-methods
         self.id = self.data["id"]  # pylint: disable=invalid-name
 
     def _convert(self, raw_dict) -> Dict:  # pylint: disable=no-self-use
-        """Convert a v3 device's dict/json to the v1 schema.
-
-        Sets id, type, assignedZones and state.
-        """
+        """Convert a device's v3 JSON to the v1 schema."""
 
         def _check_fingerprint(node, device) -> Optional[str]:
             """Check the device type against its 'fingerprint'."""
@@ -683,7 +680,7 @@ class GeniusDevice(GeniusObject):  # pylint: disable=too-few-public-methods
                     _LOGGER.debug(msg)
                 else:
                     msg += f"('{device['_type']}') doesn't match fingerprint ('{fp}')!"
-                    _LOGGER.error(msg)
+                    _LOGGER.warning(msg)
                     fp = device["_type"]  # prefer type over fingerprint
 
             return fp
