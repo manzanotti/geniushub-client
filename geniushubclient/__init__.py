@@ -494,7 +494,7 @@ class GeniusZone(GeniusObject):
                 ValueError,
             ) as err:
                 _LOGGER.exception(
-                    "Failed to convert Timer schedule for Zone %s, message: %s",
+                    "Failed to convert Timer schedule for Zone %s, message: %s"
                     "Note that the Zone's Timer schedule may not be correct.",
                     result["id"],
                     err,
@@ -535,7 +535,7 @@ class GeniusZone(GeniusObject):
                 ValueError,
             ) as err:
                 _LOGGER.exception(
-                    "Failed to convert Footprint schedule for Zone %s, message: %s. ",
+                    "Failed to convert Footprint schedule for Zone %s, message: %s. "
                     "Note that the Zone's Footprint schedule may not be correct.",
                     result["id"],
                     err,
@@ -649,6 +649,7 @@ class GeniusDevice(GeniusObject):  # pylint: disable=too-few-public-methods
 
         def _check_fingerprint(node, device) -> Optional[str]:
             """Check the device type against its 'fingerprint'."""
+            # pylint: disable=invalid-name
             fp = None
 
             if "Battery" in node and "SwitchBinary" not in node:

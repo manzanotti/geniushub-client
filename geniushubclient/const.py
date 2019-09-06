@@ -111,14 +111,14 @@ ISSUE_DESCRIPTION = {
     "manager:no_boiler_controller": "The hub does not have a boiler controller assigned",
     "manager:no_boiler_comms": "The hub has lost communication with the boiler controller",
     "manager:no_temp": "The hub does not have a valid temperature",
-    "manager:weather": "Unable to fetch the weather data",  # checked/confirmed
+    "manager:weather": "Unable to fetch the weather data",  # confirmed
     "manager:weather_data": "Weather data -",
     "zone:using_weather_temp": "{zone_name} is currently using the outside temperature",
     "zone:using_assumed_temp": "{zone_name} is currently using the assumed temperature",
-    "zone:tpi_no_temp": "{zone_name} currently has no valid temperature",  # checked/confirmed
+    "zone:tpi_no_temp": "{zone_name} currently has no valid temperature",  # confirmed
     "node:no_comms": "The {device_type} has lost communication with the Hub",
-    "node:not_seen": "The {device_type} in {zone_name} can not been found by the Hub",  # checked/confirmed
-    "node:low_battery": "The battery for the {device_type} in {zone_name} is dead and needs to be replaced",  # checked/confirmed
+    "node:not_seen": "The {device_type} in {zone_name} can not been found by the Hub",  # confirmed
+    "node:low_battery": "The battery for the {device_type} in {zone_name} is dead and needs to be replaced",  # confirmed
     "node:warn_battery": "The battery for the {device_type} is low",
 }
 
