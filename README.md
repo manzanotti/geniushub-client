@@ -17,6 +17,14 @@ Current limitations & to-dos include:
  - schedules are read-only
  - when using the v3 API, zones sometimes have the wrong value for `occupied`
 
+ The library will return v1 API responses wherever possible, there are two caveats to this:
+  1. the only code available to reverse-engineer is from the web app
+  2. the Web app does not correlate completely with the v1 API (e.g. issue messages, occupied state)
+
+Thus, always check your output against the corresponding v1 API response rather than the web app.
+
+It has no awareness of a Single Channel Receiver (HO-SCR-C, I don't have one to test).
+
 ## Installation
 Either clone this repository and run `python setup.py install`, or install from pip using `pip install geniushub-client`.
 
@@ -35,7 +43,7 @@ Option 1: **hub token** only:
 Option 2: hub **hostname/address** with **user credentials**:
   - requires your `username` & `password`, as used with https://www.geniushub.co.uk/app
   - uses the v3 API - results are WIP and may not be what you expect
-  - interrogates the hub directly (so is faster)
+  - interrogates the hub directly (so is faster), via port :1223
 
 ```bash
 HUB_TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsInZlc..."
@@ -50,13 +58,13 @@ python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} zones -v
 
 You can compare any output to the 'official' API (v1 response):
 ```bash
-curl -X GET https://my.geniushub.co.uk/v1/zones -H "authorization: Bearer ${HUB_TOKEN}"
-python ghclient.py ${HUB_TOKEN} zones -v
+curl -H "authorization: Bearer ${HUB_TOKEN}" -X GET https://my.geniushub.co.uk/v1/zones/summary
+python ghclient.py ${HUB_TOKEN} zones
 
-curl -X GET https://my.geniushub.co.uk/v1/devices/summary -H "authorization: Bearer ${HUB_TOKEN}"
-python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} devices
+curl -H "authorization: Bearer ${HUB_TOKEN}" -X GET https://my.geniushub.co.uk/v1/devices
+python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} devices -v
 
-curl -X GET https://my.geniushub.co.uk/v1/issues -H "authorization: Bearer ${HUB_TOKEN}"
+curl -H "authorization: Bearer ${HUB_TOKEN}" -X GET https://my.geniushub.co.uk/v1/issues
 python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} issues
 ```
 
@@ -81,8 +89,8 @@ curl --user ${USERNAME}:${HASH} -X GET http://${HUB_ADDRESS}:1223/v3/zones
 
 ## Advanced Features
  When used as a library, there is the option to utilize the referencing module's own `aiohttp.ClientSession()` (recommended).
- 
- Here is an example, but see **ghclient.py** for a definitive version:
+
+ Here is an example, but see **ghclient.py** for a more complete example:
  ```python
 import asyncio
 import aiohttp
@@ -115,9 +123,10 @@ await session.close()
 QA includes comparing JSON from **cURL** with output from this app using **diff**, for example:
 ```bash
 (venv) root@hostname:~/$ curl -X GET https://my.geniushub.co.uk/v1/zones -H "authorization: Bearer ${HUB_TOKEN}" | \
-    python -c "import sys, json; print(json.load(sys.stdin))" > a.out
-    
-(venv) root@hostname:~/$ python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} zones -v > b.out
+    python -c "import sys, json; print(json.dumps(json.load(sys.stdin, parse_float=lambda x: int(float(x))), indent=4, sort_keys=True))" > a.out
+
+(venv) root@hostname:~/$ python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} zones -v | \
+    python -c "import sys, json; print(json.dumps(json.load(sys.stdin, parse_float=lambda x: int(float(x))), indent=4, sort_keys=True))" > b.out
 
 (venv) root@hostname:~/$ diff a.out b.out
 ```

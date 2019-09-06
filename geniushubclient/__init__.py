@@ -107,8 +107,7 @@ class GeniusHub:  # pylint: disable=too-many-instance-attributes
             _LOGGER.debug("Debug mode is explicitly enabled.")
         else:
             _LOGGER.debug(
-                "Debug mode is not explicitly enabled "
-                "(but may be enabled elsewhere)."
+                "Debug mode is not explicitly enabled (but may be enabled elsewhere)."
             )
 
         self._session = session if session else aiohttp.ClientSession()
@@ -156,7 +155,7 @@ class GeniusHub:  # pylint: disable=too-many-instance-attributes
             self._verbose = value
         else:
             raise ValueError(
-                f"{value} is not valid for verbosity. The permissible range is (0-3)."
+                f"{value} is not valid for verbosity, the permissible range is (0-3)."
             )
 
     async def request(self, method, url, data=None):
@@ -403,33 +402,50 @@ class GeniusZone(GeniusObject):
         # pylint: disable=pointless-string-statement
         """Occupancy vs Activity (code from ap.js, search for occupancyIcon).
 
-            The occupancy symbol is affected by the mode of the zone:
-                Greyed out: no occupancy detected
-                Hollow icon: occupancy detected
-            In Footprint Mode:
-                Solid icon: occupancy detected; sufficient to call for heat
+            The occupancy symbol is affected by the mode/state of the zone:
+                r = Greyed out:  occupancy not detected
+                o = Hollow icon: occupancy detected
+                a = Solid icon:  occupancy sufficient to call for heat (iff FP mode)
 
-            l = parseInt(i.iFlagExpectedKit) & e.equipmentTypes.Kit_PIR          # has a PIR
-            u = parseInt(i.iMode) === e.zoneModes.Mode_Footprint                 # in Footprint mode
-            d = null != (s=i.zoneReactive) ? s.bTriggerOn: void 0                # ???
-            c = parseInt(i.iActivity) || 0                                       # ???
-            o = t.isInFootprintNightMode(i)                                      # night time
+            l = null != i.settings.experimentalFeatures && i.settings.experimentalFeatures.timerPlus,
+            p = parseInt(n.iMode) === e.zoneModes.Mode_Footprint || l,
+            u = parseInt(n.iFlagExpectedKit) & e.equipmentTypes.Kit_PIR,         # has a PIR
+            d = n.trigger.reactive && n.trigger.output,                          # in Footprint mode?
+            c = parseInt(n.zoneReactive.fActivityLevel) || 0,
+            s = t.isInFootprintNightMode(n),                                     # night time
 
-            u && l && d && !o ? n : c > 0 ? r : a
+            a = "<i class='icon hg-icon-full-man occupancy   active' data-clickable='true'></i>",
+            o = "<i class='icon hg-icon-hollow-man occupancy active' data-clickable='true'></i>",
+            r = "<i class='icon hg-icon-full-man occupancy'          data-clickable='false'></i>",
 
-            n = "<i class='icon hg-icon-full-man   occupancy active' data-clickable='true'></i>"
-            r = "<i class='icon hg-icon-hollow-man occupancy active' data-clickable='true'></i>"
-            a = "<i class='icon hg-icon-full-man   occupancy'        data-clickable='false'></i>"
+            occupancyIcon() = p && u && d && !s ? a : c > 0 ? o : r
         """
-        if raw_dict["iFlagExpectedKit"] & KIT_TYPES.PIR:
+
+        def is_occupied_v1(node):
             # pylint: disable=invalid-name
-            u = raw_dict["iMode"] == ZONE_MODES.Footprint
-            d = raw_dict["zoneReactive"]["bTriggerOn"]
-            c = raw_dict["iActivity"] or 0
-            o = raw_dict["objFootprint"]["bIsNight"]
-            result["occupied"] = (
-                True if u and d and (not o) else True if c > 0 else False
-            )
+            u = node["iMode"] == ZONE_MODES.Footprint
+            d = node["zoneReactive"]["bTriggerOn"]
+            c = node["iActivity"] or 0
+            o = node["objFootprint"]["bIsNight"]
+
+            return True if u and d and (not o) else True if c > 0 else False
+
+        def is_occupied_v2(node):
+            # pylint: disable=invalid-name
+            A = O = True  # noqa: E741
+            R = False
+
+            l = True  # noqa: E741                                               ???
+            p = int(node["iMode"]) == ZONE_MODES.Footprint | l  # #              Checked
+            u = int(node["iFlagExpectedKit"]) & KIT_TYPES.PIR  # #               Checked
+            d = node["trigger"]["reactive"] & node["trigger"]["output"]  # #     Checked
+            c = int(node["zoneReactive"]["fActivityLevel"])  # #                 Checked
+            s = node["objFootprint"]["bIsNight"]  # #                            ???
+
+            return A if p and u and d and (not s) else O if c > 0 else R
+
+        if raw_dict["iFlagExpectedKit"] & KIT_TYPES.PIR:
+            result["occupied"] = is_occupied_v2(raw_dict)
 
         if raw_dict["iType"] in [
             ZONE_TYPES.OnOffTimer,
