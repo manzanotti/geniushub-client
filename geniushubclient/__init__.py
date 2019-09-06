@@ -71,17 +71,6 @@ def _devices_via_data_mgr_v3(raw_json) -> List:
     return result
 
 
-def _devices_via_zones_v3(raw_json) -> List:
-    """Extract Devices from /v3/zones JSON - ** unsued/stale code **."""
-    result = []
-    for zone in raw_json["data"]:
-        for device in [
-            x for x in zone["nodes"].values() if x["addr"] not in ["WeatherData"]
-        ]:  # ['1', 'WeatherData']
-            result.append(device)
-    return result
-
-
 def _issues_via_zones_v3(raw_json) -> List:
     """Extract Issues from /v3/zones JSON."""
     result = []
