@@ -59,13 +59,16 @@ KIT_TYPES = SimpleNamespace(
     Luminance=512,
 )
 KIT_SKU_TO_TEXT = {
-    "DA-WRT-C": "Room Thermostat",
-    "DA-WRV-B": "Radiator Valve",
-    "DA-WRV-C": "Genius Valve",
+    "HO-DCR-C": "Dual Channel Receiver",
+    "HO-SCR-C": "Single Channel Receiver",
     "HO-ESW-D": "Electric Switch",
     "PH-PLG-C": "Smart Plug",
     "PH-WRS-B": "Room Sensor",
-}
+    "DA-WRT-C": "Room Thermostat",
+    "HO-WRT-B": "Room Thermostat",
+    "DA-WRV-B": "Radiator Valve",
+    "DA-WRV-C": "Genius Valve",
+}  # DA=Danfoss; xCR=Channel Receiver, ESW=Elec Switch, WRx=Wireless Radio Sensor/Thermostat/Valve
 ZONE_FLAGS = SimpleNamespace(
     Frost=1,
     Timer=2,
@@ -108,14 +111,14 @@ ISSUE_DESCRIPTION = {
     "manager:no_boiler_controller": "The hub does not have a boiler controller assigned",
     "manager:no_boiler_comms": "The hub has lost communication with the boiler controller",
     "manager:no_temp": "The hub does not have a valid temperature",
-    "manager:weather": "Unable to fetch the weather data",  # checked/confirmed
+    "manager:weather": "Unable to fetch the weather data",  # confirmed
     "manager:weather_data": "Weather data -",
     "zone:using_weather_temp": "{zone_name} is currently using the outside temperature",
     "zone:using_assumed_temp": "{zone_name} is currently using the assumed temperature",
-    "zone:tpi_no_temp": "{zone_name} currently has no valid temperature",  # checked/confirmed
+    "zone:tpi_no_temp": "{zone_name} currently has no valid temperature",  # confirmed
     "node:no_comms": "The {device_type} has lost communication with the Hub",
-    "node:not_seen": "The {device_type} in {zone_name} can not been found by the Hub",  # checked/confirmed
-    "node:low_battery": "The battery for the {device_type} in {zone_name} is dead and needs to be replaced",  # checked/confirmed
+    "node:not_seen": "The {device_type} in {zone_name} can not been found by the Hub",  # confirmed
+    "node:low_battery": "The battery for the {device_type} in {zone_name} is dead and needs to be replaced",  # confirmed
     "node:warn_battery": "The battery for the {device_type} is low",
 }
 
@@ -153,7 +156,7 @@ STATE_ATTRS = {
     "HEATING_1": "setTemperature",  # #      VALV/ROMT, RADR
     "TEMPERATURE": "measuredTemperature",  # VALV/ROMT, RADR, ROMS
     "LUMINANCE": "luminance",  # #                            ROMS
-    "Motion": "occupancyTrigger",  # #                         ROMS
+    "Motion": "occupancyTrigger",  # #                        ROMS
 }
 
 # This is from Vendor's bower.js

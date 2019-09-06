@@ -55,9 +55,9 @@ Examples:
 """
 
 import asyncio
+import ast
 import json
 import logging
-import re
 
 import aiohttp
 from docopt import docopt
@@ -66,22 +66,25 @@ from geniushubclient import GeniusHub, GeniusTestHub
 
 _LOGGER = logging.getLogger(__name__)
 
+DEBUG_MODE = False
 
-HUB_ID = 'HUB-ID'
-ZONE_ID = '--zone'
-DEVICE_ID = '--device'
-USERNAME = '--user'
-PASSWORD = '--pass'
-MODE = '--mode'
-SECS = '--secs'
-TEMP = '--temp'
 
-DEVICES = 'devices'
-ISSUES = 'issues'
-REBOOT = 'reboot'
-ZONES = 'zones'
+HUB_ID = "HUB-ID"
+ZONE_ID = "--zone"
+DEVICE_ID = "--device"
+USERNAME = "--user"
+PASSWORD = "--pass"
+MODE = "--mode"
+SECS = "--secs"
+TEMP = "--temp"
 
-VERBOSE = '-v'
+DEVICES = "devices"
+ISSUES = "issues"
+REBOOT = "reboot"
+ZONES = "zones"
+
+VERBOSE = "-v"
+
 
 async def main(loop):
     """Return the JSON as requested."""
@@ -89,20 +92,33 @@ async def main(loop):
     args = docopt(__doc__)
     # print(args)
 
-    session = aiohttp.ClientSession()
+    session = aiohttp.ClientSession()  # test with/without
 
-    hub = GeniusHub(
-        hub_id=args[HUB_ID],
-        username=args[USERNAME],
-        password=args[PASSWORD],
-        session=session,
-        debug=False
-    )
+    # Option of providing test data (as list of Dicts), or leave both as None
+    if DEBUG_MODE:
+        with open("raw_zones.json", "r") as fh:
+            z = ast.literal_eval(fh.read())
+        with open("raw_devices.json", "r") as fh:
+            d = ast.literal_eval(fh.read())
+
+        hub = GeniusTestHub(zones_json=z, device_json=d, session=session, debug=True)
+    else:
+        hub = GeniusHub(
+            hub_id=args[HUB_ID],
+            username=args[USERNAME],
+            password=args[PASSWORD],
+            session=session,
+            debug=False,
+        )
 
     hub.verbosity = args[VERBOSE]
 
     await hub.update()  # initialise: enumerate all zones, devices & issues
-    # ait hub.update()  # used for testing
+    # ait hub.update()  # for testing, do twice in a row to check for no duplicates
+
+    # these can be used for debugging, above - save the files
+    # z = await hub._zones  # raw_zones.json
+    # d = await hub._devices  # raw_devices.json
 
     if args[DEVICE_ID]:
         key = args[DEVICE_ID]  # a device_id is always a str, never an int
@@ -110,7 +126,7 @@ async def main(loop):
         try:  # does a Device with this ID exist?
             device = hub.device_by_id[key]
         except KeyError:
-            raise KeyError("Device '{0}' does not exist (by addr).".format(args[DEVICE_ID]))
+            raise KeyError(f"Device '{args[DEVICE_ID]}' does not exist (by addr).")
 
         print(device.info)  # detail depends upon verbosity (v=0..3)
         # also device (v=0), device.data (v=1), device._raw (v=3), and device.assigned_zone
@@ -127,7 +143,7 @@ async def main(loop):
         try:  # does a Zone with this ID exist?
             zone = find_zone_by_key[key]
         except KeyError:
-            raise KeyError("Zone '{0}' does not exist (by name or ID).".format(args[ZONE_ID]))
+            raise KeyError(f"Zone '{args[ZONE_ID]}' does not exist (by name or ID).")
 
         if args[MODE]:
             await zone.set_mode(args[MODE])
@@ -151,12 +167,14 @@ async def main(loop):
         elif args[ISSUES]:
             print(json.dumps(hub.issues))
         else:  # as per args[INFO]
-            print(json.dumps(hub.info))
+            print(hub.info)
+            print({"weatherData": hub.zone_by_id[0]._raw["weatherData"]})
 
-    await session.close()
+    if session:
+        await session.close()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     loop = asyncio.get_event_loop()
     loop.run_until_complete(main(loop))
     loop.close()
