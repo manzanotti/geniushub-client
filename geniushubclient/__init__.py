@@ -38,15 +38,15 @@ _LOGGER = logging.getLogger(__name__)
 
 
 def natural_sort(dict_list, dict_key) -> List[Dict]:
-    """Return a case-insensitively sorted list, with '11' after '2-2'."""
-    # noqa; pylint: disable=missing-docstring, multiple-statements
-    def alphanum_key(k):
+    """Return a case-insensitively sorted list with '11' after '2-2'."""
+
+    def _alphanum_key(k):
         return [
             int(c) if c.isdigit() else c.lower()
             for c in re.split("([0-9]+)", k[dict_key])
         ]
 
-    return sorted(dict_list, key=alphanum_key)
+    return sorted(dict_list, key=_alphanum_key)
 
 
 def _zones_via_zones_v3(raw_json) -> List:
@@ -424,7 +424,7 @@ class GeniusZone(GeniusObject):
             Hint: the following returns "XX": true ? "XX" : "YY"
         """
 
-        def is_occupied_v1(node):  # web app v5.2.4  # pylint: disable=unused-variable
+        def _is_occupied_v1(node):  # from web app v5.2.4  # pylint: disable=unused-variable
             # pylint: disable=invalid-name
             u = node["iMode"] == ZONE_MODES.Footprint
             d = node["zoneReactive"]["bTriggerOn"]
@@ -433,22 +433,22 @@ class GeniusZone(GeniusObject):
 
             return True if u and d and (not o) else (True if c > 0 else False)
 
-        def is_occupied_v2(node):  # web app v5.30
+        def _is_occupied_v2(node):  # from web app v5.2.4
             # pylint: disable=invalid-name
             A = O = True  # noqa: E741
             R = False
 
-            l = True  # noqa: E741                                               ???
+            l = True  # noqa: E741                                               TODO
             p = node["iMode"] == ZONE_MODES.Footprint | l  # #                   Checked
             u = node["iFlagExpectedKit"] & KIT_TYPES.PIR  # #                    Checked
             d = node["trigger"]["reactive"] & node["trigger"]["output"]  # #     Checked
             c = int(node["zoneReactive"]["fActivityLevel"])  # #                 Checked
-            s = node["objFootprint"]["bIsNight"]  # #                            ???
+            s = node["objFootprint"]["bIsNight"]  # #                            TODO
 
             return A if p and u and d and (not s) else (O if c > 0 else R)
 
         if raw_dict["iFlagExpectedKit"] & KIT_TYPES.PIR:
-            result["occupied"] = is_occupied_v2(raw_dict)
+            result["occupied"] = _is_occupied_v2(raw_dict)
 
         if raw_dict["iType"] in [
             ZONE_TYPES.OnOffTimer,
