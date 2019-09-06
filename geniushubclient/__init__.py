@@ -418,17 +418,19 @@ class GeniusZone(GeniusObject):
             o = "<i class='icon hg-icon-hollow-man occupancy active' data-clickable='true'></i>",
             r = "<i class='icon hg-icon-full-man occupancy'          data-clickable='false'></i>",
 
-            occupancyIcon() = p && u && d && !s ? a : c > 0 ? o : r
+            occupancyIcon() = p && u && d && !s ? a : c > 0 ? o : r (NEW version)
+                              u && l && d && !o ? n : c > 0 ? r : a (OLD version)
+            Hint: the following returns "XX": true ? "XX" : "YY"
         """
 
-        def is_occupied_v1(node):
+        def is_occupied_v1(node):  # pylint: disable=unused-variable
             # pylint: disable=invalid-name
             u = node["iMode"] == ZONE_MODES.Footprint
             d = node["zoneReactive"]["bTriggerOn"]
             c = node["iActivity"] or 0
             o = node["objFootprint"]["bIsNight"]
 
-            return True if u and d and (not o) else True if c > 0 else False
+            return True if u and d and (not o) else (True if c > 0 else False)
 
         def is_occupied_v2(node):
             # pylint: disable=invalid-name
@@ -442,7 +444,7 @@ class GeniusZone(GeniusObject):
             c = int(node["zoneReactive"]["fActivityLevel"])  # #                 Checked
             s = node["objFootprint"]["bIsNight"]  # #                            ???
 
-            return A if p and u and d and (not s) else O if c > 0 else R
+            return A if p and u and d and (not s) else (O if c > 0 else R)
 
         if raw_dict["iFlagExpectedKit"] & KIT_TYPES.PIR:
             result["occupied"] = is_occupied_v2(raw_dict)
