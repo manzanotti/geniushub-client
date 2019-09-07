@@ -400,12 +400,12 @@ class GeniusZone(GeniusObject):
             result["setpoint"] = bool(raw_dict["fSP"])
 
         # pylint: disable=pointless-string-statement
-        """Occupancy vs Activity (code from ap.js, search for occupancyIcon).
+        """Occupancy vs Activity (code from app.js, search for occupancyIcon).
 
             The occupancy symbol is affected by the mode/state of the zone:
-                r = Greyed out:  occupancy not detected
-                o = Hollow icon: occupancy detected
-                a = Solid icon:  occupancy sufficient to call for heat (iff FP mode)
+                r = occupancy not detected (valid in any mode), Greyed out
+                o = occupancy detected (valid in any mode), Hollow
+                a = occupancy sufficient to call for heat (iff in Sense/FP mode), Solid
 
             l = null != i.settings.experimentalFeatures && i.settings.experimentalFeatures.timerPlus,
             p = parseInt(n.iMode) === e.zoneModes.Mode_Footprint || l,
@@ -414,17 +414,12 @@ class GeniusZone(GeniusObject):
             c = parseInt(n.zoneReactive.fActivityLevel) || 0,
             s = t.isInFootprintNightMode(n),                                     # night time
 
-            a = "<i class='icon hg-icon-full-man occupancy   active' data-clickable='true'></i>",
-            o = "<i class='icon hg-icon-hollow-man occupancy active' data-clickable='true'></i>",
-            r = "<i class='icon hg-icon-full-man occupancy'          data-clickable='false'></i>",
-
-            occupancyIcon() = p && u && d && !s ? a : c > 0 ? o : r (NEW version)
-                              u && l && d && !o ? n : c > 0 ? r : a (OLD version)
+            occupancyIcon() = p && u && d && !s ? a : c > 0 ? o : r
 
             Hint: the following returns "XX": true ? "XX" : "YY"
         """
 
-        def _is_occupied_v1(node):  # from web app v5.2.4  # pylint: disable=unused-variable
+        def _is_occupied_v1(node):  # from web app v5.2.2  # pylint: disable=unused-variable
             # pylint: disable=invalid-name
             u = node["iMode"] == ZONE_MODES.Footprint
             d = node["zoneReactive"]["bTriggerOn"]
@@ -447,31 +442,18 @@ class GeniusZone(GeniusObject):
 
             return A if p and u and d and (not s) else (O if c > 0 else R)
 
-        if raw_dict["iFlagExpectedKit"] & KIT_TYPES.PIR:
-            result["occupied"] = _is_occupied_v2(raw_dict)
-
-        if raw_dict["iType"] in [
-            ZONE_TYPES.OnOffTimer,
-            ZONE_TYPES.ControlSP,
-            ZONE_TYPES.TPI,
-        ]:
-            result["override"] = {}
-            result["override"]["duration"] = raw_dict["iBoostTimeRemaining"]
-            if raw_dict["iType"] == ZONE_TYPES.OnOffTimer:
-                result["override"]["setpoint"] = raw_dict["fBoostSP"] != 0
+        def _override_state(node):
+            result = {}
+            result["duration"] = node["iBoostTimeRemaining"]
+            if node["iType"] == ZONE_TYPES.OnOffTimer:
+                result["setpoint"] = node["fBoostSP"] != 0
             else:
-                result["override"]["setpoint"] = raw_dict["fBoostSP"]
+                result["setpoint"] = node["fBoostSP"]
+            return result
 
-        # pylint: disable=pointless-string-statement
-        """Schedules - What is known:
-             timer={} if: Manager
-             footprint={...} iff: ControlSP, _even_ if no PIR, otherwise ={}
-        """
-        result["schedule"] = {"timer": {}, "footprint": {}}
-
-        # Timer schedule...
-        if raw_dict["iType"] != ZONE_TYPES.Manager:
-            root = result["schedule"]["timer"] = {"weekly": {}}
+        def _timer_schedule(raw_dict):
+            # timer = {} if: Manager
+            root = {"weekly": {}}
             day = -1
 
             try:  # TODO: confirm creation of zone despite exception
@@ -507,10 +489,13 @@ class GeniusZone(GeniusObject):
                     result["id"],
                     err,
                 )
+                return {}
 
-        # Footprint schedule...
-        if raw_dict["iType"] in [ZONE_TYPES.ControlSP]:
-            root = result["schedule"]["footprint"] = {"weekly": {}}
+            return root
+
+        def _footprint_schedule(raw_dict):
+            # footprint={...} iff: ControlSP, _even_ if no PIR, otherwise ={}
+            root = {"weekly": {}}
             day = -1
 
             try:  # TODO: confirm creation of zone despite exception
@@ -548,6 +533,27 @@ class GeniusZone(GeniusObject):
                     result["id"],
                     err,
                 )
+                return {}
+
+            return root
+
+        if raw_dict["iFlagExpectedKit"] & KIT_TYPES.PIR:
+            result["occupied"] = _is_occupied_v2(raw_dict)
+
+        if raw_dict["iType"] in [
+            ZONE_TYPES.OnOffTimer,
+            ZONE_TYPES.ControlSP,
+            ZONE_TYPES.TPI,
+        ]:
+            result["override"] = _override_state(raw_dict)
+
+        result["schedule"] = {}  # all zones have {"schedule": {"timer": {}, "footprint": {}}
+
+        if raw_dict["iType"] != ZONE_TYPES.Manager:
+            result["schedule"]["timer"] = _timer_schedule(raw_dict)
+
+        if raw_dict["iType"] in [ZONE_TYPES.ControlSP]:
+            result["schedule"]["footprint"] = _footprint_schedule(raw_dict)
 
         return result
 

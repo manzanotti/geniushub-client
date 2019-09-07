@@ -27,12 +27,15 @@ API_STATUS_ERROR = {
 ZONE_TYPES = SimpleNamespace(
     Manager=1, OnOffTimer=2, ControlSP=3, ControlOnOffPID=4, TPI=5, Surrogate=6
 )
-# 1 'Manager'
-# 2 'On / Off'
-# 3 'Radiator'
-# 4
-# 5 'Hot Water Temperature' OR 'Wet Underfloor'
-# 6 'Group'
+ITYPE_TO_TYPE = {
+    ZONE_TYPES.Manager: "manager",  # "my house"
+    ZONE_TYPES.OnOffTimer: "on / off",  # "on / off timer"
+    ZONE_TYPES.ControlSP: "radiator",  # "radiator room"
+    ZONE_TYPES.ControlOnOffPID: "wet underfloor",  # "control on / off PID"
+    ZONE_TYPES.TPI: "hot water temperature",  # "TPI"
+    ZONE_TYPES.Surrogate: "group",  # "group"
+}
+TYPE_TO_ITYPE = {v: k for k, v in ITYPE_TO_TYPE.items()}
 
 ZONE_MODES = SimpleNamespace(
     Off=1,
@@ -46,6 +49,19 @@ ZONE_MODES = SimpleNamespace(
     Linked=128,
     Other=256,
 )
+IMODE_TO_MODE = {
+    ZONE_MODES.Off: "off",
+    ZONE_MODES.Timer: "timer",
+    ZONE_MODES.Footprint: "footprint",  # could be 'sense'
+    ZONE_MODES.Away: "off",  # is 'away', but v1 API says 'off'
+    ZONE_MODES.Boost: "override",
+    ZONE_MODES.Early: "early",
+    ZONE_MODES.Test: "test",
+    ZONE_MODES.Linked: "linked",
+    ZONE_MODES.Other: "other",
+}
+MODE_TO_IMODE = {v: k for k, v in IMODE_TO_MODE.items()}
+
 KIT_TYPES = SimpleNamespace(
     Temp=1,
     Valve=2,
@@ -69,6 +85,7 @@ KIT_SKU_TO_TEXT = {
     "DA-WRV-B": "Radiator Valve",
     "DA-WRV-C": "Genius Valve",
 }  # DA=Danfoss; xCR=Channel Receiver, ESW=Elec Switch, WRx=Wireless Radio Sensor/Thermostat/Valve
+
 ZONE_FLAGS = SimpleNamespace(
     Frost=1,
     Timer=2,
@@ -83,44 +100,24 @@ ZONE_FLAGS = SimpleNamespace(
     Temps=1024,
     TPI=2048,
 )
-ITYPE_TO_TYPE = {
-    ZONE_TYPES.Manager: "manager",
-    ZONE_TYPES.OnOffTimer: "on / off",
-    ZONE_TYPES.ControlSP: "radiator",
-    ZONE_TYPES.ControlOnOffPID: "type 4",
-    ZONE_TYPES.TPI: "hot water temperature",
-    ZONE_TYPES.Surrogate: "type 6",
-}  # also: 'group', 'wet underfloor'
-TYPE_TO_ITYPE = {v: k for k, v in ITYPE_TO_TYPE.items()}
 
-IMODE_TO_MODE = {
-    ZONE_MODES.Off: "off",
-    ZONE_MODES.Timer: "timer",
-    ZONE_MODES.Footprint: "footprint",
-    ZONE_MODES.Away: "off",  # is 'away', but v1 API says 'off'
-    ZONE_MODES.Boost: "override",
-    ZONE_MODES.Early: "early",
-    ZONE_MODES.Test: "test",
-    ZONE_MODES.Linked: "linked",
-    ZONE_MODES.Other: "other",
-}
-MODE_TO_IMODE = {v: k for k, v in IMODE_TO_MODE.items()}
-
-ISSUE_TEXT = {2: "error", 1: "warning", 0: "information"}
+ISSUE_TEXT = {0: "information", 1: "warning", 2: "error"}
 ISSUE_DESCRIPTION = {
     "manager:no_boiler_controller": "The hub does not have a boiler controller assigned",
     "manager:no_boiler_comms": "The hub has lost communication with the boiler controller",
     "manager:no_temp": "The hub does not have a valid temperature",
-    "manager:weather": "Unable to fetch the weather data",  # confirmed
+    "manager:weather": "Unable to fetch the weather data",  # correct
     "manager:weather_data": "Weather data -",
+
     "zone:using_weather_temp": "{zone_name} is currently using the outside temperature",
     "zone:using_assumed_temp": "{zone_name} is currently using the assumed temperature",
-    "zone:tpi_no_temp": "{zone_name} currently has no valid temperature",  # confirmed
+    "zone:tpi_no_temp": "{zone_name} currently has no valid temperature",  # correct
+
     "node:no_comms": "The {device_type} has lost communication with the Hub",
-    "node:not_seen": "The {device_type} in {zone_name} can not been found by the Hub",  # confirmed
-    "node:low_battery": "The battery for the {device_type} in {zone_name} is dead and needs to be replaced",  # confirmed
+    "node:not_seen": "The {device_type} in {zone_name} can not been found by the Hub",  # correct
+    "node:low_battery": "The battery for the {device_type} in {zone_name} is dead and needs to be replaced",  # correct
     "node:warn_battery": "The battery for the {device_type} is low",
-}
+}  # these messages are different to those in app.js
 
 IDAY_TO_DAY = {
     0: "sunday",
@@ -161,20 +158,19 @@ STATE_ATTRS = {
 
 # This is from Vendor's bower.js
 DEVICES_MODEL = [
-    {"hash": "VIRTUAL", "sku": "virtual node", "description": "Virtual Node"},
     {"hash": "0x0000000000000000", "sku": "n/a", "description": "Unrecognised Device"},
     {
+        "hash": "0x0000000200030005",
         "assignableZoneTypeIds": [3, 5],
         "description": "Radiator Valve",
         "deviceString": "wrv",
-        "hash": "0x0000000200030005",
         "sku": "da-wrv-a",
     },
     {
+        "hash": "0x0000000200040005",
         "assignableZoneTypeIds": [3, 5],
         "description": "Radiator Valve",
         "deviceString": "wrv",
-        "hash": "0x0000000200040005",
         "sku": "da-wrv-b",
     },
     {
