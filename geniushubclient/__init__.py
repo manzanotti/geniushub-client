@@ -424,15 +424,6 @@ class GeniusZone(GeniusObject):
 
             return A if p and u and d and (not s) else (O if c > 0 else R)
 
-        def _override_state(node):
-            result = {}
-            result["duration"] = node["iBoostTimeRemaining"]
-            if node["iType"] == ZONE_TYPES.OnOffTimer:
-                result["setpoint"] = node["fBoostSP"] != 0
-            else:
-                result["setpoint"] = node["fBoostSP"]
-            return result
-
         def _timer_schedule(raw_dict):
             # timer = {} if: Manager
             root = {"weekly": {}}
@@ -544,7 +535,12 @@ class GeniusZone(GeniusObject):
             ZONE_TYPES.ControlSP,
             ZONE_TYPES.TPI,
         ]:
-            result["override"] = _override_state(raw_dict)
+            result["override"] = {}
+            result["override"]["duration"] = raw_dict["iBoostTimeRemaining"]
+            if raw_dict["iType"] == ZONE_TYPES.OnOffTimer:
+                result["override"]["setpoint"] = raw_dict["fBoostSP"] != 0
+            else:
+                result["override"]["setpoint"] = raw_dict["fBoostSP"]
 
         result["schedule"] = {"timer": {}, "footprint": {}}  # for all zone types
 
