@@ -417,9 +417,7 @@ class GeniusZone(GeniusObject):
             R = False
 
             l = True  # noqa: E741                                               TODO
-            p = (
-                node["iMode"] == ZONE_MODE.Footprint | l
-            )  # #                   Checked
+            p = node["iMode"] == ZONE_MODE.Footprint | l  # #                   Checked
             u = node["iFlagExpectedKit"] & ZONE_KIT.PIR  # #               Checked
             d = node["trigger"]["reactive"] & node["trigger"]["output"]  # #     Checked
             c = int(node["zoneReactive"]["fActivityLevel"])  # #                 Checked
