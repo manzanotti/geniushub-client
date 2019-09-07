@@ -295,7 +295,7 @@ class GeniusHub:  # pylint: disable=too-many-instance-attributes
             self.version = {
                 "hubSoftwareVersion": self._version,
                 "earliestCompatibleAPI": "https://my.geniushub.co.uk/v1",
-                "latestCompatibleAPI": "https://my.geniushub.co.uk/v1"
+                "latestCompatibleAPI": "https://my.geniushub.co.uk/v1",
             }
 
     async def update(self):
@@ -312,7 +312,9 @@ class GeniusHub:  # pylint: disable=too-many-instance-attributes
                 await self.request("GET", "data_manager")
             )
             self._issues = _issues_via_v3_zones({"data": self._zones})
-            self._version = _version_via_v3_auth(await self.request("GET", "auth/release"))
+            self._version = _version_via_v3_auth(
+                await self.request("GET", "auth/release")
+            )
 
         await self._update()  # now convert all the raw JSON
 
