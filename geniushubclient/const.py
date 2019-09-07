@@ -108,11 +108,9 @@ ISSUE_DESCRIPTION = {
     "manager:no_temp": "The hub does not have a valid temperature",
     "manager:weather": "Unable to fetch the weather data",  # correct
     "manager:weather_data": "Weather data -",
-
     "zone:using_weather_temp": "{zone_name} is currently using the outside temperature",
     "zone:using_assumed_temp": "{zone_name} is currently using the assumed temperature",
     "zone:tpi_no_temp": "{zone_name} currently has no valid temperature",  # correct
-
     "node:no_comms": "The {device_type} has lost communication with the Hub",
     "node:not_seen": "The {device_type} in {zone_name} can not been found by the Hub",  # correct
     "node:low_battery": "The battery for the {device_type} in {zone_name} is dead and needs to be replaced",  # correct
@@ -156,21 +154,22 @@ STATE_ATTRS = {
     "Motion": "occupancyTrigger",  # #                        ROMS
 }
 
-# This is from Vendor's bower.js
+# This is cut-and-paste from Vendor's bower.js
 DEVICES_MODEL = [
+    {"hash": "VIRTUAL", "sku": "virtual node", "description": "Virtual Node"},
     {"hash": "0x0000000000000000", "sku": "n/a", "description": "Unrecognised Device"},
     {
-        "hash": "0x0000000200030005",
         "assignableZoneTypeIds": [3, 5],
         "description": "Radiator Valve",
         "deviceString": "wrv",
+        "hash": "0x0000000200030005",
         "sku": "da-wrv-a",
     },
     {
-        "hash": "0x0000000200040005",
         "assignableZoneTypeIds": [3, 5],
         "description": "Radiator Valve",
         "deviceString": "wrv",
+        "hash": "0x0000000200040005",
         "sku": "da-wrv-b",
     },
     {
@@ -370,3 +369,5 @@ DEVICES_MODEL = [
         "sku": "po-plg-b",
     },
 ]
+
+DEVICES_BY_HASH = {d["hash"]: d["description"] for d in DEVICES_MODEL}

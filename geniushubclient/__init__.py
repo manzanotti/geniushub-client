@@ -28,6 +28,7 @@ from .const import (
     ZONE_TYPES,
     ZONE_MODES,
     KIT_TYPES,
+    DEVICES_BY_HASH,
 )
 
 logging.basicConfig()
@@ -514,8 +515,7 @@ class GeniusZone(GeniusObject):
 
             result["schedule"] = {"timer": {}, "footprint": {}}  # for all zone types
 
-            if raw_dict["iType"] != ZONE_TYPES.Manager:
-                # timer = {} if: Manager
+            if raw_dict["iType"] != ZONE_TYPES.Manager:  # timer = {} if: Manager
                 result["schedule"]["timer"] = _timer_schedule(raw_dict)
 
             if raw_dict["iType"] in [ZONE_TYPES.ControlSP]:
@@ -580,7 +580,7 @@ class GeniusZone(GeniusObject):
         if self._hub.api_version == 1:
             url = f"zones/{self.id}/mode"  # v1 API uses strings
             resp = await self._hub.request("PUT", url, data=mode_str)
-        else:  # self._hub.api_version == 1
+        else:  # self._hub.api_version == 3
             url = (
                 f"zone/{self.id}"
             )  # v3 API uses dicts  # TODO: check: is it PUT(POST?) vs PATCH
@@ -590,15 +590,13 @@ class GeniusZone(GeniusObject):
             resp = resp["data"] if resp["error"] == 0 else resp
         _LOGGER.debug("Zone(%s).set_mode(): response = %s", self.id, resp)
 
-    async def set_override(self, setpoint=None, duration=3600):
+    async def set_override(self, setpoint=None, duration=None):
         """Set the zone to override to a certain temperature.
 
           duration is in seconds
           setpoint is in degrees Celsius
         """
-        setpoint = (
-            setpoint if setpoint is not None else self.setpoint
-        )  # pylint: disable=no-member
+        assert setpoint is not None or duration is not None
 
         _LOGGER.debug(
             "Zone(%s).set_override(setpoint=%s, duration=%s)...",
@@ -611,7 +609,7 @@ class GeniusZone(GeniusObject):
             url = f"zones/{self.id}/override"
             data = {"setpoint": setpoint, "duration": duration}
             resp = await self._hub.request("POST", url, data=data)
-        else:
+        else:  # self._hub.api_version == 3
             url = f"zone/{self.id}"
             data = {
                 "iMode": ZONE_MODES.Boost,
@@ -639,7 +637,31 @@ class GeniusDevice(GeniusObject):  # pylint: disable=too-few-public-methods
     def _convert(self, raw_dict) -> Dict:  # pylint: disable=no-self-use
         """Convert a device's v3 JSON to the v1 schema."""
 
-        def _check_fingerprint(node, device) -> Optional[str]:
+        def _check_fingerprint_v2(node, device) -> Optional[str]:
+            if "hash" in node:
+                fp = DEVICES_BY_HASH[node["hash"]["val"]]
+            elif node["SwitchBinary"]["path"].count("/") == 3:
+                fp = f"Dual Channel Receiver - Channel {device['id'][-1]}"
+            else:
+                fp = None
+
+            # if not device["_type"] or fp != device["_type"][:21]:
+            #     msg = f"Device {device['id']} (SKU={device['_sku']}): assigned type "
+
+            #     if fp is None or fp == 'Unrecognised Device':  # no/invalid device fingerprint!
+            #         msg += f"('{device['_type']}') is ignored as no fingerprint!"
+            #         _LOGGER.warning(msg)
+            #     elif not device["_type"]:
+            #         msg += f"only via its fingerprint ('{fp}')."
+            #         _LOGGER.debug(msg)
+            #     else:
+            #         msg += f"('{device['_type']}') doesn't match fingerprint ('{fp}')!"
+            #         _LOGGER.warning(msg)
+            #         fp = device["_type"]  # prefer type over fingerprint
+
+            return fp
+
+        def _check_fingerprint_v1(node, device) -> Optional[str]:
             """Check the device type against its 'fingerprint'."""
             # pylint: disable=invalid-name
             fp = None
@@ -687,8 +709,9 @@ class GeniusDevice(GeniusObject):  # pylint: disable=too-few-public-methods
         result["_sku"] = node["sku"]["val"] if node else None
 
         node = raw_dict["childValues"]
-        device_type = _check_fingerprint(node, result)
-        result["type"] = device_type if device_type else "Unrecognised Device"
+        # device_type = _check_fingerprint_v1(node, result)
+        # result["type"] = device_type if device_type else "Unrecognised Device"
+        result["type"] = _check_fingerprint_v2(node, result)
 
         result["assignedZones"] = [{"name": None}]  # 3. Set assignedZones...
         if node["location"]["val"]:
