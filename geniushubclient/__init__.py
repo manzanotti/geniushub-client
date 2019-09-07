@@ -400,7 +400,7 @@ class GeniusZone(GeniusObject):
             result["setpoint"] = bool(raw_dict["fSP"])
 
         # pylint: disable=pointless-string-statement
-        """Occupancy vs Activity (code from app.js, search for occupancyIcon).
+        """Occupancy vs Activity (code from app.js, search for 'occupancyIcon').
 
             The occupancy symbol is affected by the mode/state of the zone:
                 r = occupancy not detected (valid in any mode), Greyed out
@@ -547,7 +547,7 @@ class GeniusZone(GeniusObject):
         ]:
             result["override"] = _override_state(raw_dict)
 
-        result["schedule"] = {}  # all zones have {"schedule": {"timer": {}, "footprint": {}}
+        result["schedule"] = {"timer": {}, "footprint": {}}  # for all zone types
 
         if raw_dict["iType"] != ZONE_TYPES.Manager:
             result["schedule"]["timer"] = _timer_schedule(raw_dict)
