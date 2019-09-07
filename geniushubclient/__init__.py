@@ -383,9 +383,7 @@ class GeniusZone(GeniusObject):
     def _convert(self, raw_dict) -> Dict:  # pylint: disable=no-self-use
         """Convert a zone's v3 JSON to the v1 schema."""
 
-        def _is_occupied_v1(
-            node
-        ):  # from web app v5.2.2  # pylint: disable=unused-variable
+        def _is_occupied_v1(node):  # from web app v5.2.2
             # pylint: disable=invalid-name
             u = node["iMode"] == ZONE_MODES.Footprint
             d = node["zoneReactive"]["bTriggerOn"]
