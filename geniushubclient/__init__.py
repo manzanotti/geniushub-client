@@ -382,42 +382,6 @@ class GeniusZone(GeniusObject):
 
     def _convert(self, raw_dict) -> Dict:  # pylint: disable=no-self-use
         """Convert a zone's v3 JSON to the v1 schema."""
-        result = {}
-        result["id"] = raw_dict["iID"]
-        result["name"] = raw_dict["strName"]
-        result["type"] = ITYPE_TO_TYPE[raw_dict["iType"]]
-        result["mode"] = IMODE_TO_MODE[raw_dict["iMode"]]
-
-        if raw_dict["iType"] in [ZONE_TYPES.ControlSP, ZONE_TYPES.TPI]:
-            if not (
-                raw_dict["iType"] == ZONE_TYPES.TPI
-                and not raw_dict["activeTemperatureDevices"]
-            ):
-                result["temperature"] = raw_dict["fPV"]
-            result["setpoint"] = raw_dict["fSP"]
-
-        elif raw_dict["iType"] == ZONE_TYPES.OnOffTimer:
-            result["setpoint"] = bool(raw_dict["fSP"])
-
-        # pylint: disable=pointless-string-statement
-        """Occupancy vs Activity (code from app.js, search for 'occupancyIcon').
-
-            The occupancy symbol is affected by the mode/state of the zone:
-                r = occupancy not detected (valid in any mode), Greyed out
-                o = occupancy detected (valid in any mode), Hollow
-                a = occupancy sufficient to call for heat (iff in Sense/FP mode), Solid
-
-            l = null != i.settings.experimentalFeatures && i.settings.experimentalFeatures.timerPlus,
-            p = parseInt(n.iMode) === e.zoneModes.Mode_Footprint || l,
-            u = parseInt(n.iFlagExpectedKit) & e.equipmentTypes.Kit_PIR,         # has a PIR
-            d = n.trigger.reactive && n.trigger.output,                          # in Footprint mode?
-            c = parseInt(n.zoneReactive.fActivityLevel) || 0,
-            s = t.isInFootprintNightMode(n),                                     # night time
-
-            occupancyIcon() = p && u && d && !s ? a : c > 0 ? o : r
-
-            Hint: the following returns "XX": true ? "XX" : "YY"
-        """
 
         def _is_occupied_v1(node):  # from web app v5.2.2  # pylint: disable=unused-variable
             # pylint: disable=invalid-name
@@ -429,6 +393,24 @@ class GeniusZone(GeniusObject):
             return True if u and d and (not o) else (True if c > 0 else False)
 
         def _is_occupied_v2(node):  # from web app v5.2.4
+            """Occupancy vs Activity (code from app.js, search for 'occupancyIcon').
+
+                The occupancy symbol is affected by the mode/state of the zone:
+                    r = occupancy not detected (valid in any mode), Greyed out
+                    o = occupancy detected (valid in any mode), Hollow
+                    a = occupancy sufficient to call for heat (iff in Sense/FP mode), Solid
+
+                l = null != i.settings.experimentalFeatures && i.settings.experimentalFeatures.timerPlus,
+                p = parseInt(n.iMode) === e.zoneModes.Mode_Footprint || l,
+                u = parseInt(n.iFlagExpectedKit) & e.equipmentTypes.Kit_PIR,         # has a PIR
+                d = n.trigger.reactive && n.trigger.output,                          # in Footprint mode?
+                c = parseInt(n.zoneReactive.fActivityLevel) || 0,
+                s = t.isInFootprintNightMode(n),                                     # night time
+
+                occupancyIcon() = p && u && d && !s ? a : c > 0 ? o : r
+
+                Hint: the following returns "XX": true ? "XX" : "YY"
+            """
             # pylint: disable=invalid-name
             A = O = True  # noqa: E741
             R = False
@@ -536,6 +518,23 @@ class GeniusZone(GeniusObject):
                 return {}
 
             return root
+
+        result = {}
+        result["id"] = raw_dict["iID"]
+        result["name"] = raw_dict["strName"]
+        result["type"] = ITYPE_TO_TYPE[raw_dict["iType"]]
+        result["mode"] = IMODE_TO_MODE[raw_dict["iMode"]]
+
+        if raw_dict["iType"] in [ZONE_TYPES.ControlSP, ZONE_TYPES.TPI]:
+            if not (
+                raw_dict["iType"] == ZONE_TYPES.TPI
+                and not raw_dict["activeTemperatureDevices"]
+            ):
+                result["temperature"] = raw_dict["fPV"]
+            result["setpoint"] = raw_dict["fSP"]
+
+        elif raw_dict["iType"] == ZONE_TYPES.OnOffTimer:
+            result["setpoint"] = bool(raw_dict["fSP"])
 
         if raw_dict["iFlagExpectedKit"] & KIT_TYPES.PIR:
             result["occupied"] = _is_occupied_v2(raw_dict)
