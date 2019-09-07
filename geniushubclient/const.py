@@ -4,18 +4,6 @@ from types import SimpleNamespace
 DEFAULT_TIMEOUT_V1 = 300
 DEFAULT_TIMEOUT_V3 = 20
 
-# see: https://docs.geniushub.co.uk/pages/viewpage.action?pageId=14221432
-HUB_SW_VERSIONS = {
-    "Dec 31 9999": "5.3.2+",
-    "Jul 23 2019": "5.3.2",  # #          confirmed in testing
-    "Jun 25 2019": "5.3.0",
-    "Dec 20 2018": "5.2.10 (beta)",
-    "Dec 19 2018": "5.2.10",  # #         confirmed in testing
-    "Jul 11 2018": "5.2.4",
-    "Jan 05 2018": "5.2.2",
-    "Jan 01 1000": "<5.2.2",
-}
-
 API_STATUS_ERROR = {
     400: "The request body or request parameters are invalid.",
     401: "The authorization information is missing or invalid.",
@@ -24,10 +12,10 @@ API_STATUS_ERROR = {
     502: "The hub is offline.",
     503: "The authorization information is invalid.",
 }
-ZONE_TYPE = SimpleNamespace(  # ZONE_TYPE_MODEL
+ZONE_TYPE = SimpleNamespace(
     Manager=1, OnOffTimer=2, ControlSP=3, ControlOnOffPID=4, TPI=5, Surrogate=6
 )
-ITYPE_TO_TYPE = {
+ITYPE_TO_TYPE = {  # ZONE_TYPE_MODEL
     ZONE_TYPE.Manager: "manager",  # "my house"
     ZONE_TYPE.OnOffTimer: "on / off",  # "on / off timer"
     ZONE_TYPE.ControlSP: "radiator",  # "radiator room"
@@ -49,7 +37,7 @@ ZONE_MODE = SimpleNamespace(
     Linked=128,
     Other=256,
 )
-IMODE_TO_MODE = {
+IMODE_TO_MODE = {  # MODE_MODEL
     ZONE_MODE.Off: "off",
     ZONE_MODE.Timer: "timer",
     ZONE_MODE.Footprint: "footprint",  # could be 'sense' mode
@@ -121,7 +109,7 @@ ATTRS_DEVICE = {
 }
 ATTRS_ISSUE = {"summary_keys": ["description", "level"], "detail_keys": []}
 
-# The following MODELs are cut-and-paste from Vendor's bower.js
+# The following MODELs are from Vendor's bower.js, search for: 'Model: [{'
 DEVICES_MODEL = [
     {"hash": "VIRTUAL", "sku": "virtual node", "description": "Virtual Node"},
     {"hash": "0x0000000000000000", "sku": "n/a", "description": "Unrecognised Device"},
@@ -388,7 +376,7 @@ CHANNELS_MODEL = [
 
 STATE_ATTRS = {c["id"]: c["slug"] for c in CHANNELS_MODEL}
 
-ZONE_KIT = SimpleNamespace(
+ZONE_KIT = SimpleNamespace(  # ZONE_KIT_MODEL
     Temp=1,
     Valve=2,
     PIR=4,

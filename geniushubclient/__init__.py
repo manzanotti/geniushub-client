@@ -18,7 +18,6 @@ from .const import (
     STATE_ATTRS,
     DEFAULT_TIMEOUT_V1,
     DEFAULT_TIMEOUT_V3,
-    HUB_SW_VERSIONS,
     ITYPE_TO_TYPE,
     IMODE_TO_MODE,
     MODE_TO_IMODE,
@@ -50,12 +49,12 @@ def natural_sort(dict_list, dict_key) -> List[Dict]:
     return sorted(dict_list, key=_alphanum_key)
 
 
-def _zones_via_zones_v3(raw_json) -> List:
+def _zones_via_v3_zones(raw_json) -> List[Dict]:
     """Extract Zones from /v3/zones JSON."""
     return raw_json["data"]
 
 
-def _devices_via_data_mgr_v3(raw_json) -> List:
+def _devices_via_v3_data_mgr(raw_json) -> List[Dict]:
     """Extract Devices from /v3/data_manager JSON."""
     result = []
     for site in [
@@ -72,7 +71,7 @@ def _devices_via_data_mgr_v3(raw_json) -> List:
     return result
 
 
-def _issues_via_zones_v3(raw_json) -> List:
+def _issues_via_v3_zones(raw_json) -> List[Dict]:
     """Extract Issues from /v3/zones JSON."""
     result = []
     for zone in raw_json["data"]:
@@ -85,15 +84,13 @@ def _issues_via_zones_v3(raw_json) -> List:
     return result
 
 
-def _version_via_zones_v3(raw_json) -> Dict:
+def _version_via_v3_auth(raw_json) -> Dict:
     """Extract Version from /v3/zones JSON."""
-    build_date = datetime.strptime(raw_json["data"][0]["strBuildDate"], "%b %d %Y")
-
-    for date_time_idx in HUB_SW_VERSIONS:
-        if datetime.strptime(date_time_idx, "%b %d %Y") <= build_date:
-            result = {"hubSoftwareVersion": HUB_SW_VERSIONS[date_time_idx]}
-            break
-    return result
+    return {
+            "hubSoftwareVersion": raw_json["data"]["release"],
+            "earliestCompatibleAPI": "https://my.geniushub.co.uk/v1",
+            "latestCompatibleAPI": "https://my.geniushub.co.uk/v1"
+        }
 
 
 class GeniusHub:  # pylint: disable=too-many-instance-attributes
@@ -143,7 +140,7 @@ class GeniusHub:  # pylint: disable=too-many-instance-attributes
         self.issue_objs = []
 
     def __repr__(self) -> str:
-        return json.dumps(self.info)
+        return json.dumps(self.version)
 
     @property
     def verbosity(self) -> int:
@@ -199,12 +196,6 @@ class GeniusHub:  # pylint: disable=too-many-instance-attributes
         if method != "GET":
             _LOGGER.debug("_request(): response=%s", response)
         return response
-
-    @property
-    def info(self) -> Dict:
-        """Return all information for the hub."""
-        # x.get("/v3/auth/test", { username: e, password: t, timeout: n })
-        return self.version
 
     @property
     def zones(self) -> List:
@@ -298,12 +289,12 @@ class GeniusHub:  # pylint: disable=too-many-instance-attributes
             self.version = await self.request("GET", "version")
 
         else:  # self.api_version == 3:
-            self._zones = _zones_via_zones_v3(await self.request("GET", "zones"))
-            self._devices = _devices_via_data_mgr_v3(
+            self._zones = _zones_via_v3_zones(await self.request("GET", "zones"))
+            self._devices = _devices_via_v3_data_mgr(
                 await self.request("GET", "data_manager")
             )
-            self._issues = _issues_via_zones_v3({"data": self._zones})
-            self.version = _version_via_zones_v3({"data": self._zones})
+            self._issues = _issues_via_v3_zones({"data": self._zones})
+            self.version = _version_via_v3_auth(await self.request("GET", "auth/release"))
 
         await self._update()  # now convert all the raw JSON
 
@@ -329,7 +320,7 @@ class GeniusTestHub(GeniusHub):
         """Update the Hub with its latest state data."""
         self._zones = self._test_json["zones"]
         self._devices = self._test_json["devices"]
-        self._issues = _issues_via_zones_v3({"data": self._zones})
+        self._issues = _issues_via_v3_zones({"data": self._zones})
         self.version = _version_via_zones_v3({"data": self._zones})
 
         await self._update()  # now convert all the raw JSON
@@ -384,33 +375,23 @@ class GeniusZone(GeniusObject):
     def _convert(self, raw_dict) -> Dict:  # pylint: disable=no-self-use
         """Convert a zone's v3 JSON to the v1 schema."""
 
-        def _is_occupied_v1(node):  # from web app v5.2.2
-            # pylint: disable=invalid-name
-            u = node["iMode"] == ZONE_MODE.Footprint
-            d = node["zoneReactive"]["bTriggerOn"]
-            c = node["iActivity"] or 0
-            o = node["objFootprint"]["bIsNight"]
-
-            return True if u and d and (not o) else (True if c > 0 else False)
-
-        def _is_occupied_v2(node):  # from web app v5.2.4
+        def _is_occupied(node):  # from web app v5.2.4
             """Occupancy vs Activity (code from app.js, search for 'occupancyIcon').
 
-                The occupancy symbol is affected by the mode/state of the zone:
-                    r = occupancy not detected (valid in any mode), Greyed out
-                    o = occupancy detected (valid in any mode), Hollow
-                    a = occupancy sufficient to call for heat (iff in Sense/FP mode), Solid
+                R = occupancy not detected (valid in any mode)
+                O = occupancy detected (valid in any mode)
+                A = occupancy detected, sufficient to call for heat (iff in Sense/FP mode)
 
                 l = null != i.settings.experimentalFeatures && i.settings.experimentalFeatures.timerPlus,
-                p = parseInt(n.iMode) === e.zoneModes.Mode_Footprint || l,
+                p = parseInt(n.iMode) === e.zoneModes.Mode_Footprint || l,           # in FP/sense mode
                 u = parseInt(n.iFlagExpectedKit) & e.equipmentTypes.Kit_PIR,         # has a PIR
-                d = n.trigger.reactive && n.trigger.output,                          # in Footprint mode?
+                d = n.trigger.reactive && n.trigger.output,                          #
                 c = parseInt(n.zoneReactive.fActivityLevel) || 0,
                 s = t.isInFootprintNightMode(n),                                     # night time
 
                 occupancyIcon() = p && u && d && !s ? a : c > 0 ? o : r
 
-                Hint: the following returns "XX": true ? "XX" : "YY"
+                Hint: the following returns "XX">> true ? "XX" : "YY"
             """
             # pylint: disable=invalid-name
             A = O = True  # noqa: E741
@@ -420,7 +401,7 @@ class GeniusZone(GeniusObject):
             p = node["iMode"] == ZONE_MODE.Footprint | l  # #                    Checked
             u = node["iFlagExpectedKit"] & ZONE_KIT.PIR  # #                     Checked
             d = node["trigger"]["reactive"] & node["trigger"]["output"]  # #     Checked
-            c = int(node["zoneReactive"]["fActivityLevel"])  # #                 Checked
+            c = int(node["zoneReactive"]["fActivityLevel"])  # # need int()?     Checked
             s = node["objFootprint"]["bIsNight"]  # #                            TODO
 
             return A if p and u and d and (not s) else (O if c > 0 else R)
@@ -429,7 +410,6 @@ class GeniusZone(GeniusObject):
             root = {"weekly": {}}
             day = -1
 
-            # TODO: confirm creation of zone despite exception
             setpoints = raw_dict["objTimer"]
             for idx, setpoint in enumerate(setpoints):
                 tm_next = setpoint["iTm"]
@@ -456,7 +436,6 @@ class GeniusZone(GeniusObject):
             root = {"weekly": {}}
             day = -1
 
-            # TODO: confirm creation of zone despite exception
             setpoints = raw_dict["objFootprint"]
             for idx, setpoint in enumerate(setpoints["lstSP"]):
                 tm_next = setpoint["iTm"]
@@ -499,7 +478,7 @@ class GeniusZone(GeniusObject):
                 result["setpoint"] = bool(raw_dict["fSP"])
 
             if raw_dict["iFlagExpectedKit"] & ZONE_KIT.PIR:
-                result["occupied"] = _is_occupied_v2(raw_dict)
+                result["occupied"] = _is_occupied(raw_dict)
 
             if raw_dict["iType"] in [
                 ZONE_TYPE.OnOffTimer,
