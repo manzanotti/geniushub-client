@@ -24,7 +24,7 @@ API_STATUS_ERROR = {
     502: "The hub is offline.",
     503: "The authorization information is invalid.",
 }
-ZONE_TYPES = SimpleNamespace(
+ZONE_TYPES = SimpleNamespace(  # ZONE_TYPE_MODEL
     Manager=1, OnOffTimer=2, ControlSP=3, ControlOnOffPID=4, TPI=5, Surrogate=6
 )
 ITYPE_TO_TYPE = {
@@ -37,7 +37,7 @@ ITYPE_TO_TYPE = {
 }
 TYPE_TO_ITYPE = {v: k for k, v in ITYPE_TO_TYPE.items()}
 
-ZONE_MODES = SimpleNamespace(
+MODES_MODEL = SimpleNamespace(
     Off=1,
     Timer=2,
     Footprint=4,
@@ -50,41 +50,17 @@ ZONE_MODES = SimpleNamespace(
     Other=256,
 )
 IMODE_TO_MODE = {
-    ZONE_MODES.Off: "off",
-    ZONE_MODES.Timer: "timer",
-    ZONE_MODES.Footprint: "footprint",  # could be 'sense'
-    ZONE_MODES.Away: "off",  # is 'away', but v1 API says 'off'
-    ZONE_MODES.Boost: "override",
-    ZONE_MODES.Early: "early",
-    ZONE_MODES.Test: "test",
-    ZONE_MODES.Linked: "linked",
-    ZONE_MODES.Other: "other",
+    MODES_MODEL.Off: "off",
+    MODES_MODEL.Timer: "timer",
+    MODES_MODEL.Footprint: "footprint",  # could be 'sense' mode
+    MODES_MODEL.Away: "off",  # v1 API says 'off', no 'away'
+    MODES_MODEL.Boost: "override",
+    MODES_MODEL.Early: "early",
+    MODES_MODEL.Test: "test",
+    MODES_MODEL.Linked: "linked",
+    MODES_MODEL.Other: "other",
 }
 MODE_TO_IMODE = {v: k for k, v in IMODE_TO_MODE.items()}
-
-KIT_TYPES = SimpleNamespace(
-    Temp=1,
-    Valve=2,
-    PIR=4,
-    Power=8,
-    Switch=16,
-    Dimmer=32,
-    Alarm=64,
-    GlobalTemp=128,
-    Humidity=256,
-    Luminance=512,
-)
-KIT_SKU_TO_TEXT = {
-    "HO-DCR-C": "Dual Channel Receiver",
-    "HO-SCR-C": "Single Channel Receiver",
-    "HO-ESW-D": "Electric Switch",
-    "PH-PLG-C": "Smart Plug",
-    "PH-WRS-B": "Room Sensor",
-    "DA-WRT-C": "Room Thermostat",
-    "HO-WRT-B": "Room Thermostat",
-    "DA-WRV-B": "Radiator Valve",
-    "DA-WRV-C": "Genius Valve",
-}  # DA=Danfoss; xCR=Channel Receiver, ESW=Elec Switch, WRx=Wireless Radio Sensor/Thermostat/Valve
 
 ZONE_FLAGS = SimpleNamespace(
     Frost=1,
@@ -154,7 +130,7 @@ STATE_ATTRS = {
     "Motion": "occupancyTrigger",  # #                        ROMS
 }
 
-# This is cut-and-paste from Vendor's bower.js
+# The following MODELs are cut-and-paste from Vendor's bower.js
 DEVICES_MODEL = [
     {"hash": "VIRTUAL", "sku": "virtual node", "description": "Virtual Node"},
     {"hash": "0x0000000000000000", "sku": "n/a", "description": "Unrecognised Device"},
@@ -370,4 +346,66 @@ DEVICES_MODEL = [
     },
 ]
 
-DEVICES_BY_HASH = {d["hash"]: d["description"] for d in DEVICES_MODEL}
+DESCRIPTION_BY_HASH = {d["hash"]: d["description"] for d in DEVICES_MODEL}
+
+SKU_BY_HASH = {d["hash"]: d["sku"] for d in DEVICES_MODEL}
+
+CHANNELS_MODEL = [
+    {
+        "id": "Switch Binary",
+        "description": "Output On/Off",
+        "slug": "outputOnOff",
+        "type": "Boolean",
+    },
+    {
+        "id": "SwitchBinary",
+        "description": "Output On/Off",
+        "slug": "outputOnOff",
+        "type": "Boolean",
+    },
+    {
+        "id": "Battery",
+        "description": "Battery Level",
+        "slug": "batteryLevel",
+        "type": "Number",
+    },
+    {
+        "id": "HEATING_1",
+        "description": "Set Temperature",
+        "slug": "setTemperature",
+        "type": "Number",
+    },
+    {
+        "id": "TEMPERATURE",
+        "description": "Measured Temperature",
+        "slug": "measuredTemperature",
+        "type": "Number",
+    },
+    {
+        "id": "LUMINANCE",
+        "description": "Luminance",
+        "slug": "luminance",
+        "type": "Number",
+    },
+    {
+        "id": "Motion",
+        "description": "Occupancy Trigger",
+        "slug": "occupancyTrigger",
+        "type": "Number",
+    },
+]
+
+ZONE_KIT_MODEL = SimpleNamespace(
+    Temp=1,
+    Valve=2,
+    PIR=4,
+    Power=8,
+    Switch=16,
+    Dimmer=32,
+    Alarm=64,
+    GlobalTemp=128,
+    Humidity=256,
+    Luminance=512,
+    GasMeter=1024,
+    CO2=2014,
+)

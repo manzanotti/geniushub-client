@@ -26,9 +26,9 @@ from .const import (
     ISSUE_TEXT,
     ISSUE_DESCRIPTION,
     ZONE_TYPES,
-    ZONE_MODES,
-    KIT_TYPES,
-    DEVICES_BY_HASH,
+    MODES_MODEL,
+    ZONE_KIT_MODEL,
+    DESCRIPTION_BY_HASH,
 )
 
 logging.basicConfig()
@@ -386,7 +386,7 @@ class GeniusZone(GeniusObject):
 
         def _is_occupied_v1(node):  # from web app v5.2.2
             # pylint: disable=invalid-name
-            u = node["iMode"] == ZONE_MODES.Footprint
+            u = node["iMode"] == MODES_MODEL.Footprint
             d = node["zoneReactive"]["bTriggerOn"]
             c = node["iActivity"] or 0
             o = node["objFootprint"]["bIsNight"]
@@ -417,8 +417,10 @@ class GeniusZone(GeniusObject):
             R = False
 
             l = True  # noqa: E741                                               TODO
-            p = node["iMode"] == ZONE_MODES.Footprint | l  # #                   Checked
-            u = node["iFlagExpectedKit"] & KIT_TYPES.PIR  # #                    Checked
+            p = (
+                node["iMode"] == MODES_MODEL.Footprint | l
+            )  # #                   Checked
+            u = node["iFlagExpectedKit"] & ZONE_KIT_MODEL.PIR  # #               Checked
             d = node["trigger"]["reactive"] & node["trigger"]["output"]  # #     Checked
             c = int(node["zoneReactive"]["fActivityLevel"])  # #                 Checked
             s = node["objFootprint"]["bIsNight"]  # #                            TODO
@@ -498,7 +500,7 @@ class GeniusZone(GeniusObject):
             elif raw_dict["iType"] == ZONE_TYPES.OnOffTimer:
                 result["setpoint"] = bool(raw_dict["fSP"])
 
-            if raw_dict["iFlagExpectedKit"] & KIT_TYPES.PIR:
+            if raw_dict["iFlagExpectedKit"] & ZONE_KIT_MODEL.PIR:
                 result["occupied"] = _is_occupied_v2(raw_dict)
 
             if raw_dict["iType"] in [
@@ -559,10 +561,10 @@ class GeniusZone(GeniusObject):
 
           mode is in {'off', 'timer', footprint', 'override'}
         """
-        allowed_modes = [ZONE_MODES.Off, ZONE_MODES.Override, ZONE_MODES.Timer]
+        allowed_modes = [MODES_MODEL.Off, MODES_MODEL.Override, MODES_MODEL.Timer]
 
         if hasattr(self, "occupied"):  # has a PIR (movement sensor)
-            allowed_modes += [ZONE_MODES.Footprint]
+            allowed_modes += [MODES_MODEL.Footprint]
         allowed_mode_strs = [IMODE_TO_MODE[i] for i in allowed_modes]
 
         if isinstance(mode, int) and mode in allowed_modes:
@@ -612,7 +614,7 @@ class GeniusZone(GeniusObject):
         else:  # self._hub.api_version == 3
             url = f"zone/{self.id}"
             data = {
-                "iMode": ZONE_MODES.Boost,
+                "iMode": MODES_MODEL.Boost,
                 "fBoostSP": setpoint,
                 "iBoostTimeRemaining": duration,
             }
@@ -638,24 +640,24 @@ class GeniusDevice(GeniusObject):  # pylint: disable=too-few-public-methods
         """Convert a device's v3 JSON to the v1 schema."""
 
         result = {}
-        result["id"] = raw_dict["addr"]  # 1. Set id (addr)
+        result["id"] = raw_dict["addr"]
 
         node = raw_dict["childNodes"]["_cfg"]["childValues"]
         result["_sku"] = node["sku"]["val"] if node else None
 
         node = raw_dict["childValues"]
         if "hash" in node:
-            result["type"] = DEVICES_BY_HASH[node["hash"]["val"]]
+            result["type"] = DESCRIPTION_BY_HASH[node["hash"]["val"]]
         elif node["SwitchBinary"]["path"].count("/") == 3:
             result["type"] = f"Dual Channel Receiver - Channel {result['id'][-1]}"
         else:
             result["type"] = None
 
-        result["assignedZones"] = [{"name": None}]  # 3. Set assignedZones...
+        result["assignedZones"] = [{"name": None}]
         if node["location"]["val"]:
             result["assignedZones"] = [{"name": node["location"]["val"]}]
 
-        result["state"] = state = {}  # 4. Set state...
+        result["state"] = state = {}
 
         # the following order should be preserved
         state.update([(v, node[k]["val"]) for k, v in STATE_ATTRS.items() if k in node])
