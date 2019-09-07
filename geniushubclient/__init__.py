@@ -383,7 +383,9 @@ class GeniusZone(GeniusObject):
     def _convert(self, raw_dict) -> Dict:  # pylint: disable=no-self-use
         """Convert a zone's v3 JSON to the v1 schema."""
 
-        def _is_occupied_v1(node):  # from web app v5.2.2  # pylint: disable=unused-variable
+        def _is_occupied_v1(
+            node
+        ):  # from web app v5.2.2  # pylint: disable=unused-variable
             # pylint: disable=invalid-name
             u = node["iMode"] == ZONE_MODES.Footprint
             d = node["zoneReactive"]["bTriggerOn"]
@@ -425,88 +427,57 @@ class GeniusZone(GeniusObject):
             return A if p and u and d and (not s) else (O if c > 0 else R)
 
         def _timer_schedule(raw_dict):
-            # timer = {} if: Manager
             root = {"weekly": {}}
             day = -1
 
-            try:  # TODO: confirm creation of zone despite exception
-                setpoints = raw_dict["objTimer"]
-                for idx, setpoint in enumerate(setpoints):
-                    tm_next = setpoint["iTm"]
-                    sp_next = setpoint["fSP"]
-                    if raw_dict["iType"] == ZONE_TYPES.OnOffTimer:
-                        sp_next = bool(sp_next)
+            # TODO: confirm creation of zone despite exception
+            setpoints = raw_dict["objTimer"]
+            for idx, setpoint in enumerate(setpoints):
+                tm_next = setpoint["iTm"]
+                sp_next = setpoint["fSP"]
+                if raw_dict["iType"] == ZONE_TYPES.OnOffTimer:
+                    sp_next = bool(sp_next)
 
-                    if setpoint["iDay"] > day:
-                        day += 1
-                        node = root["weekly"][IDAY_TO_DAY[day]] = {}
-                        node["defaultSetpoint"] = sp_next
-                        node["heatingPeriods"] = []
+                if setpoint["iDay"] > day:
+                    day += 1
+                    node = root["weekly"][IDAY_TO_DAY[day]] = {}
+                    node["defaultSetpoint"] = sp_next
+                    node["heatingPeriods"] = []
 
-                    elif sp_next != node["defaultSetpoint"]:
-                        tm_last = setpoints[idx + 1]["iTm"]
-                        node["heatingPeriods"].append(
-                            {"end": tm_last, "start": tm_next, "setpoint": sp_next}
-                        )
+                elif sp_next != node["defaultSetpoint"]:
+                    tm_last = setpoints[idx + 1]["iTm"]
 
-            except (
-                AttributeError,
-                LookupError,
-                TypeError,
-                NameError,
-                ValueError,
-            ) as err:
-                _LOGGER.exception(
-                    "Failed to convert Timer schedule for Zone %s, message: %s"
-                    "Note that the Zone's Timer schedule may not be correct.",
-                    result["id"],
-                    err,
-                )
-                return {}
+                    node["heatingPeriods"].append(
+                        {"end": tm_last, "start": tm_next, "setpoint": sp_next}
+                    )
 
             return root
 
         def _footprint_schedule(raw_dict):
-            # footprint={...} iff: ControlSP, _even_ if no PIR, otherwise ={}
             root = {"weekly": {}}
             day = -1
 
-            try:  # TODO: confirm creation of zone despite exception
-                setpoints = raw_dict["objFootprint"]
-                for idx, setpoint in enumerate(setpoints["lstSP"]):
-                    tm_next = setpoint["iTm"]
-                    sp_next = setpoint["fSP"]
+            # TODO: confirm creation of zone despite exception
+            setpoints = raw_dict["objFootprint"]
+            for idx, setpoint in enumerate(setpoints["lstSP"]):
+                tm_next = setpoint["iTm"]
+                sp_next = setpoint["fSP"]
 
-                    if setpoint["iDay"] > day:
-                        day += 1
-                        node = root["weekly"][IDAY_TO_DAY[day]] = {}
-                        node["defaultSetpoint"] = setpoints["fFootprintAwaySP"]
-                        node["heatingPeriods"] = []
+                if setpoint["iDay"] > day:
+                    day += 1
+                    node = root["weekly"][IDAY_TO_DAY[day]] = {}
+                    node["defaultSetpoint"] = setpoints["fFootprintAwaySP"]
+                    node["heatingPeriods"] = []
 
-                    if sp_next != setpoints["fFootprintAwaySP"]:
-                        if tm_next == setpoints["iFootprintTmNightStart"]:
-                            tm_last = 86400  # 24 * 60 * 60
-                        else:
-                            tm_last = setpoints["lstSP"][idx + 1]["iTm"]
+                if sp_next != setpoints["fFootprintAwaySP"]:
+                    if tm_next == setpoints["iFootprintTmNightStart"]:
+                        tm_last = 86400  # 24 * 60 * 60
+                    else:
+                        tm_last = setpoints["lstSP"][idx + 1]["iTm"]
 
-                        node["heatingPeriods"].append(
-                            {"end": tm_last, "start": tm_next, "setpoint": sp_next}
-                        )
-
-            except (
-                AttributeError,
-                LookupError,
-                TypeError,
-                UnboundLocalError,
-                ValueError,
-            ) as err:
-                _LOGGER.exception(
-                    "Failed to convert Footprint schedule for Zone %s, message: %s. "
-                    "Note that the Zone's Footprint schedule may not be correct.",
-                    result["id"],
-                    err,
-                )
-                return {}
+                    node["heatingPeriods"].append(
+                        {"end": tm_last, "start": tm_next, "setpoint": sp_next}
+                    )
 
             return root
 
@@ -516,39 +487,53 @@ class GeniusZone(GeniusObject):
         result["type"] = ITYPE_TO_TYPE[raw_dict["iType"]]
         result["mode"] = IMODE_TO_MODE[raw_dict["iMode"]]
 
-        if raw_dict["iType"] in [ZONE_TYPES.ControlSP, ZONE_TYPES.TPI]:
-            if not (
-                raw_dict["iType"] == ZONE_TYPES.TPI
-                and not raw_dict["activeTemperatureDevices"]
-            ):
-                result["temperature"] = raw_dict["fPV"]
-            result["setpoint"] = raw_dict["fSP"]
+        try:
+            if raw_dict["iType"] in [ZONE_TYPES.ControlSP, ZONE_TYPES.TPI]:
+                if not (
+                    raw_dict["iType"] == ZONE_TYPES.TPI
+                    and not raw_dict["activeTemperatureDevices"]
+                ):
+                    result["temperature"] = raw_dict["fPV"]
+                result["setpoint"] = raw_dict["fSP"]
 
-        elif raw_dict["iType"] == ZONE_TYPES.OnOffTimer:
-            result["setpoint"] = bool(raw_dict["fSP"])
+            elif raw_dict["iType"] == ZONE_TYPES.OnOffTimer:
+                result["setpoint"] = bool(raw_dict["fSP"])
 
-        if raw_dict["iFlagExpectedKit"] & KIT_TYPES.PIR:
-            result["occupied"] = _is_occupied_v2(raw_dict)
+            if raw_dict["iFlagExpectedKit"] & KIT_TYPES.PIR:
+                result["occupied"] = _is_occupied_v2(raw_dict)
 
-        if raw_dict["iType"] in [
-            ZONE_TYPES.OnOffTimer,
-            ZONE_TYPES.ControlSP,
-            ZONE_TYPES.TPI,
-        ]:
-            result["override"] = {}
-            result["override"]["duration"] = raw_dict["iBoostTimeRemaining"]
-            if raw_dict["iType"] == ZONE_TYPES.OnOffTimer:
-                result["override"]["setpoint"] = raw_dict["fBoostSP"] != 0
-            else:
-                result["override"]["setpoint"] = raw_dict["fBoostSP"]
+            if raw_dict["iType"] in [
+                ZONE_TYPES.OnOffTimer,
+                ZONE_TYPES.ControlSP,
+                ZONE_TYPES.TPI,
+            ]:
+                result["override"] = {}
+                result["override"]["duration"] = raw_dict["iBoostTimeRemaining"]
+                if raw_dict["iType"] == ZONE_TYPES.OnOffTimer:
+                    result["override"]["setpoint"] = raw_dict["fBoostSP"] != 0
+                else:
+                    result["override"]["setpoint"] = raw_dict["fBoostSP"]
 
-        result["schedule"] = {"timer": {}, "footprint": {}}  # for all zone types
+            result["schedule"] = {"timer": {}, "footprint": {}}  # for all zone types
 
-        if raw_dict["iType"] != ZONE_TYPES.Manager:
-            result["schedule"]["timer"] = _timer_schedule(raw_dict)
+            if raw_dict["iType"] != ZONE_TYPES.Manager:
+                # timer = {} if: Manager
+                result["schedule"]["timer"] = _timer_schedule(raw_dict)
 
-        if raw_dict["iType"] in [ZONE_TYPES.ControlSP]:
-            result["schedule"]["footprint"] = _footprint_schedule(raw_dict)
+            if raw_dict["iType"] in [ZONE_TYPES.ControlSP]:
+                # footprint={...} iff: ControlSP, _even_ if no PIR, otherwise ={}
+                result["schedule"]["footprint"] = _footprint_schedule(raw_dict)
+
+        except (
+            AttributeError,
+            LookupError,
+            TypeError,
+            UnboundLocalError,
+            ValueError,
+        ) as err:
+            _LOGGER.exception(
+                "Failed to fully convert Zone %s, message: %s.", result["id"], err
+            )
 
         return result
 
