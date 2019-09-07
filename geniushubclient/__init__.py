@@ -5,7 +5,7 @@
 from datetime import datetime
 from hashlib import sha256
 import json
-from typing import Dict, Optional, List  # Any, Set, Tuple
+from typing import Dict, List  # Any, Optional, Set, Tuple
 
 import logging
 import re
@@ -25,9 +25,10 @@ from .const import (
     IDAY_TO_DAY,
     ISSUE_TEXT,
     ISSUE_DESCRIPTION,
-    ZONE_TYPES,
-    ZONE_MODES,
-    KIT_TYPES,
+    ZONE_TYPE,
+    ZONE_MODE,
+    ZONE_KIT,
+    DESCRIPTION_BY_HASH,
 )
 
 logging.basicConfig()
@@ -38,23 +39,23 @@ _LOGGER = logging.getLogger(__name__)
 
 
 def natural_sort(dict_list, dict_key) -> List[Dict]:
-    """Return a case-insensitively sorted list, with '11' after '2-2'."""
-    # noqa; pylint: disable=missing-docstring, multiple-statements
-    def alphanum_key(k):
+    """Return a case-insensitively sorted list with '11' after '2-2'."""
+
+    def _alphanum_key(k):
         return [
             int(c) if c.isdigit() else c.lower()
             for c in re.split("([0-9]+)", k[dict_key])
         ]
 
-    return sorted(dict_list, key=alphanum_key)
+    return sorted(dict_list, key=_alphanum_key)
 
 
-def _zones_via_zones_v3(raw_json) -> List:
+def _zones_via_v3_zones(raw_json) -> List[Dict]:
     """Extract Zones from /v3/zones JSON."""
     return raw_json["data"]
 
 
-def _devices_via_data_mgr_v3(raw_json) -> List:
+def _devices_via_v3_data_mgr(raw_json) -> List[Dict]:
     """Extract Devices from /v3/data_manager JSON."""
     result = []
     for site in [
@@ -71,7 +72,7 @@ def _devices_via_data_mgr_v3(raw_json) -> List:
     return result
 
 
-def _issues_via_zones_v3(raw_json) -> List:
+def _issues_via_v3_zones(raw_json) -> List[Dict]:
     """Extract Issues from /v3/zones JSON."""
     result = []
     for zone in raw_json["data"]:
@@ -84,14 +85,20 @@ def _issues_via_zones_v3(raw_json) -> List:
     return result
 
 
-def _version_via_zones_v3(raw_json) -> Dict:
+def _version_via_v3_auth(raw_json) -> Dict:
     """Extract Version from /v3/zones JSON."""
+    return raw_json["data"]["release"]
+
+
+def _version_via_v3_zones(raw_json) -> Dict:
+    """Extract Version from /v3/zones JSON (a hack)."""
     build_date = datetime.strptime(raw_json["data"][0]["strBuildDate"], "%b %d %Y")
 
     for date_time_idx in HUB_SW_VERSIONS:
         if datetime.strptime(date_time_idx, "%b %d %Y") <= build_date:
             result = {"hubSoftwareVersion": HUB_SW_VERSIONS[date_time_idx]}
             break
+
     return result
 
 
@@ -107,8 +114,7 @@ class GeniusHub:  # pylint: disable=too-many-instance-attributes
             _LOGGER.debug("Debug mode is explicitly enabled.")
         else:
             _LOGGER.debug(
-                "Debug mode is not explicitly enabled "
-                "(but may be enabled elsewhere)."
+                "Debug mode is not explicitly enabled (but may be enabled elsewhere)."
             )
 
         self._session = session if session else aiohttp.ClientSession()
@@ -130,7 +136,7 @@ class GeniusHub:  # pylint: disable=too-many-instance-attributes
         self._verbose = 1
 
         self.issues = self.version = None
-        self._zones = self._devices = self._issues = None
+        self._zones = self._devices = self._issues = self._version = None
         self._test_json = {}  # used with GeniusTestHub
 
         self.zone_objs = []
@@ -143,7 +149,7 @@ class GeniusHub:  # pylint: disable=too-many-instance-attributes
         self.issue_objs = []
 
     def __repr__(self) -> str:
-        return json.dumps(self.info)
+        return json.dumps(self.version)
 
     @property
     def verbosity(self) -> int:
@@ -156,7 +162,7 @@ class GeniusHub:  # pylint: disable=too-many-instance-attributes
             self._verbose = value
         else:
             raise ValueError(
-                f"{value} is not valid for verbosity. The permissible range is (0-3)."
+                f"{value} is not valid for verbosity, the permissible range is (0-3)."
             )
 
     async def request(self, method, url, data=None):
@@ -199,12 +205,6 @@ class GeniusHub:  # pylint: disable=too-many-instance-attributes
         if method != "GET":
             _LOGGER.debug("_request(): response=%s", response)
         return response
-
-    @property
-    def info(self) -> Dict:
-        """Return all information for the hub."""
-        # x.get("/v3/auth/test", { username: e, password: t, timeout: n })
-        return self.version
 
     @property
     def zones(self) -> List:
@@ -289,21 +289,32 @@ class GeniusHub:  # pylint: disable=too-many-instance-attributes
         else:
             self.issues = [_convert_issue(raw_issue) for raw_issue in self._issues]
 
+        if self.api_version == 1:
+            self.version = self._version
+        else:
+            self.version = {
+                "hubSoftwareVersion": self._version,
+                "earliestCompatibleAPI": "https://my.geniushub.co.uk/v1",
+                "latestCompatibleAPI": "https://my.geniushub.co.uk/v1",
+            }
+
     async def update(self):
         """Update the Hub with its latest state data."""
         if self.api_version == 1:
             self._zones = await self.request("GET", "zones")
             self._devices = await self.request("GET", "devices")
             self._issues = await self.request("GET", "issues")
-            self.version = await self.request("GET", "version")
+            self._version = await self.request("GET", "version")
 
         else:  # self.api_version == 3:
-            self._zones = _zones_via_zones_v3(await self.request("GET", "zones"))
-            self._devices = _devices_via_data_mgr_v3(
+            self._zones = _zones_via_v3_zones(await self.request("GET", "zones"))
+            self._devices = _devices_via_v3_data_mgr(
                 await self.request("GET", "data_manager")
             )
-            self._issues = _issues_via_zones_v3({"data": self._zones})
-            self.version = _version_via_zones_v3({"data": self._zones})
+            self._issues = _issues_via_v3_zones({"data": self._zones})
+            self._version = _version_via_v3_auth(
+                await self.request("GET", "auth/release")
+            )
 
         await self._update()  # now convert all the raw JSON
 
@@ -329,8 +340,8 @@ class GeniusTestHub(GeniusHub):
         """Update the Hub with its latest state data."""
         self._zones = self._test_json["zones"]
         self._devices = self._test_json["devices"]
-        self._issues = _issues_via_zones_v3({"data": self._zones})
-        self.version = _version_via_zones_v3({"data": self._zones})
+        self._issues = _issues_via_v3_zones({"data": self._zones})
+        self._version = _version_via_v3_zones({"data": self._zones})  # a hack
 
         await self._update()  # now convert all the raw JSON
 
@@ -383,152 +394,143 @@ class GeniusZone(GeniusObject):
 
     def _convert(self, raw_dict) -> Dict:  # pylint: disable=no-self-use
         """Convert a zone's v3 JSON to the v1 schema."""
+
+        def _is_occupied(node):  # from web app v5.2.4
+            """Occupancy vs Activity (code from app.js, search for 'occupancyIcon').
+
+                R = occupancy not detected (valid in any mode)
+                O = occupancy detected (valid in any mode)
+                A = occupancy detected, sufficient to call for heat (iff in Sense/FP mode)
+
+                l = null != i.settings.experimentalFeatures && i.settings.experimentalFeatures.timerPlus,
+                p = parseInt(n.iMode) === e.zoneModes.Mode_Footprint || l,           # in FP/sense mode
+                u = parseInt(n.iFlagExpectedKit) & e.equipmentTypes.Kit_PIR,         # has a PIR
+                d = n.trigger.reactive && n.trigger.output,                          #
+                c = parseInt(n.zoneReactive.fActivityLevel) || 0,
+                s = t.isInFootprintNightMode(n),                                     # night time
+
+                occupancyIcon() = p && u && d && !s ? a : c > 0 ? o : r
+
+                Hint: the following returns "XX">> true ? "XX" : "YY"
+            """
+            # pylint: disable=invalid-name
+            A = O = True  # noqa: E741
+            R = False
+
+            l = True  # noqa: E741                                               TODO
+            p = node["iMode"] == ZONE_MODE.Footprint | l  # #                    Checked
+            u = node["iFlagExpectedKit"] & ZONE_KIT.PIR  # #                     Checked
+            d = node["trigger"]["reactive"] & node["trigger"]["output"]  # #     Checked
+            c = int(node["zoneReactive"]["fActivityLevel"])  # # need int()?     Checked
+            s = node["objFootprint"]["bIsNight"]  # #                            TODO
+
+            return A if p and u and d and (not s) else (O if c > 0 else R)
+
+        def _timer_schedule(raw_dict):
+            root = {"weekly": {}}
+            day = -1
+
+            setpoints = raw_dict["objTimer"]
+            for idx, setpoint in enumerate(setpoints):
+                tm_next = setpoint["iTm"]
+                sp_next = setpoint["fSP"]
+                if raw_dict["iType"] == ZONE_TYPE.OnOffTimer:
+                    sp_next = bool(sp_next)
+
+                if setpoint["iDay"] > day:
+                    day += 1
+                    node = root["weekly"][IDAY_TO_DAY[day]] = {}
+                    node["defaultSetpoint"] = sp_next
+                    node["heatingPeriods"] = []
+
+                elif sp_next != node["defaultSetpoint"]:
+                    tm_last = setpoints[idx + 1]["iTm"]
+
+                    node["heatingPeriods"].append(
+                        {"end": tm_last, "start": tm_next, "setpoint": sp_next}
+                    )
+
+            return root
+
+        def _footprint_schedule(raw_dict):
+            root = {"weekly": {}}
+            day = -1
+
+            setpoints = raw_dict["objFootprint"]
+            for idx, setpoint in enumerate(setpoints["lstSP"]):
+                tm_next = setpoint["iTm"]
+                sp_next = setpoint["fSP"]
+
+                if setpoint["iDay"] > day:
+                    day += 1
+                    node = root["weekly"][IDAY_TO_DAY[day]] = {}
+                    node["defaultSetpoint"] = setpoints["fFootprintAwaySP"]
+                    node["heatingPeriods"] = []
+
+                if sp_next != setpoints["fFootprintAwaySP"]:
+                    if tm_next == setpoints["iFootprintTmNightStart"]:
+                        tm_last = 86400  # 24 * 60 * 60
+                    else:
+                        tm_last = setpoints["lstSP"][idx + 1]["iTm"]
+
+                    node["heatingPeriods"].append(
+                        {"end": tm_last, "start": tm_next, "setpoint": sp_next}
+                    )
+
+            return root
+
         result = {}
         result["id"] = raw_dict["iID"]
         result["name"] = raw_dict["strName"]
         result["type"] = ITYPE_TO_TYPE[raw_dict["iType"]]
         result["mode"] = IMODE_TO_MODE[raw_dict["iMode"]]
 
-        if raw_dict["iType"] in [ZONE_TYPES.ControlSP, ZONE_TYPES.TPI]:
-            if not (
-                raw_dict["iType"] == ZONE_TYPES.TPI
-                and not raw_dict["activeTemperatureDevices"]
-            ):
-                result["temperature"] = raw_dict["fPV"]
-            result["setpoint"] = raw_dict["fSP"]
+        try:
+            if raw_dict["iType"] in [ZONE_TYPE.ControlSP, ZONE_TYPE.TPI]:
+                if not (
+                    raw_dict["iType"] == ZONE_TYPE.TPI
+                    and not raw_dict["activeTemperatureDevices"]
+                ):
+                    result["temperature"] = raw_dict["fPV"]
+                result["setpoint"] = raw_dict["fSP"]
 
-        elif raw_dict["iType"] == ZONE_TYPES.OnOffTimer:
-            result["setpoint"] = bool(raw_dict["fSP"])
+            elif raw_dict["iType"] == ZONE_TYPE.OnOffTimer:
+                result["setpoint"] = bool(raw_dict["fSP"])
 
-        # pylint: disable=pointless-string-statement
-        """Occupancy vs Activity (code from ap.js, search for occupancyIcon).
+            if raw_dict["iFlagExpectedKit"] & ZONE_KIT.PIR:
+                result["occupied"] = _is_occupied(raw_dict)
 
-            The occupancy symbol is affected by the mode of the zone:
-                Greyed out: no occupancy detected
-                Hollow icon: occupancy detected
-            In Footprint Mode:
-                Solid icon: occupancy detected; sufficient to call for heat
+            if raw_dict["iType"] in [
+                ZONE_TYPE.OnOffTimer,
+                ZONE_TYPE.ControlSP,
+                ZONE_TYPE.TPI,
+            ]:
+                result["override"] = {}
+                result["override"]["duration"] = raw_dict["iBoostTimeRemaining"]
+                if raw_dict["iType"] == ZONE_TYPE.OnOffTimer:
+                    result["override"]["setpoint"] = raw_dict["fBoostSP"] != 0
+                else:
+                    result["override"]["setpoint"] = raw_dict["fBoostSP"]
 
-            l = parseInt(i.iFlagExpectedKit) & e.equipmentTypes.Kit_PIR          # has a PIR
-            u = parseInt(i.iMode) === e.zoneModes.Mode_Footprint                 # in Footprint mode
-            d = null != (s=i.zoneReactive) ? s.bTriggerOn: void 0                # ???
-            c = parseInt(i.iActivity) || 0                                       # ???
-            o = t.isInFootprintNightMode(i)                                      # night time
+            result["schedule"] = {"timer": {}, "footprint": {}}  # for all zone types
 
-            u && l && d && !o ? n : c > 0 ? r : a
+            if raw_dict["iType"] != ZONE_TYPE.Manager:  # timer = {} if: Manager
+                result["schedule"]["timer"] = _timer_schedule(raw_dict)
 
-            n = "<i class='icon hg-icon-full-man   occupancy active' data-clickable='true'></i>"
-            r = "<i class='icon hg-icon-hollow-man occupancy active' data-clickable='true'></i>"
-            a = "<i class='icon hg-icon-full-man   occupancy'        data-clickable='false'></i>"
-        """
-        if raw_dict["iFlagExpectedKit"] & KIT_TYPES.PIR:
-            # pylint: disable=invalid-name
-            u = raw_dict["iMode"] == ZONE_MODES.Footprint
-            d = raw_dict["zoneReactive"]["bTriggerOn"]
-            c = raw_dict["iActivity"] or 0
-            o = raw_dict["objFootprint"]["bIsNight"]
-            result["occupied"] = (
-                True if u and d and (not o) else True if c > 0 else False
+            if raw_dict["iType"] in [ZONE_TYPE.ControlSP]:
+                # footprint={...} iff: ControlSP, _even_ if no PIR, otherwise ={}
+                result["schedule"]["footprint"] = _footprint_schedule(raw_dict)
+
+        except (
+            AttributeError,
+            LookupError,
+            TypeError,
+            UnboundLocalError,
+            ValueError,
+        ) as err:
+            _LOGGER.exception(
+                "Failed to fully convert Zone %s, message: %s.", result["id"], err
             )
-
-        if raw_dict["iType"] in [
-            ZONE_TYPES.OnOffTimer,
-            ZONE_TYPES.ControlSP,
-            ZONE_TYPES.TPI,
-        ]:
-            result["override"] = {}
-            result["override"]["duration"] = raw_dict["iBoostTimeRemaining"]
-            if raw_dict["iType"] == ZONE_TYPES.OnOffTimer:
-                result["override"]["setpoint"] = raw_dict["fBoostSP"] != 0
-            else:
-                result["override"]["setpoint"] = raw_dict["fBoostSP"]
-
-        # pylint: disable=pointless-string-statement
-        """Schedules - What is known:
-             timer={} if: Manager
-             footprint={...} iff: ControlSP, _even_ if no PIR, otherwise ={}
-        """
-        result["schedule"] = {"timer": {}, "footprint": {}}
-
-        # Timer schedule...
-        if raw_dict["iType"] != ZONE_TYPES.Manager:
-            root = result["schedule"]["timer"] = {"weekly": {}}
-            day = -1
-
-            try:  # TODO: confirm creation of zone despite exception
-                setpoints = raw_dict["objTimer"]
-                for idx, setpoint in enumerate(setpoints):
-                    tm_next = setpoint["iTm"]
-                    sp_next = setpoint["fSP"]
-                    if raw_dict["iType"] == ZONE_TYPES.OnOffTimer:
-                        sp_next = bool(sp_next)
-
-                    if setpoint["iDay"] > day:
-                        day += 1
-                        node = root["weekly"][IDAY_TO_DAY[day]] = {}
-                        node["defaultSetpoint"] = sp_next
-                        node["heatingPeriods"] = []
-
-                    elif sp_next != node["defaultSetpoint"]:
-                        tm_last = setpoints[idx + 1]["iTm"]
-                        node["heatingPeriods"].append(
-                            {"end": tm_last, "start": tm_next, "setpoint": sp_next}
-                        )
-
-            except (
-                AttributeError,
-                LookupError,
-                TypeError,
-                NameError,
-                ValueError,
-            ) as err:
-                _LOGGER.exception(
-                    "Failed to convert Timer schedule for Zone %s, message: %s"
-                    "Note that the Zone's Timer schedule may not be correct.",
-                    result["id"],
-                    err,
-                )
-
-        # Footprint schedule...
-        if raw_dict["iType"] in [ZONE_TYPES.ControlSP]:
-            root = result["schedule"]["footprint"] = {"weekly": {}}
-            day = -1
-
-            try:  # TODO: confirm creation of zone despite exception
-                setpoints = raw_dict["objFootprint"]
-                for idx, setpoint in enumerate(setpoints["lstSP"]):
-                    tm_next = setpoint["iTm"]
-                    sp_next = setpoint["fSP"]
-
-                    if setpoint["iDay"] > day:
-                        day += 1
-                        node = root["weekly"][IDAY_TO_DAY[day]] = {}
-                        node["defaultSetpoint"] = setpoints["fFootprintAwaySP"]
-                        node["heatingPeriods"] = []
-
-                    if sp_next != setpoints["fFootprintAwaySP"]:
-                        if tm_next == setpoints["iFootprintTmNightStart"]:
-                            tm_last = 86400  # 24 * 60 * 60
-                        else:
-                            tm_last = setpoints["lstSP"][idx + 1]["iTm"]
-
-                        node["heatingPeriods"].append(
-                            {"end": tm_last, "start": tm_next, "setpoint": sp_next}
-                        )
-
-            except (
-                AttributeError,
-                LookupError,
-                TypeError,
-                UnboundLocalError,
-                ValueError,
-            ) as err:
-                _LOGGER.exception(
-                    "Failed to convert Footprint schedule for Zone %s, message: %s. "
-                    "Note that the Zone's Footprint schedule may not be correct.",
-                    result["id"],
-                    err,
-                )
 
         return result
 
@@ -556,10 +558,10 @@ class GeniusZone(GeniusObject):
 
           mode is in {'off', 'timer', footprint', 'override'}
         """
-        allowed_modes = [ZONE_MODES.Off, ZONE_MODES.Override, ZONE_MODES.Timer]
+        allowed_modes = [ZONE_MODE.Off, ZONE_MODE.Override, ZONE_MODE.Timer]
 
         if hasattr(self, "occupied"):  # has a PIR (movement sensor)
-            allowed_modes += [ZONE_MODES.Footprint]
+            allowed_modes += [ZONE_MODE.Footprint]
         allowed_mode_strs = [IMODE_TO_MODE[i] for i in allowed_modes]
 
         if isinstance(mode, int) and mode in allowed_modes:
@@ -577,7 +579,7 @@ class GeniusZone(GeniusObject):
         if self._hub.api_version == 1:
             url = f"zones/{self.id}/mode"  # v1 API uses strings
             resp = await self._hub.request("PUT", url, data=mode_str)
-        else:  # self._hub.api_version == 1
+        else:  # self._hub.api_version == 3
             url = (
                 f"zone/{self.id}"
             )  # v3 API uses dicts  # TODO: check: is it PUT(POST?) vs PATCH
@@ -587,15 +589,13 @@ class GeniusZone(GeniusObject):
             resp = resp["data"] if resp["error"] == 0 else resp
         _LOGGER.debug("Zone(%s).set_mode(): response = %s", self.id, resp)
 
-    async def set_override(self, setpoint=None, duration=3600):
+    async def set_override(self, setpoint=None, duration=None):
         """Set the zone to override to a certain temperature.
 
           duration is in seconds
           setpoint is in degrees Celsius
         """
-        setpoint = (
-            setpoint if setpoint is not None else self.setpoint
-        )  # pylint: disable=no-member
+        assert setpoint is not None or duration is not None
 
         _LOGGER.debug(
             "Zone(%s).set_override(setpoint=%s, duration=%s)...",
@@ -608,10 +608,10 @@ class GeniusZone(GeniusObject):
             url = f"zones/{self.id}/override"
             data = {"setpoint": setpoint, "duration": duration}
             resp = await self._hub.request("POST", url, data=data)
-        else:
+        else:  # self._hub.api_version == 3
             url = f"zone/{self.id}"
             data = {
-                "iMode": ZONE_MODES.Boost,
+                "iMode": ZONE_MODE.Boost,
                 "fBoostSP": setpoint,
                 "iBoostTimeRemaining": duration,
             }
@@ -636,62 +636,25 @@ class GeniusDevice(GeniusObject):  # pylint: disable=too-few-public-methods
     def _convert(self, raw_dict) -> Dict:  # pylint: disable=no-self-use
         """Convert a device's v3 JSON to the v1 schema."""
 
-        def _check_fingerprint(node, device) -> Optional[str]:
-            """Check the device type against its 'fingerprint'."""
-            # pylint: disable=invalid-name
-            fp = None
-
-            if "Battery" in node and "SwitchBinary" not in node:
-                if "Motion" in node:  # or 'Tamper': PH-WRS-B
-                    fp = "Room Sensor"
-                elif "setback" in node:  # DA-WRV-C (else DA-WRV-B)
-                    fp = "Genius Valve" if "TEMPERATURE" in node else "Radiator Valve"
-                else:  # DA-WRT-C (else HO-WRT-B)
-                    fp = "Room Thermostat" if "Indicator" in node else "Room Thermostat"
-
-            elif "SwitchBinary" in node and "Battery" not in node:  # TODO: HO-SCR-C ?
-                if "SwitchAllMode" in node:  # PH-PLG-C
-                    fp = "Smart Plug"
-                elif "TEMPERATURE" in node:  # HO-ESW-D
-                    fp = "Electric Switch"
-                elif node["SwitchBinary"]["path"].count("/") == 3:
-                    fp = f"Dual Channel Receiver - Channel {device['id'][-1]}"
-                else:  # HO-DCR-C
-                    fp = "Dual Channel Receiver"
-
-            if not device["_type"] or fp != device["_type"][:21]:
-                msg = f"Device {device['id']} (SKU={device['_sku']}): assigned type "
-
-                if fp is None:  # no/invalid device fingerprint!
-                    msg += f"('{device['_type']}') is ignored as no fingerprint!"
-                    _LOGGER.warning(msg)
-                elif not device["_type"]:
-                    msg += f"only via its fingerprint ('{fp}')."
-                    _LOGGER.debug(msg)
-                else:
-                    msg += f"('{device['_type']}') doesn't match fingerprint ('{fp}')!"
-                    _LOGGER.warning(msg)
-                    fp = device["_type"]  # prefer type over fingerprint
-
-            return fp
-
         result = {}
-
-        result["id"] = raw_dict["addr"]  # 1. Set id (addr)
+        result["id"] = raw_dict["addr"]
 
         node = raw_dict["childNodes"]["_cfg"]["childValues"]
-        result["_type"] = node["name"]["val"] if node else None
         result["_sku"] = node["sku"]["val"] if node else None
 
         node = raw_dict["childValues"]
-        device_type = _check_fingerprint(node, result)
-        result["type"] = device_type if device_type else "Unrecognised Device"
+        if "hash" in node:
+            result["type"] = DESCRIPTION_BY_HASH[node["hash"]["val"]]
+        elif node["SwitchBinary"]["path"].count("/") == 3:
+            result["type"] = f"Dual Channel Receiver - Channel {result['id'][-1]}"
+        else:
+            result["type"] = None
 
-        result["assignedZones"] = [{"name": None}]  # 3. Set assignedZones...
+        result["assignedZones"] = [{"name": None}]
         if node["location"]["val"]:
             result["assignedZones"] = [{"name": node["location"]["val"]}]
 
-        result["state"] = state = {}  # 4. Set state...
+        result["state"] = state = {}
 
         # the following order should be preserved
         state.update([(v, node[k]["val"]) for k, v in STATE_ATTRS.items() if k in node])

@@ -24,17 +24,20 @@ API_STATUS_ERROR = {
     502: "The hub is offline.",
     503: "The authorization information is invalid.",
 }
-ZONE_TYPES = SimpleNamespace(
+ZONE_TYPE = SimpleNamespace(
     Manager=1, OnOffTimer=2, ControlSP=3, ControlOnOffPID=4, TPI=5, Surrogate=6
 )
-# 1 'Manager'
-# 2 'On / Off'
-# 3 'Radiator'
-# 4
-# 5 'Hot Water Temperature' OR 'Wet Underfloor'
-# 6 'Group'
+ITYPE_TO_TYPE = {  # ZONE_TYPE_MODEL
+    ZONE_TYPE.Manager: "manager",  # "my house"
+    ZONE_TYPE.OnOffTimer: "on / off",  # "on / off timer"
+    ZONE_TYPE.ControlSP: "radiator",  # "radiator room"
+    ZONE_TYPE.ControlOnOffPID: "wet underfloor",  # "control on / off PID"
+    ZONE_TYPE.TPI: "hot water temperature",  # "TPI"
+    ZONE_TYPE.Surrogate: "group",  # "group"
+}
+TYPE_TO_ITYPE = {v: k for k, v in ITYPE_TO_TYPE.items()}
 
-ZONE_MODES = SimpleNamespace(
+ZONE_MODE = SimpleNamespace(
     Off=1,
     Timer=2,
     Footprint=4,
@@ -46,30 +49,20 @@ ZONE_MODES = SimpleNamespace(
     Linked=128,
     Other=256,
 )
-KIT_TYPES = SimpleNamespace(
-    Temp=1,
-    Valve=2,
-    PIR=4,
-    Power=8,
-    Switch=16,
-    Dimmer=32,
-    Alarm=64,
-    GlobalTemp=128,
-    Humidity=256,
-    Luminance=512,
-)
-KIT_SKU_TO_TEXT = {
-    "HO-DCR-C": "Dual Channel Receiver",
-    "HO-SCR-C": "Single Channel Receiver",
-    "HO-ESW-D": "Electric Switch",
-    "PH-PLG-C": "Smart Plug",
-    "PH-WRS-B": "Room Sensor",
-    "DA-WRT-C": "Room Thermostat",
-    "HO-WRT-B": "Room Thermostat",
-    "DA-WRV-B": "Radiator Valve",
-    "DA-WRV-C": "Genius Valve",
-}  # DA=Danfoss; xCR=Channel Receiver, ESW=Elec Switch, WRx=Wireless Radio Sensor/Thermostat/Valve
-ZONE_FLAGS = SimpleNamespace(
+IMODE_TO_MODE = {  # MODE_MODEL
+    ZONE_MODE.Off: "off",
+    ZONE_MODE.Timer: "timer",
+    ZONE_MODE.Footprint: "footprint",  # could be 'sense' mode
+    ZONE_MODE.Away: "off",  # v1 API says 'off', no 'away'
+    ZONE_MODE.Boost: "override",
+    ZONE_MODE.Early: "early",
+    ZONE_MODE.Test: "test",
+    ZONE_MODE.Linked: "linked",
+    ZONE_MODE.Other: "other",
+}
+MODE_TO_IMODE = {v: k for k, v in IMODE_TO_MODE.items()}
+
+ZONE_FLAG = SimpleNamespace(
     Frost=1,
     Timer=2,
     Footprint=4,
@@ -83,44 +76,22 @@ ZONE_FLAGS = SimpleNamespace(
     Temps=1024,
     TPI=2048,
 )
-ITYPE_TO_TYPE = {
-    ZONE_TYPES.Manager: "manager",
-    ZONE_TYPES.OnOffTimer: "on / off",
-    ZONE_TYPES.ControlSP: "radiator",
-    ZONE_TYPES.ControlOnOffPID: "type 4",
-    ZONE_TYPES.TPI: "hot water temperature",
-    ZONE_TYPES.Surrogate: "type 6",
-}  # also: 'group', 'wet underfloor'
-TYPE_TO_ITYPE = {v: k for k, v in ITYPE_TO_TYPE.items()}
 
-IMODE_TO_MODE = {
-    ZONE_MODES.Off: "off",
-    ZONE_MODES.Timer: "timer",
-    ZONE_MODES.Footprint: "footprint",
-    ZONE_MODES.Away: "off",  # is 'away', but v1 API says 'off'
-    ZONE_MODES.Boost: "override",
-    ZONE_MODES.Early: "early",
-    ZONE_MODES.Test: "test",
-    ZONE_MODES.Linked: "linked",
-    ZONE_MODES.Other: "other",
-}
-MODE_TO_IMODE = {v: k for k, v in IMODE_TO_MODE.items()}
-
-ISSUE_TEXT = {2: "error", 1: "warning", 0: "information"}
+ISSUE_TEXT = {0: "information", 1: "warning", 2: "error"}
 ISSUE_DESCRIPTION = {
     "manager:no_boiler_controller": "The hub does not have a boiler controller assigned",
     "manager:no_boiler_comms": "The hub has lost communication with the boiler controller",
     "manager:no_temp": "The hub does not have a valid temperature",
-    "manager:weather": "Unable to fetch the weather data",  # confirmed
+    "manager:weather": "Unable to fetch the weather data",  # correct
     "manager:weather_data": "Weather data -",
     "zone:using_weather_temp": "{zone_name} is currently using the outside temperature",
     "zone:using_assumed_temp": "{zone_name} is currently using the assumed temperature",
-    "zone:tpi_no_temp": "{zone_name} currently has no valid temperature",  # confirmed
+    "zone:tpi_no_temp": "{zone_name} currently has no valid temperature",  # correct
     "node:no_comms": "The {device_type} has lost communication with the Hub",
-    "node:not_seen": "The {device_type} in {zone_name} can not been found by the Hub",  # confirmed
-    "node:low_battery": "The battery for the {device_type} in {zone_name} is dead and needs to be replaced",  # confirmed
+    "node:not_seen": "The {device_type} in {zone_name} can not been found by the Hub",  # correct
+    "node:low_battery": "The battery for the {device_type} in {zone_name} is dead and needs to be replaced",  # correct
     "node:warn_battery": "The battery for the {device_type} is low",
-}
+}  # these messages are different to those in app.js
 
 IDAY_TO_DAY = {
     0: "sunday",
@@ -150,16 +121,7 @@ ATTRS_DEVICE = {
 }
 ATTRS_ISSUE = {"summary_keys": ["description", "level"], "detail_keys": []}
 
-STATE_ATTRS = {
-    "SwitchBinary": "outputOnOff",  # #      DCCR/PLUG, RADR
-    "Battery": "batteryLevel",  # #          VALV/ROMT, RADR, ROMS
-    "HEATING_1": "setTemperature",  # #      VALV/ROMT, RADR
-    "TEMPERATURE": "measuredTemperature",  # VALV/ROMT, RADR, ROMS
-    "LUMINANCE": "luminance",  # #                            ROMS
-    "Motion": "occupancyTrigger",  # #                        ROMS
-}
-
-# This is from Vendor's bower.js
+# The following MODELs are from Vendor's bower.js, search for: 'Model: [{'
 DEVICES_MODEL = [
     {"hash": "VIRTUAL", "sku": "virtual node", "description": "Virtual Node"},
     {"hash": "0x0000000000000000", "sku": "n/a", "description": "Unrecognised Device"},
@@ -374,3 +336,69 @@ DEVICES_MODEL = [
         "sku": "po-plg-b",
     },
 ]
+
+DESCRIPTION_BY_HASH = {d["hash"]: d["description"] for d in DEVICES_MODEL}
+
+SKU_BY_HASH = {d["hash"]: d["sku"] for d in DEVICES_MODEL}
+
+CHANNELS_MODEL = [
+    {
+        "id": "Switch Binary",
+        "description": "Output On/Off",
+        "slug": "outputOnOff",
+        "type": "Boolean",
+    },
+    {
+        "id": "SwitchBinary",
+        "description": "Output On/Off",
+        "slug": "outputOnOff",
+        "type": "Boolean",
+    },
+    {
+        "id": "Battery",
+        "description": "Battery Level",
+        "slug": "batteryLevel",
+        "type": "Number",
+    },
+    {
+        "id": "HEATING_1",
+        "description": "Set Temperature",
+        "slug": "setTemperature",
+        "type": "Number",
+    },
+    {
+        "id": "TEMPERATURE",
+        "description": "Measured Temperature",
+        "slug": "measuredTemperature",
+        "type": "Number",
+    },
+    {
+        "id": "LUMINANCE",
+        "description": "Luminance",
+        "slug": "luminance",
+        "type": "Number",
+    },
+    {
+        "id": "Motion",
+        "description": "Occupancy Trigger",
+        "slug": "occupancyTrigger",
+        "type": "Number",
+    },
+]
+
+STATE_ATTRS = {c["id"]: c["slug"] for c in CHANNELS_MODEL}
+
+ZONE_KIT = SimpleNamespace(  # ZONE_KIT_MODEL
+    Temp=1,
+    Valve=2,
+    PIR=4,
+    Power=8,
+    Switch=16,
+    Dimmer=32,
+    Alarm=64,
+    GlobalTemp=128,
+    Humidity=256,
+    Luminance=512,
+    GasMeter=1024,
+    CO2=2014,
+)
