@@ -85,21 +85,18 @@ def _issues_via_v3_zones(raw_json) -> List[Dict]:
     return result
 
 
-def _version_via_v3_auth(raw_json) -> Dict:
+def _version_via_v3_auth(raw_json) -> str:
     """Extract Version from /v3/zones JSON."""
     return raw_json["data"]["release"]
 
 
-def _version_via_v3_zones(raw_json) -> Dict:
+def _version_via_v3_zones(raw_json) -> str:
     """Extract Version from /v3/zones JSON (a hack)."""
     build_date = datetime.strptime(raw_json["data"][0]["strBuildDate"], "%b %d %Y")
 
     for date_time_idx in HUB_SW_VERSIONS:
         if datetime.strptime(date_time_idx, "%b %d %Y") <= build_date:
-            result = {"hubSoftwareVersion": HUB_SW_VERSIONS[date_time_idx]}
-            break
-
-    return result
+            return HUB_SW_VERSIONS[date_time_idx]
 
 
 class GeniusHub:  # pylint: disable=too-many-instance-attributes
