@@ -25,9 +25,9 @@ from .const import (
     IDAY_TO_DAY,
     ISSUE_TEXT,
     ISSUE_DESCRIPTION,
-    ZONE_TYPES,
-    MODES_MODEL,
-    ZONE_KIT_MODEL,
+    ZONE_TYPE,
+    ZONE_MODE,
+    ZONE_KIT,
     DESCRIPTION_BY_HASH,
 )
 
@@ -386,7 +386,7 @@ class GeniusZone(GeniusObject):
 
         def _is_occupied_v1(node):  # from web app v5.2.2
             # pylint: disable=invalid-name
-            u = node["iMode"] == MODES_MODEL.Footprint
+            u = node["iMode"] == ZONE_MODE.Footprint
             d = node["zoneReactive"]["bTriggerOn"]
             c = node["iActivity"] or 0
             o = node["objFootprint"]["bIsNight"]
@@ -418,9 +418,9 @@ class GeniusZone(GeniusObject):
 
             l = True  # noqa: E741                                               TODO
             p = (
-                node["iMode"] == MODES_MODEL.Footprint | l
+                node["iMode"] == ZONE_MODE.Footprint | l
             )  # #                   Checked
-            u = node["iFlagExpectedKit"] & ZONE_KIT_MODEL.PIR  # #               Checked
+            u = node["iFlagExpectedKit"] & ZONE_KIT.PIR  # #               Checked
             d = node["trigger"]["reactive"] & node["trigger"]["output"]  # #     Checked
             c = int(node["zoneReactive"]["fActivityLevel"])  # #                 Checked
             s = node["objFootprint"]["bIsNight"]  # #                            TODO
@@ -436,7 +436,7 @@ class GeniusZone(GeniusObject):
             for idx, setpoint in enumerate(setpoints):
                 tm_next = setpoint["iTm"]
                 sp_next = setpoint["fSP"]
-                if raw_dict["iType"] == ZONE_TYPES.OnOffTimer:
+                if raw_dict["iType"] == ZONE_TYPE.OnOffTimer:
                     sp_next = bool(sp_next)
 
                 if setpoint["iDay"] > day:
@@ -489,38 +489,38 @@ class GeniusZone(GeniusObject):
         result["mode"] = IMODE_TO_MODE[raw_dict["iMode"]]
 
         try:
-            if raw_dict["iType"] in [ZONE_TYPES.ControlSP, ZONE_TYPES.TPI]:
+            if raw_dict["iType"] in [ZONE_TYPE.ControlSP, ZONE_TYPE.TPI]:
                 if not (
-                    raw_dict["iType"] == ZONE_TYPES.TPI
+                    raw_dict["iType"] == ZONE_TYPE.TPI
                     and not raw_dict["activeTemperatureDevices"]
                 ):
                     result["temperature"] = raw_dict["fPV"]
                 result["setpoint"] = raw_dict["fSP"]
 
-            elif raw_dict["iType"] == ZONE_TYPES.OnOffTimer:
+            elif raw_dict["iType"] == ZONE_TYPE.OnOffTimer:
                 result["setpoint"] = bool(raw_dict["fSP"])
 
-            if raw_dict["iFlagExpectedKit"] & ZONE_KIT_MODEL.PIR:
+            if raw_dict["iFlagExpectedKit"] & ZONE_KIT.PIR:
                 result["occupied"] = _is_occupied_v2(raw_dict)
 
             if raw_dict["iType"] in [
-                ZONE_TYPES.OnOffTimer,
-                ZONE_TYPES.ControlSP,
-                ZONE_TYPES.TPI,
+                ZONE_TYPE.OnOffTimer,
+                ZONE_TYPE.ControlSP,
+                ZONE_TYPE.TPI,
             ]:
                 result["override"] = {}
                 result["override"]["duration"] = raw_dict["iBoostTimeRemaining"]
-                if raw_dict["iType"] == ZONE_TYPES.OnOffTimer:
+                if raw_dict["iType"] == ZONE_TYPE.OnOffTimer:
                     result["override"]["setpoint"] = raw_dict["fBoostSP"] != 0
                 else:
                     result["override"]["setpoint"] = raw_dict["fBoostSP"]
 
             result["schedule"] = {"timer": {}, "footprint": {}}  # for all zone types
 
-            if raw_dict["iType"] != ZONE_TYPES.Manager:  # timer = {} if: Manager
+            if raw_dict["iType"] != ZONE_TYPE.Manager:  # timer = {} if: Manager
                 result["schedule"]["timer"] = _timer_schedule(raw_dict)
 
-            if raw_dict["iType"] in [ZONE_TYPES.ControlSP]:
+            if raw_dict["iType"] in [ZONE_TYPE.ControlSP]:
                 # footprint={...} iff: ControlSP, _even_ if no PIR, otherwise ={}
                 result["schedule"]["footprint"] = _footprint_schedule(raw_dict)
 
@@ -561,10 +561,10 @@ class GeniusZone(GeniusObject):
 
           mode is in {'off', 'timer', footprint', 'override'}
         """
-        allowed_modes = [MODES_MODEL.Off, MODES_MODEL.Override, MODES_MODEL.Timer]
+        allowed_modes = [ZONE_MODE.Off, ZONE_MODE.Override, ZONE_MODE.Timer]
 
         if hasattr(self, "occupied"):  # has a PIR (movement sensor)
-            allowed_modes += [MODES_MODEL.Footprint]
+            allowed_modes += [ZONE_MODE.Footprint]
         allowed_mode_strs = [IMODE_TO_MODE[i] for i in allowed_modes]
 
         if isinstance(mode, int) and mode in allowed_modes:
@@ -614,7 +614,7 @@ class GeniusZone(GeniusObject):
         else:  # self._hub.api_version == 3
             url = f"zone/{self.id}"
             data = {
-                "iMode": MODES_MODEL.Boost,
+                "iMode": ZONE_MODE.Boost,
                 "fBoostSP": setpoint,
                 "iBoostTimeRemaining": duration,
             }

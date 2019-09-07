@@ -24,20 +24,20 @@ API_STATUS_ERROR = {
     502: "The hub is offline.",
     503: "The authorization information is invalid.",
 }
-ZONE_TYPES = SimpleNamespace(  # ZONE_TYPE_MODEL
+ZONE_TYPE = SimpleNamespace(  # ZONE_TYPE_MODEL
     Manager=1, OnOffTimer=2, ControlSP=3, ControlOnOffPID=4, TPI=5, Surrogate=6
 )
 ITYPE_TO_TYPE = {
-    ZONE_TYPES.Manager: "manager",  # "my house"
-    ZONE_TYPES.OnOffTimer: "on / off",  # "on / off timer"
-    ZONE_TYPES.ControlSP: "radiator",  # "radiator room"
-    ZONE_TYPES.ControlOnOffPID: "wet underfloor",  # "control on / off PID"
-    ZONE_TYPES.TPI: "hot water temperature",  # "TPI"
-    ZONE_TYPES.Surrogate: "group",  # "group"
+    ZONE_TYPE.Manager: "manager",  # "my house"
+    ZONE_TYPE.OnOffTimer: "on / off",  # "on / off timer"
+    ZONE_TYPE.ControlSP: "radiator",  # "radiator room"
+    ZONE_TYPE.ControlOnOffPID: "wet underfloor",  # "control on / off PID"
+    ZONE_TYPE.TPI: "hot water temperature",  # "TPI"
+    ZONE_TYPE.Surrogate: "group",  # "group"
 }
 TYPE_TO_ITYPE = {v: k for k, v in ITYPE_TO_TYPE.items()}
 
-MODES_MODEL = SimpleNamespace(
+ZONE_MODE = SimpleNamespace(
     Off=1,
     Timer=2,
     Footprint=4,
@@ -50,19 +50,19 @@ MODES_MODEL = SimpleNamespace(
     Other=256,
 )
 IMODE_TO_MODE = {
-    MODES_MODEL.Off: "off",
-    MODES_MODEL.Timer: "timer",
-    MODES_MODEL.Footprint: "footprint",  # could be 'sense' mode
-    MODES_MODEL.Away: "off",  # v1 API says 'off', no 'away'
-    MODES_MODEL.Boost: "override",
-    MODES_MODEL.Early: "early",
-    MODES_MODEL.Test: "test",
-    MODES_MODEL.Linked: "linked",
-    MODES_MODEL.Other: "other",
+    ZONE_MODE.Off: "off",
+    ZONE_MODE.Timer: "timer",
+    ZONE_MODE.Footprint: "footprint",  # could be 'sense' mode
+    ZONE_MODE.Away: "off",  # v1 API says 'off', no 'away'
+    ZONE_MODE.Boost: "override",
+    ZONE_MODE.Early: "early",
+    ZONE_MODE.Test: "test",
+    ZONE_MODE.Linked: "linked",
+    ZONE_MODE.Other: "other",
 }
 MODE_TO_IMODE = {v: k for k, v in IMODE_TO_MODE.items()}
 
-ZONE_FLAGS = SimpleNamespace(
+ZONE_FLAG = SimpleNamespace(
     Frost=1,
     Timer=2,
     Footprint=4,
@@ -395,7 +395,7 @@ CHANNELS_MODEL = [
     },
 ]
 
-ZONE_KIT_MODEL = SimpleNamespace(
+ZONE_KIT = SimpleNamespace(
     Temp=1,
     Valve=2,
     PIR=4,
