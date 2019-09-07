@@ -637,81 +637,19 @@ class GeniusDevice(GeniusObject):  # pylint: disable=too-few-public-methods
     def _convert(self, raw_dict) -> Dict:  # pylint: disable=no-self-use
         """Convert a device's v3 JSON to the v1 schema."""
 
-        def _check_fingerprint_v2(node, device) -> Optional[str]:
-            if "hash" in node:
-                fp = DEVICES_BY_HASH[node["hash"]["val"]]
-            elif node["SwitchBinary"]["path"].count("/") == 3:
-                fp = f"Dual Channel Receiver - Channel {device['id'][-1]}"
-            else:
-                fp = None
-
-            # if not device["_type"] or fp != device["_type"][:21]:
-            #     msg = f"Device {device['id']} (SKU={device['_sku']}): assigned type "
-
-            #     if fp is None or fp == 'Unrecognised Device':  # no/invalid device fingerprint!
-            #         msg += f"('{device['_type']}') is ignored as no fingerprint!"
-            #         _LOGGER.warning(msg)
-            #     elif not device["_type"]:
-            #         msg += f"only via its fingerprint ('{fp}')."
-            #         _LOGGER.debug(msg)
-            #     else:
-            #         msg += f"('{device['_type']}') doesn't match fingerprint ('{fp}')!"
-            #         _LOGGER.warning(msg)
-            #         fp = device["_type"]  # prefer type over fingerprint
-
-            return fp
-
-        def _check_fingerprint_v1(node, device) -> Optional[str]:
-            """Check the device type against its 'fingerprint'."""
-            # pylint: disable=invalid-name
-            fp = None
-
-            if "Battery" in node and "SwitchBinary" not in node:
-                if "Motion" in node:  # or 'Tamper': PH-WRS-B
-                    fp = "Room Sensor"
-                elif "setback" in node:  # DA-WRV-C (else DA-WRV-B)
-                    fp = "Genius Valve" if "TEMPERATURE" in node else "Radiator Valve"
-                else:  # DA-WRT-C (else HO-WRT-B)
-                    fp = "Room Thermostat" if "Indicator" in node else "Room Thermostat"
-
-            elif "SwitchBinary" in node and "Battery" not in node:  # TODO: HO-SCR-C ?
-                if "SwitchAllMode" in node:  # PH-PLG-C
-                    fp = "Smart Plug"
-                elif "TEMPERATURE" in node:  # HO-ESW-D
-                    fp = "Electric Switch"
-                elif node["SwitchBinary"]["path"].count("/") == 3:
-                    fp = f"Dual Channel Receiver - Channel {device['id'][-1]}"
-                else:  # HO-DCR-C
-                    fp = "Dual Channel Receiver"
-
-            if not device["_type"] or fp != device["_type"][:21]:
-                msg = f"Device {device['id']} (SKU={device['_sku']}): assigned type "
-
-                if fp is None:  # no/invalid device fingerprint!
-                    msg += f"('{device['_type']}') is ignored as no fingerprint!"
-                    _LOGGER.warning(msg)
-                elif not device["_type"]:
-                    msg += f"only via its fingerprint ('{fp}')."
-                    _LOGGER.debug(msg)
-                else:
-                    msg += f"('{device['_type']}') doesn't match fingerprint ('{fp}')!"
-                    _LOGGER.warning(msg)
-                    fp = device["_type"]  # prefer type over fingerprint
-
-            return fp
-
         result = {}
-
         result["id"] = raw_dict["addr"]  # 1. Set id (addr)
 
         node = raw_dict["childNodes"]["_cfg"]["childValues"]
-        result["_type"] = node["name"]["val"] if node else None
         result["_sku"] = node["sku"]["val"] if node else None
 
         node = raw_dict["childValues"]
-        # device_type = _check_fingerprint_v1(node, result)
-        # result["type"] = device_type if device_type else "Unrecognised Device"
-        result["type"] = _check_fingerprint_v2(node, result)
+        if "hash" in node:
+            result["type"] = DEVICES_BY_HASH[node["hash"]["val"]]
+        elif node["SwitchBinary"]["path"].count("/") == 3:
+            result["type"] = f"Dual Channel Receiver - Channel {result['id'][-1]}"
+        else:
+            result["type"] = None
 
         result["assignedZones"] = [{"name": None}]  # 3. Set assignedZones...
         if node["location"]["val"]:
