@@ -5,7 +5,7 @@
 from datetime import datetime
 from hashlib import sha256
 import json
-from typing import Dict, Optional, List  # Any, Set, Tuple
+from typing import Dict, List  # Any, Optional, Set, Tuple
 
 import logging
 import re

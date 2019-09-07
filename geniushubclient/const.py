@@ -121,15 +121,6 @@ ATTRS_DEVICE = {
 }
 ATTRS_ISSUE = {"summary_keys": ["description", "level"], "detail_keys": []}
 
-STATE_ATTRS = {
-    "SwitchBinary": "outputOnOff",  # #      DCCR/PLUG, RADR
-    "Battery": "batteryLevel",  # #          VALV/ROMT, RADR, ROMS
-    "HEATING_1": "setTemperature",  # #      VALV/ROMT, RADR
-    "TEMPERATURE": "measuredTemperature",  # VALV/ROMT, RADR, ROMS
-    "LUMINANCE": "luminance",  # #                            ROMS
-    "Motion": "occupancyTrigger",  # #                        ROMS
-}
-
 # The following MODELs are cut-and-paste from Vendor's bower.js
 DEVICES_MODEL = [
     {"hash": "VIRTUAL", "sku": "virtual node", "description": "Virtual Node"},
@@ -394,6 +385,8 @@ CHANNELS_MODEL = [
         "type": "Number",
     },
 ]
+
+STATE_ATTRS = {c["id"]: c["slug"] for c in CHANNELS_MODEL}
 
 ZONE_KIT = SimpleNamespace(
     Temp=1,
