@@ -18,6 +18,7 @@ from .const import (
     STATE_ATTRS,
     DEFAULT_TIMEOUT_V1,
     DEFAULT_TIMEOUT_V3,
+    HUB_SW_VERSIONS,
     ITYPE_TO_TYPE,
     IMODE_TO_MODE,
     MODE_TO_IMODE,
@@ -86,11 +87,19 @@ def _issues_via_v3_zones(raw_json) -> List[Dict]:
 
 def _version_via_v3_auth(raw_json) -> Dict:
     """Extract Version from /v3/zones JSON."""
-    return {
-            "hubSoftwareVersion": raw_json["data"]["release"],
-            "earliestCompatibleAPI": "https://my.geniushub.co.uk/v1",
-            "latestCompatibleAPI": "https://my.geniushub.co.uk/v1"
-        }
+    return raw_json["data"]["release"]
+
+
+def _version_via_v3_zones(raw_json) -> Dict:
+    """Extract Version from /v3/zones JSON (a hack)."""
+    build_date = datetime.strptime(raw_json["data"][0]["strBuildDate"], "%b %d %Y")
+
+    for date_time_idx in HUB_SW_VERSIONS:
+        if datetime.strptime(date_time_idx, "%b %d %Y") <= build_date:
+            result = {"hubSoftwareVersion": HUB_SW_VERSIONS[date_time_idx]}
+            break
+
+    return result
 
 
 class GeniusHub:  # pylint: disable=too-many-instance-attributes
@@ -127,7 +136,7 @@ class GeniusHub:  # pylint: disable=too-many-instance-attributes
         self._verbose = 1
 
         self.issues = self.version = None
-        self._zones = self._devices = self._issues = None
+        self._zones = self._devices = self._issues = self._version = None
         self._test_json = {}  # used with GeniusTestHub
 
         self.zone_objs = []
@@ -280,13 +289,22 @@ class GeniusHub:  # pylint: disable=too-many-instance-attributes
         else:
             self.issues = [_convert_issue(raw_issue) for raw_issue in self._issues]
 
+        if self.api_version == 1:
+            self.version = self._version
+        else:
+            self.version = {
+                "hubSoftwareVersion": self._version,
+                "earliestCompatibleAPI": "https://my.geniushub.co.uk/v1",
+                "latestCompatibleAPI": "https://my.geniushub.co.uk/v1"
+            }
+
     async def update(self):
         """Update the Hub with its latest state data."""
         if self.api_version == 1:
             self._zones = await self.request("GET", "zones")
             self._devices = await self.request("GET", "devices")
             self._issues = await self.request("GET", "issues")
-            self.version = await self.request("GET", "version")
+            self._version = await self.request("GET", "version")
 
         else:  # self.api_version == 3:
             self._zones = _zones_via_v3_zones(await self.request("GET", "zones"))
@@ -294,7 +312,7 @@ class GeniusHub:  # pylint: disable=too-many-instance-attributes
                 await self.request("GET", "data_manager")
             )
             self._issues = _issues_via_v3_zones({"data": self._zones})
-            self.version = _version_via_v3_auth(await self.request("GET", "auth/release"))
+            self._version = _version_via_v3_auth(await self.request("GET", "auth/release"))
 
         await self._update()  # now convert all the raw JSON
 
@@ -321,7 +339,7 @@ class GeniusTestHub(GeniusHub):
         self._zones = self._test_json["zones"]
         self._devices = self._test_json["devices"]
         self._issues = _issues_via_v3_zones({"data": self._zones})
-        self.version = _version_via_zones_v3({"data": self._zones})
+        self._version = _version_via_v3_zones({"data": self._zones})  # a hack
 
         await self._update()  # now convert all the raw JSON
 

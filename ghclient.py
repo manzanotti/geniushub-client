@@ -167,7 +167,7 @@ async def main(loop):
         elif args[ISSUES]:
             print(json.dumps(hub.issues))
         else:  # as per args[INFO]
-            print(hub.info)
+            print(hub.version)
             print({"weatherData": hub.zone_by_id[0]._raw["weatherData"]})
 
     if session:
