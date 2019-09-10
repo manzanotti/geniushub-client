@@ -17,13 +17,11 @@ Current limitations & to-dos include:
  - schedules are read-only
  - when using the v3 API, zones sometimes have the wrong value for `occupied`
 
- The library will return v1 API responses wherever possible, there are two caveats to this:
-  1. the only code available to reverse-engineer is from the web app
+ The library will return v1 API responses wherever possible, however:
+  1. the only code available to reverse-engineer is from the web app, but
   2. the Web app does not correlate completely with the v1 API (e.g. issue messages, occupied state)
 
 Thus, always check your output against the corresponding v1 API response rather than the web app.
-
-It has no awareness of a Single Channel Receiver (HO-SCR-C, I don't have one to test).
 
 ## Installation
 Either clone this repository and run `python setup.py install`, or install from pip using `pip install geniushub-client`.
