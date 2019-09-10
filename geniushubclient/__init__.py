@@ -224,17 +224,18 @@ class GeniusHub:  # pylint: disable=too-many-instance-attributes
     async def _update(self):
         """Update the Hub with its latest state data."""
 
-        def _convert_issue(raw_dict) -> Dict:
+        def _convert_issue(raw_json) -> Dict:
             """Convert a issues's v3 JSON to the v1 schema."""
-            _LOGGER.debug("Found an (v3) Issue: %s)", raw_dict)
+            _LOGGER.debug("Found an (v3) Issue: %s", raw_json)
 
-            description = ISSUE_DESCRIPTION.get(raw_dict["id"], raw_dict["id"])
-            level = ISSUE_TEXT.get(raw_dict["level"], str(raw_dict["level"]))
+            description = ISSUE_DESCRIPTION.get(raw_json["id"], raw_json["id"])
+            level = ISSUE_TEXT.get(raw_json["level"], str(raw_json["level"]))
 
             if "{zone_name}" in description:
-                zone_name = raw_dict["data"]["location"]
+                zone_name = raw_json["data"]["location"]
             if "{device_type}" in description:
-                device_type = self.device_by_id[raw_dict["data"]["nodeID"]].data["type"]
+                # vice_type = self.device_by_id[raw_json["data"]["nodeID"]].data["type"]
+                device_type = DESCRIPTION_BY_HASH[raw_json["data"]["nodeHash"]]
 
             if "{zone_name}" in description and "{device_type}" in description:
                 description = description.format(
@@ -290,8 +291,8 @@ class GeniusHub:  # pylint: disable=too-many-instance-attributes
         if self.api_version == 1:
             self.issues = self._issues
             self.version = self._version
-        else:
-            self.issues = [_convert_issue(raw_issue) for raw_issue in self._issues]
+        else:  # self.api_version == 3:
+            self.issues = [_convert_issue(raw_json) for raw_json in self._issues]
             self.version = {
                 "hubSoftwareVersion": self._version,
                 "earliestCompatibleAPI": "https://my.geniushub.co.uk/v1",
@@ -381,7 +382,7 @@ class GeniusObject:  # pylint: disable=too-few-public-methods, too-many-instance
 class GeniusZone(GeniusObject):
     """The class for a Genius Zone."""
 
-    def __init__(self, zone_id, raw_dict, hub) -> None:
+    def __init__(self, zone_id, raw_json, hub) -> None:
         super().__init__(hub, ATTRS_ZONE)
 
         self.id = zone_id  # pylint: disable=invalid-name
@@ -390,13 +391,13 @@ class GeniusZone(GeniusObject):
         self.device_objs = []
         self.device_by_id = {}
 
-        self._convert(raw_dict)
+        self._convert(raw_json)
 
-    def _convert(self, raw_dict) -> None:
+    def _convert(self, raw_json) -> None:
         """Convert a zone's v3 JSON to the v1 schema."""
-        self._raw = raw_dict
+        self._raw = raw_json
         if self._hub.api_version == 1:
-            self.data = raw_dict
+            self.data = raw_json
             return
 
         def _is_occupied(node):  # from web app v5.2.4
@@ -430,15 +431,15 @@ class GeniusZone(GeniusObject):
 
             return A if p and u and d and (not s) else (O if c > 0 else R)
 
-        def _timer_schedule(raw_dict):
+        def _timer_schedule(raw_json):
             root = {"weekly": {}}
             day = -1
 
-            setpoints = raw_dict["objTimer"]
+            setpoints = raw_json["objTimer"]
             for idx, setpoint in enumerate(setpoints):
                 tm_next = setpoint["iTm"]
                 sp_next = setpoint["fSP"]
-                if raw_dict["iType"] == ZONE_TYPE.OnOffTimer:
+                if raw_json["iType"] == ZONE_TYPE.OnOffTimer:
                     sp_next = bool(sp_next)
 
                 if setpoint["iDay"] > day:
@@ -456,11 +457,11 @@ class GeniusZone(GeniusObject):
 
             return root
 
-        def _footprint_schedule(raw_dict):
+        def _footprint_schedule(raw_json):
             root = {"weekly": {}}
             day = -1
 
-            setpoints = raw_dict["objFootprint"]
+            setpoints = raw_json["objFootprint"]
             for idx, setpoint in enumerate(setpoints["lstSP"]):
                 tm_next = setpoint["iTm"]
                 sp_next = setpoint["fSP"]
@@ -484,46 +485,46 @@ class GeniusZone(GeniusObject):
             return root
 
         result = {}
-        result["id"] = raw_dict["iID"]
-        result["name"] = raw_dict["strName"]
-        result["type"] = ITYPE_TO_TYPE[raw_dict["iType"]]
-        result["mode"] = IMODE_TO_MODE[raw_dict["iMode"]]
+        result["id"] = raw_json["iID"]
+        result["name"] = raw_json["strName"]
+        result["type"] = ITYPE_TO_TYPE[raw_json["iType"]]
+        result["mode"] = IMODE_TO_MODE[raw_json["iMode"]]
 
         try:
-            if raw_dict["iType"] in [ZONE_TYPE.ControlSP, ZONE_TYPE.TPI]:
+            if raw_json["iType"] in [ZONE_TYPE.ControlSP, ZONE_TYPE.TPI]:
                 if not (
-                    raw_dict["iType"] == ZONE_TYPE.TPI
-                    and not raw_dict["activeTemperatureDevices"]
+                    raw_json["iType"] == ZONE_TYPE.TPI
+                    and not raw_json["activeTemperatureDevices"]
                 ):
-                    result["temperature"] = raw_dict["fPV"]
-                result["setpoint"] = raw_dict["fSP"]
+                    result["temperature"] = raw_json["fPV"]
+                result["setpoint"] = raw_json["fSP"]
 
-            elif raw_dict["iType"] == ZONE_TYPE.OnOffTimer:
-                result["setpoint"] = bool(raw_dict["fSP"])
+            elif raw_json["iType"] == ZONE_TYPE.OnOffTimer:
+                result["setpoint"] = bool(raw_json["fSP"])
 
-            if raw_dict["iFlagExpectedKit"] & ZONE_KIT.PIR:
-                result["occupied"] = _is_occupied(raw_dict)
+            if raw_json["iFlagExpectedKit"] & ZONE_KIT.PIR:
+                result["occupied"] = _is_occupied(raw_json)
 
-            if raw_dict["iType"] in [
+            if raw_json["iType"] in [
                 ZONE_TYPE.OnOffTimer,
                 ZONE_TYPE.ControlSP,
                 ZONE_TYPE.TPI,
             ]:
                 result["override"] = {}
-                result["override"]["duration"] = raw_dict["iBoostTimeRemaining"]
-                if raw_dict["iType"] == ZONE_TYPE.OnOffTimer:
-                    result["override"]["setpoint"] = raw_dict["fBoostSP"] != 0
+                result["override"]["duration"] = raw_json["iBoostTimeRemaining"]
+                if raw_json["iType"] == ZONE_TYPE.OnOffTimer:
+                    result["override"]["setpoint"] = raw_json["fBoostSP"] != 0
                 else:
-                    result["override"]["setpoint"] = raw_dict["fBoostSP"]
+                    result["override"]["setpoint"] = raw_json["fBoostSP"]
 
             result["schedule"] = {"timer": {}, "footprint": {}}  # for all zone types
 
-            if raw_dict["iType"] != ZONE_TYPE.Manager:  # timer = {} if: Manager
-                result["schedule"]["timer"] = _timer_schedule(raw_dict)
+            if raw_json["iType"] != ZONE_TYPE.Manager:  # timer = {} if: Manager
+                result["schedule"]["timer"] = _timer_schedule(raw_json)
 
-            if raw_dict["iType"] in [ZONE_TYPE.ControlSP]:
+            if raw_json["iType"] in [ZONE_TYPE.ControlSP]:
                 # footprint={...} iff: ControlSP, _even_ if no PIR, otherwise ={}
-                result["schedule"]["footprint"] = _footprint_schedule(raw_dict)
+                result["schedule"]["footprint"] = _footprint_schedule(raw_json)
 
         except (
             AttributeError,
@@ -629,28 +630,28 @@ class GeniusZone(GeniusObject):
 class GeniusDevice(GeniusObject):  # pylint: disable=too-few-public-methods
     """The class for a Genius Device."""
 
-    def __init__(self, device_id, raw_dict, hub) -> None:
+    def __init__(self, device_id, raw_json, hub) -> None:
         super().__init__(hub, ATTRS_DEVICE)
 
         self.id = device_id  # pylint: disable=invalid-name
         self.data = self._raw = None
 
-        self._convert(raw_dict)
+        self._convert(raw_json)
 
-    def _convert(self, raw_dict) -> None:
+    def _convert(self, raw_json) -> None:
         """Convert a device's v3 JSON to the v1 schema."""
-        self._raw = raw_dict
+        self._raw = raw_json
         if self._hub.api_version == 1:
-            self.data = raw_dict
+            self.data = raw_json
             return
 
         result = {}
-        result["id"] = raw_dict["addr"]
+        result["id"] = raw_json["addr"]
 
-        node = raw_dict["childNodes"]["_cfg"]["childValues"]
+        node = raw_json["childNodes"]["_cfg"]["childValues"]
         result["_sku"] = node["sku"]["val"] if node else None
 
-        node = raw_dict["childValues"]
+        node = raw_json["childValues"]
         if "hash" in node:
             result["type"] = DESCRIPTION_BY_HASH[node["hash"]["val"]]
         elif node["SwitchBinary"]["path"].count("/") == 3:
