@@ -15,20 +15,20 @@ import aiohttp
 from .const import (
     ATTRS_DEVICE,
     ATTRS_ZONE,
-    STATE_ATTRS,
     DEFAULT_TIMEOUT_V1,
     DEFAULT_TIMEOUT_V3,
+    DEVICE_HASH_TO_TYPE,
     HUB_SW_VERSIONS,
-    ITYPE_TO_TYPE,
-    IMODE_TO_MODE,
-    MODE_TO_IMODE,
     IDAY_TO_DAY,
-    ISSUE_TEXT,
+    IMODE_TO_MODE,
     ISSUE_DESCRIPTION,
-    ZONE_TYPE,
-    ZONE_MODE,
+    ISSUE_TEXT,
+    ITYPE_TO_TYPE,
+    MODE_TO_IMODE,
+    STATE_ATTRS,
     ZONE_KIT,
-    DESCRIPTION_BY_HASH,
+    ZONE_MODE,
+    ZONE_TYPE,
 )
 
 logging.basicConfig()
@@ -132,16 +132,12 @@ class GeniusHub:  # pylint: disable=too-many-instance-attributes
 
         self._verbose = 1
 
-        self.issues = self.version = None
+        self.issues = self.version = self._sense_mode = None
         self._zones = self._devices = self._issues = self._version = None
         self._test_json = {}  # used with GeniusTestHub
 
-        self.zone_objs = []
-        self.zone_by_id = {}
-        self.zone_by_name = {}
-
-        self.device_objs = []
-        self.device_by_id = {}
+        self.zone_by_id = self.device_by_id = {}
+        self.zone_objs = self.zone_by_name = self.device_objs = None
 
     def __repr__(self) -> str:
         return json.dumps(self.version)
@@ -224,7 +220,21 @@ class GeniusHub:  # pylint: disable=too-many-instance-attributes
     async def _update(self):
         """Update the Hub with its latest state data."""
 
-        def _convert_issue(raw_json) -> Dict:
+        def populate_objects(obj_list, obj_key, obj_by_id, ObjectClass):
+            zone_objs = []
+            key = "id" if self.api_version == 1 else obj_key
+            for raw_json in obj_list:
+                try:  # does the hub already know about this zone?
+                    entity = obj_by_id[raw_json[key]]
+                except KeyError:
+                    entity = ObjectClass(raw_json[key], raw_json, self)
+                else:
+                    entity._convert(raw_json)
+                finally:
+                    zone_objs.append(entity)
+            return zone_objs
+
+        def convert_issue(raw_json) -> Dict:
             """Convert a issues's v3 JSON to the v1 schema."""
             _LOGGER.debug("Found an (v3) Issue: %s", raw_json)
 
@@ -234,8 +244,7 @@ class GeniusHub:  # pylint: disable=too-many-instance-attributes
             if "{zone_name}" in description:
                 zone_name = raw_json["data"]["location"]
             if "{device_type}" in description:
-                # vice_type = self.device_by_id[raw_json["data"]["nodeID"]].data["type"]
-                device_type = DESCRIPTION_BY_HASH[raw_json["data"]["nodeHash"]]
+                device_type = DEVICE_HASH_TO_TYPE[raw_json["data"]["nodeHash"]]
 
             if "{zone_name}" in description and "{device_type}" in description:
                 description = description.format(
@@ -248,51 +257,37 @@ class GeniusHub:  # pylint: disable=too-many-instance-attributes
 
             return {"description": description, "level": level}
 
-        zone_objs = []
-        for raw_json in self._zones:
-            key = "id" if self.api_version == 1 else "iID"
-            try:  # does the hub already know about this zone?
-                zone = self.zone_by_id[raw_json[key]]
-            except KeyError:
-                zone = GeniusZone(raw_json[key], raw_json, self)
-            else:
-                zone._convert(raw_json)
-            finally:
-                zone_objs.append(zone)
+        if self.api_version == 1:
+            self._sense_mode = None  # currently, no way to tell
+        else:  # self.api_version == 3:
+            manager = [z for z in self._zones if z["iID"] == 0][0]
+            self._sense_mode = bool(manager["lOptions"] & ZONE_MODE.Other)
 
-        self.zone_objs = zone_objs
-        self.zone_by_id = {z.id: z for z in zone_objs}
-        self.zone_by_name = {z.name: z for z in zone_objs}
+        # zones = self.zone_objs = [
+        #     GeniusZone(z[key], z, self) for z in self._zones if not self.zone_by_id[z[key]]
+        # ]
+        zones = self.zone_objs = populate_objects(
+            self._zones, "iID", self.zone_by_id, GeniusZone
+        )
+        devices = self.device_objs = populate_objects(
+            self._devices, "addr", self.device_by_id, GeniusDevice
+        )
 
-        device_objs = []
-        for raw_json in self._devices:
-            key = "id" if self.api_version == 1 else "addr"
-            try:  # does the Hub already know about this device?
-                device = self.device_by_id[raw_json[key]]
-            except KeyError:
-                device = GeniusDevice(raw_json[key], raw_json, self)
-            else:
-                device._convert(raw_json)
-            finally:
-                device_objs.append(device)
+        self.zone_by_id = {z.id: z for z in self.zone_objs}
+        self.zone_by_name = {z.name: z for z in self.zone_objs}
+        self.device_by_id = {d.id: d for d in self.device_objs}
 
-            zone_name = device.data["assignedZones"][0]["name"]
-            if zone_name:
-                zone = self.zone_by_name[zone_name]
-                try:  # does the parent Zone already know about this device?
-                    device = zone.device_by_id[device.id]  # TODO: if None???
-                except KeyError:
-                    zone.device_objs.append(device)
-                    zone.device_by_id[device.id] = device
-
-        self.device_objs = device_objs
-        self.device_by_id = {d.id: d for d in device_objs}
+        for zone in zones:  # TODO: this need checking
+            zone.device_objs = [
+                d for d in devices if d.data["assignedZones"][0]["name"] == zone.name
+            ]
+            zone.device_by_id = {d.id: d for d in zone.device_objs}
 
         if self.api_version == 1:
             self.issues = self._issues
             self.version = self._version
         else:  # self.api_version == 3:
-            self.issues = [_convert_issue(raw_json) for raw_json in self._issues]
+            self.issues = [convert_issue(raw_json) for raw_json in self._issues]
             self.version = {
                 "hubSoftwareVersion": self._version,
                 "earliestCompatibleAPI": "https://my.geniushub.co.uk/v1",
@@ -368,8 +363,6 @@ class GeniusObject:  # pylint: disable=too-few-public-methods, too-many-instance
             return self._raw
 
         if self._hub.verbosity == 2:  # probably same as verbosity == 1:
-            # return {k: v for k, v in self.data.items() if k[:1] != '_' and
-            #         k not in ['device_objs', 'device_by_id', 'assigned_zone']}
             return self.data
 
         keys = self._attrs["summary_keys"]
@@ -426,7 +419,7 @@ class GeniusZone(GeniusObject):
             p = node["iMode"] == ZONE_MODE.Footprint | l  # #                    Checked
             u = node["iFlagExpectedKit"] & ZONE_KIT.PIR  # #                     Checked
             d = node["trigger"]["reactive"] & node["trigger"]["output"]  # #     Checked
-            c = int(node["zoneReactive"]["fActivityLevel"])  # # need int()?     Checked
+            c = node["zoneReactive"]["fActivityLevel"]  # # needs int()?         Checked
             s = node["objFootprint"]["bIsNight"]  # #                            TODO
 
             return A if p and u and d and (not s) else (O if c > 0 else R)
@@ -450,6 +443,7 @@ class GeniusZone(GeniusObject):
 
                 elif sp_next != node["defaultSetpoint"]:
                     tm_last = setpoints[idx + 1]["iTm"]
+                    # reactive = self._hub._sense_mode & bool(setpoint.get("bReactive"))
 
                     node["heatingPeriods"].append(
                         {"end": tm_last, "start": tm_next, "setpoint": sp_next}
@@ -653,7 +647,7 @@ class GeniusDevice(GeniusObject):  # pylint: disable=too-few-public-methods
 
         node = raw_json["childValues"]
         if "hash" in node:
-            result["type"] = DESCRIPTION_BY_HASH[node["hash"]["val"]]
+            result["type"] = DEVICE_HASH_TO_TYPE[node["hash"]["val"]]
         elif node["SwitchBinary"]["path"].count("/") == 3:
             result["type"] = f"Dual Channel Receiver - Channel {result['id'][-1]}"
         else:

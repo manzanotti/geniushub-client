@@ -26,7 +26,8 @@ API_STATUS_ERROR = {
 }
 ZONE_TYPE = SimpleNamespace(
     Manager=1, OnOffTimer=2, ControlSP=3, ControlOnOffPID=4, TPI=5, Surrogate=6
-)
+)  # from app.js, search for '.Type = {'
+
 ITYPE_TO_TYPE = {  # ZONE_TYPE_MODEL
     ZONE_TYPE.Manager: "manager",  # "my house"
     ZONE_TYPE.OnOffTimer: "on / off",  # "on / off timer"
@@ -48,7 +49,8 @@ ZONE_MODE = SimpleNamespace(
     Test=64,
     Linked=128,
     Other=256,
-)
+)  # from app.js, search for '.ZoneModes = {'
+
 IMODE_TO_MODE = {  # MODE_MODEL
     ZONE_MODE.Off: "off",
     ZONE_MODE.Timer: "timer",
@@ -75,7 +77,7 @@ ZONE_FLAG = SimpleNamespace(
     WeatherComp=512,
     Temps=1024,
     TPI=2048,
-)
+)  # from app.js, search for '.ZoneFlags = {'
 
 ISSUE_TEXT = {0: "information", 1: "warning", 2: "error"}
 ISSUE_DESCRIPTION = {
@@ -335,9 +337,9 @@ DEVICES_MODEL = [
         "hash": "0x0000015400011100",
         "sku": "po-plg-b",
     },
-]
+]  # from bower.js, search for: 'Model: [{'
 
-DESCRIPTION_BY_HASH = {d["hash"]: d["description"] for d in DEVICES_MODEL}
+DEVICE_HASH_TO_TYPE = {d["hash"]: d["description"] for d in DEVICES_MODEL}
 
 SKU_BY_HASH = {d["hash"]: d["sku"] for d in DEVICES_MODEL}
 
@@ -401,4 +403,4 @@ ZONE_KIT = SimpleNamespace(  # ZONE_KIT_MODEL
     Luminance=512,
     GasMeter=1024,
     CO2=2014,
-)
+)  # from app.js, search for '.EquipmentTypes = {'
