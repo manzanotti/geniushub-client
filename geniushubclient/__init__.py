@@ -140,10 +140,8 @@ class GeniusHub:  # pylint: disable=too-many-instance-attributes
         self.zone_by_id = {}
         self.zone_by_name = {}
 
-        self.device_by_id = {}
         self.device_objs = []
-
-        self.issue_objs = []
+        self.device_by_id = {}
 
     def __repr__(self) -> str:
         return json.dumps(self.version)
@@ -249,37 +247,47 @@ class GeniusHub:  # pylint: disable=too-many-instance-attributes
 
             return {"description": description, "level": level}
 
-        for raw_zone in self._zones:
+        zone_objs = []
+        for raw_json in self._zones:
             key = "id" if self.api_version == 1 else "iID"
             try:  # does the hub already know about this zone?
-                zone = self.zone_by_id[raw_zone[key]]
+                zone = self.zone_by_id[raw_json[key]]
             except KeyError:
-                zone = GeniusZone(raw_zone, self)
+                zone = GeniusZone(raw_json[key], raw_json, self)
+            else:
+                # _LOGGER.warn("before: %s", zone.data)
+                zone._convert(raw_json)
+                # _LOGGER.warn("after: %s", zone.data)
+            finally:
+                zone_objs.append(zone)
 
-                self.zone_objs.append(zone)
-                self.zone_by_id[zone.data["id"]] = zone
-                self.zone_by_name[zone.data["name"]] = zone
+        self.zone_objs = zone_objs
+        self.zone_by_id = {z.id: z for z in zone_objs}
+        self.zone_by_name = {z.data["name"]: z for z in zone_objs}
 
-        for raw_device in self._devices:
+        device_objs = []
+        for raw_json in self._devices:
             key = "id" if self.api_version == 1 else "addr"
             try:  # does the Hub already know about this device?
-                device = self.device_by_id[raw_device[key]]
+                device = self.device_by_id[raw_json[key]]
             except KeyError:
-                device = GeniusDevice(raw_device, self)
-
-                self.device_objs.append(device)
-                self.device_by_id[device.data["id"]] = device
+                device = GeniusDevice(raw_json[key], raw_json, self)
+            else:
+                device._convert(raw_json)
+            finally:
+                device_objs.append(device)
 
             zone_name = device.data["assignedZones"][0]["name"]
             if zone_name:
                 zone = self.zone_by_name[zone_name]
                 try:  # does the parent Zone already know about this device?
-                    device = zone.device_by_id[
-                        device.data["id"]
-                    ]  # TODO: what happends if None???
+                    device = zone.device_by_id[device.id]  # TODO: if None???
                 except KeyError:
                     zone.device_objs.append(device)
-                    zone.device_by_id[device.data["id"]] = device
+                    zone.device_by_id[device.id] = device
+
+        self.device_objs = device_objs
+        self.device_by_id = {d.id: d for d in device_objs}
 
         if self.api_version == 1:
             self.issues = self._issues
@@ -378,19 +386,23 @@ class GeniusObject:  # pylint: disable=too-few-public-methods, too-many-instance
 class GeniusZone(GeniusObject):
     """The class for a Genius Zone."""
 
-    def __init__(self, raw_dict, hub) -> None:
+    def __init__(self, zone_id, raw_dict, hub) -> None:
         super().__init__(hub, ATTRS_ZONE)
 
-        self._raw = raw_dict
-        self.data = raw_dict if self._hub.api_version == 1 else self._convert(raw_dict)
-
-        self.id = self.data["id"]  # pylint: disable=invalid-name
+        self.id = zone_id  # pylint: disable=invalid-name
+        self.data = {}
+        self._raw = None
 
         self.device_objs = []
         self.device_by_id = {}
 
-    def _convert(self, raw_dict) -> Dict:  # pylint: disable=no-self-use
+        self._convert(raw_dict)
+
+    def _convert(self, raw_dict) -> None:
         """Convert a zone's v3 JSON to the v1 schema."""
+        self._raw = raw_dict
+        if self._hub.api_version == 1:
+            self.data = raw_dict
 
         def _is_occupied(node):  # from web app v5.2.4
             """Occupancy vs Activity (code from app.js, search for 'occupancyIcon').
@@ -529,7 +541,7 @@ class GeniusZone(GeniusObject):
                 "Failed to fully convert Zone %s, message: %s.", result["id"], err
             )
 
-        return result
+        self.data = result
 
     @property
     def name(self) -> str:
@@ -622,16 +634,20 @@ class GeniusZone(GeniusObject):
 class GeniusDevice(GeniusObject):  # pylint: disable=too-few-public-methods
     """The class for a Genius Device."""
 
-    def __init__(self, raw_dict, hub) -> None:
+    def __init__(self, device_id, raw_dict, hub) -> None:
         super().__init__(hub, ATTRS_DEVICE)
 
-        self._raw = raw_dict
-        self.data = raw_dict if self._hub.api_version == 1 else self._convert(raw_dict)
+        self.id = device_id  # pylint: disable=invalid-name
+        self.data = {}
+        self._raw = None
 
-        self.id = self.data["id"]  # pylint: disable=invalid-name
+        self._convert(raw_dict)
 
-    def _convert(self, raw_dict) -> Dict:  # pylint: disable=no-self-use
+    def _convert(self, raw_dict) -> None:
         """Convert a device's v3 JSON to the v1 schema."""
+        self._raw = raw_dict
+        if self._hub.api_version == 1:
+            self.data = raw_dict
 
         result = {}
         result["id"] = raw_dict["addr"]
@@ -658,7 +674,7 @@ class GeniusDevice(GeniusObject):  # pylint: disable=too-few-public-methods
         if "outputOnOff" in state:  # this one should be a bool
             state["outputOnOff"] = bool(state["outputOnOff"])
 
-        return result
+        self.data = result
 
     @property
     def type(self) -> str:
