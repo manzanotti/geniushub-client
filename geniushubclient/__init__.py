@@ -261,7 +261,7 @@ class GeniusHub:  # pylint: disable=too-many-instance-attributes
 
         self.zone_objs = zone_objs
         self.zone_by_id = {z.id: z for z in zone_objs}
-        self.zone_by_name = {z.data["name"]: z for z in zone_objs}
+        self.zone_by_name = {z.name: z for z in zone_objs}
 
         device_objs = []
         for raw_json in self._devices:
@@ -385,8 +385,7 @@ class GeniusZone(GeniusObject):
         super().__init__(hub, ATTRS_ZONE)
 
         self.id = zone_id  # pylint: disable=invalid-name
-        self.data = {}
-        self._raw = None
+        self.data = self._raw = None
 
         self.device_objs = []
         self.device_by_id = {}
@@ -634,8 +633,7 @@ class GeniusDevice(GeniusObject):  # pylint: disable=too-few-public-methods
         super().__init__(hub, ATTRS_DEVICE)
 
         self.id = device_id  # pylint: disable=invalid-name
-        self.data = {}
-        self._raw = None
+        self.data = self._raw = None
 
         self._convert(raw_dict)
 
