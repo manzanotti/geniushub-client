@@ -398,6 +398,7 @@ class GeniusZone(GeniusObject):
         self._raw = raw_dict
         if self._hub.api_version == 1:
             self.data = raw_dict
+            return
 
         def _is_occupied(node):  # from web app v5.2.4
             """Occupancy vs Activity (code from app.js, search for 'occupancyIcon').
@@ -643,6 +644,7 @@ class GeniusDevice(GeniusObject):  # pylint: disable=too-few-public-methods
         self._raw = raw_dict
         if self._hub.api_version == 1:
             self.data = raw_dict
+            return
 
         result = {}
         result["id"] = raw_dict["addr"]
