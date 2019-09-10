@@ -255,9 +255,7 @@ class GeniusHub:  # pylint: disable=too-many-instance-attributes
             except KeyError:
                 zone = GeniusZone(raw_json[key], raw_json, self)
             else:
-                # _LOGGER.warn("before: %s", zone.data)
                 zone._convert(raw_json)
-                # _LOGGER.warn("after: %s", zone.data)
             finally:
                 zone_objs.append(zone)
 
