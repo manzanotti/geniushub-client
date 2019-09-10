@@ -291,12 +291,9 @@ class GeniusHub:  # pylint: disable=too-many-instance-attributes
 
         if self.api_version == 1:
             self.issues = self._issues
-        else:
-            self.issues = [_convert_issue(raw_issue) for raw_issue in self._issues]
-
-        if self.api_version == 1:
             self.version = self._version
         else:
+            self.issues = [_convert_issue(raw_issue) for raw_issue in self._issues]
             self.version = {
                 "hubSoftwareVersion": self._version,
                 "earliestCompatibleAPI": "https://my.geniushub.co.uk/v1",
