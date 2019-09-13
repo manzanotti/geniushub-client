@@ -34,7 +34,7 @@ from .const import (
 logging.basicConfig()
 _LOGGER = logging.getLogger(__name__)
 
-DEBUG_MODE = True
+DEBUG_MODE = False
 
 if DEBUG_MODE is True:
     import ptvsd
