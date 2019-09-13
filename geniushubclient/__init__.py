@@ -45,11 +45,6 @@ if DEBUG_MODE is True:
     ptvsd.wait_for_attach()
     _LOGGER.debug("Debugger is attached!")
 
-if DEBUG_MODE is True:
-    if False:
-        breakpoint()
-
-
 # pylint3 --max-line-length=100
 # pylint: disable=fixme, too-many-branches, too-many-locals, too-many-statements
 
@@ -282,6 +277,7 @@ class GeniusHub:  # pylint: disable=too-many-instance-attributes
 
             return {"description": description, "level": level}
 
+        breakpoint()
         if self.api_version == 1:
             self._sense_mode = None  # currently, no way to tell
         else:  # self.api_version == 3:
