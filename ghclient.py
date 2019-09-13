@@ -64,10 +64,10 @@ from docopt import docopt
 
 from geniushubclient import GeniusHub, GeniusTestHub
 
+logging.basicConfig(datefmt="%H:%M:%S", format="%(asctime)s %(levelname)s: %(message)s")
 _LOGGER = logging.getLogger(__name__)
 
-DEBUG_MODE = False
-
+FILE_MODE = False  # use test files, or not
 
 HUB_ID = "HUB-ID"
 ZONE_ID = "--zone"
@@ -95,7 +95,7 @@ async def main(loop):
     session = aiohttp.ClientSession()  # test with/without
 
     # Option of providing test data (as list of Dicts), or leave both as None
-    if DEBUG_MODE:
+    if FILE_MODE:
         with open("raw_zones.json", "r") as fh:
             z = ast.literal_eval(fh.read())
         with open("raw_devices.json", "r") as fh:

@@ -34,6 +34,19 @@ from .const import (
 logging.basicConfig()
 _LOGGER = logging.getLogger(__name__)
 
+DEBUG_MODE = True
+
+if DEBUG_MODE is True:
+    import ptvsd
+
+    _LOGGER.setLevel(logging.DEBUG)
+    _LOGGER.debug("Waiting for debugger to attach...")
+    ptvsd.enable_attach(address=("172.27.0.138", 5679), redirect_output=True)
+    ptvsd.wait_for_attach()
+    _LOGGER.debug("Debugger is attached!")
+    # breakpoint()
+
+
 # pylint3 --max-line-length=100
 # pylint: disable=fixme, too-many-branches, too-many-locals, too-many-statements
 
@@ -89,7 +102,9 @@ def _version_via_v3_auth(raw_json) -> str:
     return raw_json["data"]["release"]
 
 
-def _version_via_v3_zones(raw_json) -> str:  # pylint: disable=inconsistent-return-statements
+def _version_via_v3_zones(
+    raw_json
+) -> str:  # pylint: disable=inconsistent-return-statements
     """Extract Version from /v3/zones JSON (a hack)."""
     build_date = datetime.strptime(raw_json["data"][0]["strBuildDate"], "%b %d %Y")
 
@@ -481,10 +496,17 @@ class GeniusZone(GeniusObject):
 
             return root
 
+        if DEBUG_MODE is True:
+            if raw_json["iID"] == 17:
+                breakpoint()
+
         result = {}
         result["id"] = raw_json["iID"]
         result["name"] = raw_json["strName"]
         result["type"] = ITYPE_TO_TYPE[raw_json["iType"]]
+        if raw_json["iType"] == ZONE_TYPE.TPI and raw_json["zoneSubType"] == 0:
+            result["type"] = ITYPE_TO_TYPE[ZONE_TYPE.ControlOnOffPID]
+
         result["mode"] = IMODE_TO_MODE[raw_json["iMode"]]
 
         try:
@@ -516,7 +538,10 @@ class GeniusZone(GeniusObject):
 
             result["schedule"] = {"timer": {}, "footprint": {}}  # for all zone types
 
-            if raw_json["iType"] != ZONE_TYPE.Manager:  # timer = {} if: Manager
+            if raw_json["iType"] not in [
+                ZONE_TYPE.Manager,
+                ZONE_TYPE.Surrogate,
+            ]:  # timer = {} if: Manager
                 result["schedule"]["timer"] = _timer_schedule(raw_json)
 
             if raw_json["iType"] in [ZONE_TYPE.ControlSP]:
