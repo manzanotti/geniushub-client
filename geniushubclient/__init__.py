@@ -77,10 +77,9 @@ def _issues_via_v3_zones(raw_json) -> List[Dict]:
     result = []
     for zone in raw_json["data"]:
         for issue in zone["lstIssues"]:
-            if "data" not in issue:  # issues only have this data if there's a device?
+            if "data" not in issue:
                 issue["data"] = {}
             issue["data"]["location"] = zone["strName"]
-            # sue['data']['nodeType'] = hub.device_by_id[zone['data']['nodeID']].data['type']
             result.append(issue)
     return result
 
@@ -90,7 +89,7 @@ def _version_via_v3_auth(raw_json) -> str:
     return raw_json["data"]["release"]
 
 
-def _version_via_v3_zones(raw_json) -> str:
+def _version_via_v3_zones(raw_json) -> str:  # pylint: disable=inconsistent-return-statements
     """Extract Version from /v3/zones JSON (a hack)."""
     build_date = datetime.strptime(raw_json["data"][0]["strBuildDate"], "%b %d %Y")
 
@@ -236,7 +235,13 @@ class GeniusHub:  # pylint: disable=too-many-instance-attributes
 
         def convert_issue(raw_json) -> Dict:
             """Convert a issues's v3 JSON to the v1 schema."""
-            _LOGGER.debug("Found an (v3) Issue: %s", raw_json)
+            _LOGGER.debug(
+                "Found an (v3) Issue: %s",
+                {
+                    **{"level": raw_json["level"], "id": raw_json["id"]},
+                    **{k: v for k, v in raw_json.items() if k not in ["level", "id"]},
+                },
+            )
 
             description = ISSUE_DESCRIPTION.get(raw_json["id"], raw_json["id"])
             level = ISSUE_TEXT.get(raw_json["level"], str(raw_json["level"]))
@@ -244,7 +249,9 @@ class GeniusHub:  # pylint: disable=too-many-instance-attributes
             if "{zone_name}" in description:
                 zone_name = raw_json["data"]["location"]
             if "{device_type}" in description:
-                device_type = DEVICE_HASH_TO_TYPE[raw_json["data"]["nodeHash"]]
+                # don't use nodeHash, it won't pick up (e.g.) DCR - Channel 1
+                # device_type = DEVICE_HASH_TO_TYPE[raw_json["data"]["nodeHash"]]
+                device_type = self.device_by_id[raw_json["data"]["nodeID"]].data["type"]
 
             if "{zone_name}" in description and "{device_type}" in description:
                 description = description.format(
@@ -263,9 +270,6 @@ class GeniusHub:  # pylint: disable=too-many-instance-attributes
             manager = [z for z in self._zones if z["iID"] == 0][0]
             self._sense_mode = bool(manager["lOptions"] & ZONE_MODE.Other)
 
-        # zones = self.zone_objs = [
-        #     GeniusZone(z[key], z, self) for z in self._zones if not self.zone_by_id[z[key]]
-        # ]
         zones = self.zone_objs = populate_objects(
             self._zones, "iID", self.zone_by_id, GeniusZone
         )
@@ -379,7 +383,6 @@ class GeniusZone(GeniusObject):
         super().__init__(hub, ATTRS_ZONE)
 
         self.id = zone_id  # pylint: disable=invalid-name
-        self.data = self._raw = None
 
         self.device_objs = []
         self.device_by_id = {}
@@ -628,7 +631,6 @@ class GeniusDevice(GeniusObject):  # pylint: disable=too-few-public-methods
         super().__init__(hub, ATTRS_DEVICE)
 
         self.id = device_id  # pylint: disable=invalid-name
-        self.data = self._raw = None
 
         self._convert(raw_json)
 
