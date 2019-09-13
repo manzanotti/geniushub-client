@@ -44,7 +44,10 @@ if DEBUG_MODE is True:
     ptvsd.enable_attach(address=("172.27.0.138", 5679), redirect_output=True)
     ptvsd.wait_for_attach()
     _LOGGER.debug("Debugger is attached!")
-    # breakpoint()
+
+if DEBUG_MODE is True:
+    if False:
+        breakpoint()
 
 
 # pylint3 --max-line-length=100
@@ -496,13 +499,10 @@ class GeniusZone(GeniusObject):
 
             return root
 
-        if DEBUG_MODE is True:
-            if raw_json["iID"] == 17:
-                breakpoint()
-
         result = {}
         result["id"] = raw_json["iID"]
         result["name"] = raw_json["strName"]
+
         result["type"] = ITYPE_TO_TYPE[raw_json["iType"]]
         if raw_json["iType"] == ZONE_TYPE.TPI and raw_json["zoneSubType"] == 0:
             result["type"] = ITYPE_TO_TYPE[ZONE_TYPE.ControlOnOffPID]
