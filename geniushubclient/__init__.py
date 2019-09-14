@@ -277,7 +277,6 @@ class GeniusHub:  # pylint: disable=too-many-instance-attributes
 
             return {"description": description, "level": level}
 
-        breakpoint()
         if self.api_version == 1:
             self._sense_mode = None  # currently, no way to tell
         else:  # self.api_version == 3:
