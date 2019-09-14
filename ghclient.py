@@ -64,10 +64,10 @@ from docopt import docopt
 
 from geniushubclient import GeniusHub, GeniusTestHub
 
+logging.basicConfig(datefmt="%H:%M:%S", format="%(asctime)s %(levelname)s: %(message)s")
 _LOGGER = logging.getLogger(__name__)
 
-DEBUG_MODE = False
-
+FILE_MODE = False  # use test files, or not
 
 HUB_ID = "HUB-ID"
 ZONE_ID = "--zone"
@@ -95,7 +95,7 @@ async def main(loop):
     session = aiohttp.ClientSession()  # test with/without
 
     # Option of providing test data (as list of Dicts), or leave both as None
-    if DEBUG_MODE:
+    if FILE_MODE:
         with open("raw_zones.json", "r") as fh:
             z = ast.literal_eval(fh.read())
         with open("raw_devices.json", "r") as fh:
@@ -116,7 +116,7 @@ async def main(loop):
     await hub.update()  # initialise: enumerate all zones, devices & issues
     # ait hub.update()  # for testing, do twice in a row to check for no duplicates
 
-    # these can be used for debugging, above - save the files
+    # these can be used for debugging, above - save as files, above
     # z = await hub._zones  # raw_zones.json
     # d = await hub._devices  # raw_devices.json
 
@@ -129,7 +129,7 @@ async def main(loop):
             raise KeyError(f"Device '{args[DEVICE_ID]}' does not exist (by addr).")
 
         print(device.info)  # detail depends upon verbosity (v=0..3)
-        # also device (v=0), device.data (v=1), device._raw (v=3), and device.assigned_zone
+        # is: device (v=0), device.data (v=1), device._raw (v=3), and device.assigned_zone
 
     elif args[ZONE_ID]:
         try:  # is the zone_id is a str, or an int?
@@ -155,7 +155,7 @@ async def main(loop):
             print(json.dumps(zone.issues))
         else:  # as per args[INFO]
             print(json.dumps(zone.info))  # detail depends upon verbosity (v=0..2)
-            # also zone (v=0) zone.data (v=1) and zone._raw (v=3)
+            # is: zone (v=0) zone.data (v=1) and zone._raw (v=3)
 
     else:  # as per: args[HUB_ID]
         if args[REBOOT]:
@@ -167,8 +167,9 @@ async def main(loop):
         elif args[ISSUES]:
             print(json.dumps(hub.issues))
         else:  # as per args[INFO]
-            print(hub.version)
-            print({"weatherData": hub.zone_by_id[0]._raw["weatherData"]})
+            print(json.dumps(hub.version))
+            if hub.api_version == 3:
+                print({"weatherData": hub.zone_by_id[0]._raw["weatherData"]})
 
     if session:
         await session.close()
