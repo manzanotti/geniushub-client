@@ -379,12 +379,14 @@ class GeniusObject:  # pylint: disable=too-few-public-methods, too-many-instance
         if self._hub.verbosity == 3:
             return self._raw
 
-        if self._hub.verbosity == 2:  # probably same as verbosity == 1:
+        if self._hub.verbosity == 2:
             return self.data
 
         keys = self._attrs["summary_keys"]
         if self._hub.verbosity == 1:
             keys += self._attrs["detail_keys"]
+        if "schedule" in keys:
+            keys.remove("schedule")
 
         return {k: v for k, v in self.data.items() if k in keys}
 
@@ -665,9 +667,17 @@ class GeniusDevice(GeniusObject):  # pylint: disable=too-few-public-methods
         result["id"] = raw_json["addr"]
 
         node = raw_json["childNodes"]["_cfg"]["childValues"]
-        result["_sku"] = node["sku"]["val"] if node else None
+        result["_config"] = _config = {}
+        for val in ["max_sp", "min_sp", "sku"]:
+            if val in node:
+                _config[val] = node[val]["val"]
 
         node = raw_json["childValues"]
+        result["_state"] = _state = {}
+        for val in ["lastComms", "setback"]:
+            if val in node:
+                _state[val] = node[val]["val"]
+
         if "hash" in node:
             result["type"] = DEVICE_HASH_TO_TYPE[node["hash"]["val"]]
         elif node["SwitchBinary"]["path"].count("/") == 3:
@@ -680,8 +690,6 @@ class GeniusDevice(GeniusObject):  # pylint: disable=too-few-public-methods
             result["assignedZones"] = [{"name": node["location"]["val"]}]
 
         result["state"] = state = {}
-
-        # the following order should be preserved
         state.update([(v, node[k]["val"]) for k, v in STATE_ATTRS.items() if k in node])
         if "outputOnOff" in state:  # this one should be a bool
             state["outputOnOff"] = bool(state["outputOnOff"])
