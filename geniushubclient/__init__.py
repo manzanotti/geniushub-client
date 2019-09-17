@@ -324,9 +324,9 @@ class GeniusHub:  # pylint: disable=too-many-instance-attributes
             }
 
         for issue in [i for i in self.issues if i not in old_issues]:
-            _LOGGER.warning("New Issue found: %s", issue)
+            _LOGGER.warning("A new Issue has been found: %s", issue)
         for issue in [i for i in old_issues if i not in self.issues]:
-            _LOGGER.info("Old Issue now resolved: %s", issue)
+            _LOGGER.info("An old Issue has been resolved: %s", issue)
 
     async def update(self):
         """Update the Hub with its latest state data."""
