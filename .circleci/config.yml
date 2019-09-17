@@ -170,8 +170,8 @@ jobs:
     steps:
       - get_v3_app:  {test_type: "zones"}
       - get_v1_curl: {test_type: "zones"}
-      - get_v1_app:  {test_type: "zones"}
       - diff_files:  {test_type: "zones", api_ver: "v3"}
+      - get_v1_app:  {test_type: "zones"}
       - diff_files:  {test_type: "zones", api_ver: "v1"}
 
 
@@ -190,6 +190,7 @@ workflows:
             - *attach_workspace
           post-steps:
             - *persist_to_workspace
+            - *store_artifacts
 
       - test_devices:
           requires:
@@ -200,6 +201,7 @@ workflows:
             - *attach_workspace
           post-steps:
             - *persist_to_workspace
+            - *store_artifacts
 
       - test_issues:
           requires:
@@ -210,3 +212,4 @@ workflows:
             - *attach_workspace
           post-steps:
             - *persist_to_workspace
+            - *store_artifacts
