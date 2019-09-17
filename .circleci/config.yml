@@ -148,31 +148,31 @@ jobs:
     <<: *testbed_environment
     parallelism: 1
     steps:
-      - get_v1_app:  {test_type: "issues"}
       - get_v3_app:  {test_type: "issues"}
       - get_v1_curl: {test_type: "issues"}
-      - diff_files:  {test_type: "issues", api_ver: "v1"}
       - diff_files:  {test_type: "issues", api_ver: "v3"}
+      - get_v1_app:  {test_type: "issues"}
+      - diff_files:  {test_type: "issues", api_ver: "v1"}
 
   test_devices:
     <<: *testbed_environment
     parallelism: 1
     steps:
-      - get_v1_app:  {test_type: "devices"}
       - get_v3_app:  {test_type: "devices"}
       - get_v1_curl: {test_type: "devices"}
-      - diff_files:  {test_type: "devices", api_ver: "v1"}
       - diff_files:  {test_type: "devices", api_ver: "v3"}
+      - get_v1_app:  {test_type: "devices"}
+      - diff_files:  {test_type: "devices", api_ver: "v1"}
 
   test_zones:
     <<: *testbed_environment
     parallelism: 1
     steps:
-      - get_v1_app:  {test_type: "zones"}
       - get_v3_app:  {test_type: "zones"}
       - get_v1_curl: {test_type: "zones"}
-      - diff_files:  {test_type: "zones", api_ver: "v1"}
+      - get_v1_app:  {test_type: "zones"}
       - diff_files:  {test_type: "zones", api_ver: "v3"}
+      - diff_files:  {test_type: "zones", api_ver: "v1"}
 
 
 workflows:
