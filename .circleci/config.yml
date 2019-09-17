@@ -136,8 +136,8 @@ commands:
           no_output_timeout: 60
           when: on_fail
           command: |
-            sudo apt -y install wdiff colordiff >/dev/null 2>&1
-            wdiff ${TEST_RESULTS}/<< parameters.test_type >>/curl.json
+            sudo apt -y install wdiff colordiff > /dev/null 2>&1
+            wdiff ${TEST_RESULTS}/<< parameters.test_type >>/curl.json \
                   ${TEST_RESULTS}/<< parameters.test_type >>/<< parameters.api_ver >>.json | \
             colordiff
 
