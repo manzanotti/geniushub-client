@@ -31,8 +31,27 @@ from .const import (
     ZONE_TYPE,
 )
 
-logging.basicConfig()
+
+class DuplicateFilter(logging.Filter):
+    def filter(self, record):
+        # add other fields if you need more granular comparison, depends on your app
+        if record.msg != "Found an (v3) Issue: %s":
+            return True
+
+        breakpoint()
+
+        current_log = (record.module, record.levelno, record.msg)
+        if current_log != getattr(self, "last_log", None):
+            self.last_log = current_log
+            return True
+        return False
+
+
+logging.basicConfig(format="%(asctime)s %(message)s")
+logging.basicConfig(level=logging.INFO)
 _LOGGER = logging.getLogger(__name__)
+
+# _LOGGER.addFilter(DuplicateFilter())  # add the filter to it
 
 DEBUG_MODE = False
 
@@ -144,7 +163,8 @@ class GeniusHub:  # pylint: disable=too-many-instance-attributes
 
         self._verbose = 1
 
-        self.issues = self.version = self._sense_mode = None
+        self.issues = []
+        self.version = self._sense_mode = None
         self._zones = self._devices = self._issues = self._version = None
         self._test_json = {}  # used with GeniusTestHub
 
@@ -189,7 +209,6 @@ class GeniusHub:  # pylint: disable=too-many-instance-attributes
                 raise_for_status=True,
             ) as resp:
                 response = await resp.json(content_type=None)
-            # await self._session.close()
 
         except aiohttp.ServerDisconnectedError as err:
             _LOGGER.debug(
@@ -248,14 +267,6 @@ class GeniusHub:  # pylint: disable=too-many-instance-attributes
 
         def convert_issue(raw_json) -> Dict:
             """Convert a issues's v3 JSON to the v1 schema."""
-            _LOGGER.debug(
-                "Found an (v3) Issue: %s",
-                {
-                    **{"level": raw_json["level"], "id": raw_json["id"]},
-                    **{k: v for k, v in raw_json.items() if k not in ["level", "id"]},
-                },
-            )
-
             description = ISSUE_DESCRIPTION.get(raw_json["id"], raw_json["id"])
             level = ISSUE_TEXT.get(raw_json["level"], str(raw_json["level"]))
 
@@ -300,6 +311,7 @@ class GeniusHub:  # pylint: disable=too-many-instance-attributes
             ]
             zone.device_by_id = {d.id: d for d in zone.device_objs}
 
+        old_issues = self.issues
         if self.api_version == 1:
             self.issues = self._issues
             self.version = self._version
@@ -310,6 +322,11 @@ class GeniusHub:  # pylint: disable=too-many-instance-attributes
                 "earliestCompatibleAPI": "https://my.geniushub.co.uk/v1",
                 "latestCompatibleAPI": "https://my.geniushub.co.uk/v1",
             }
+
+        for issue in [i for i in self.issues if i not in old_issues]:
+            _LOGGER.warning("New Issue found: %s", issue)
+        for issue in [i for i in old_issues if i not in self.issues]:
+            _LOGGER.info("Old Issue now resolved: %s", issue)
 
     async def update(self):
         """Update the Hub with its latest state data."""
@@ -433,12 +450,12 @@ class GeniusZone(GeniusObject):
             A = O = True  # noqa: E741
             R = False
 
-            l = True  # noqa: E741                                               TODO
+            l = True  # noqa: E741                                         TODO: WIP
             p = node["iMode"] == ZONE_MODE.Footprint | l  # #                    Checked
             u = node["iFlagExpectedKit"] & ZONE_KIT.PIR  # #                     Checked
             d = node["trigger"]["reactive"] & node["trigger"]["output"]  # #     Checked
-            c = node["zoneReactive"]["fActivityLevel"]  # # needs int()?         Checked
-            s = node["objFootprint"]["bIsNight"]  # #                            TODO
+            c = node["zoneReactive"]["fActivityLevel"]  # # needs int()?   TODO: WIP
+            s = node["objFootprint"]["bIsNight"]  # #                      TODO: WIP
 
             return A if p and u and d and (not s) else (O if c > 0 else R)
 

@@ -124,19 +124,22 @@ commands:
         default: "issues"
     steps:
       - run:
-          name: diff files
+          name: check differences
           no_output_timeout: 60
           command: |
-            diff -qs ${TEST_RESULTS}/<< parameters.test_type >>/curl.json ${TEST_RESULTS}/<< parameters.test_type >>/<< parameters.api_ver >>.json | \
-              tee -a ${TEST_RESULTS}/<< parameters.test_type >>/results.txt
+            diff -qs ${TEST_RESULTS}/<< parameters.test_type >>/curl.json \
+                     ${TEST_RESULTS}/<< parameters.test_type >>/<< parameters.api_ver >>.json | \
+            tee -a   ${TEST_RESULTS}/<< parameters.test_type >>/results.txt
 
       - run:
-          name: display differences
+          name: display differences (are different)
           no_output_timeout: 60
           when: on_fail
           command: |
             sudo apt -y install wdiff colordiff >/dev/null 2>&1
-            wdiff ${TEST_RESULTS}/<< parameters.test_type >>/curl.json ${TEST_RESULTS}/<< parameters.test_type >>/<< parameters.api_ver >>.json | colordiff
+            wdiff ${TEST_RESULTS}/<< parameters.test_type >>/curl.json
+                  ${TEST_RESULTS}/<< parameters.test_type >>/<< parameters.api_ver >>.json | \
+            colordiff
 
 
 jobs:
