@@ -174,8 +174,8 @@ jobs:
       - get_v3_app:  {test_type: "zones"}
       - get_v1_curl: {test_type: "zones"}
       - diff_files:  {test_type: "zones", api_ver: "v3"}
-      # - get_v1_app:  {test_type: "zones"}
-      # - diff_files:  {test_type: "zones", api_ver: "v1"}
+      - get_v1_app:  {test_type: "zones"}
+      - diff_files:  {test_type: "zones", api_ver: "v1"}
 
 
 workflows:
