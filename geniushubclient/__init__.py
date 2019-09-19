@@ -310,6 +310,7 @@ class GeniusHub:  # pylint: disable=too-many-instance-attributes
     async def update(self):
         """Update the Hub with its latest state data."""
         if self.api_version == 1:
+<<<<<<< HEAD
             self._zones, self._devices, self._issues, self._version = await asyncio.gather(
                 *[
                     asyncio.ensure_future(self.request("GET", g))
@@ -323,6 +324,17 @@ class GeniusHub:  # pylint: disable=too-many-instance-attributes
                     asyncio.ensure_future(self.request("GET", g))
                     for g in ["zones", "data_manager", "auth/release"]
                 ]
+=======
+            get_list = ["zones", "devices", "issues", "version"]
+            self._zones, self._devices, self._issues, self._version = await asyncio.gather(
+                *[self.request("GET", g) for g in get_list]
+            )
+
+        else:  # self.api_version == 3:
+            get_list = ["zones", "data_manager", "auth/release"]
+            zones, data_manager, auth = await asyncio.gather(
+                *[self.request("GET", g) for g in get_list]
+>>>>>>> 249f8540008bd2ddf88a9af2bc92ec5cfa6109ca
             )
 
             self._zones = _zones_via_v3_zones(zones)
