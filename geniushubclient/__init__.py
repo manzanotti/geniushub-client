@@ -2,6 +2,7 @@
 
    see: https://my.geniushub.co.uk/docs
    """
+import asyncio
 from datetime import datetime
 from hashlib import sha256
 import json
@@ -31,27 +32,8 @@ from .const import (
     ZONE_TYPE,
 )
 
-
-class DuplicateFilter(logging.Filter):
-    def filter(self, record):
-        # add other fields if you need more granular comparison, depends on your app
-        if record.msg != "Found an (v3) Issue: %s":
-            return True
-
-        breakpoint()
-
-        current_log = (record.module, record.levelno, record.msg)
-        if current_log != getattr(self, "last_log", None):
-            self.last_log = current_log
-            return True
-        return False
-
-
-logging.basicConfig(format="%(asctime)s %(message)s")
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.INFO)
 _LOGGER = logging.getLogger(__name__)
-
-# _LOGGER.addFilter(DuplicateFilter())  # add the filter to it
 
 DEBUG_MODE = False
 
@@ -119,9 +101,7 @@ def _version_via_v3_auth(raw_json) -> str:
     return raw_json["data"]["release"]
 
 
-def _version_via_v3_zones(
-    raw_json
-) -> str:  # pylint: disable=inconsistent-return-statements
+def _version_via_v3_zones(raw_json) -> str:
     """Extract Version from /v3/zones JSON (a hack)."""
     build_date = datetime.strptime(raw_json["data"][0]["strBuildDate"], "%b %d %Y")
 
@@ -252,18 +232,17 @@ class GeniusHub:  # pylint: disable=too-many-instance-attributes
         """Update the Hub with its latest state data."""
 
         def populate_objects(obj_list, obj_key, obj_by_id, ObjectClass):
-            zone_objs = []
+            entities = []  # list of converted zones/devices
             key = "id" if self.api_version == 1 else obj_key
             for raw_json in obj_list:
-                try:  # does the hub already know about this zone?
+                try:  # does the hub already know about this zone/device?
                     entity = obj_by_id[raw_json[key]]
                 except KeyError:
                     entity = ObjectClass(raw_json[key], raw_json, self)
                 else:
                     entity._convert(raw_json)
-                finally:
-                    zone_objs.append(entity)
-            return zone_objs
+                entities.append(entity)
+            return entities
 
         def convert_issue(raw_json) -> Dict:
             """Convert a issues's v3 JSON to the v1 schema."""
@@ -273,8 +252,8 @@ class GeniusHub:  # pylint: disable=too-many-instance-attributes
             if "{zone_name}" in description:
                 zone_name = raw_json["data"]["location"]
             if "{device_type}" in description:
-                # don't use nodeHash, it won't pick up (e.g.) DCR - Channel 1
-                # device_type = DEVICE_HASH_TO_TYPE[raw_json["data"]["nodeHash"]]
+                # don't use nodeHash, it won't pick up (e.g. DCR - Channel 1)
+                # vice_type = DEVICE_HASH_TO_TYPE[raw_json["data"]["nodeHash"]]
                 device_type = self.device_by_id[raw_json["data"]["nodeID"]].data["type"]
 
             if "{zone_name}" in description and "{device_type}" in description:
@@ -324,27 +303,32 @@ class GeniusHub:  # pylint: disable=too-many-instance-attributes
             }
 
         for issue in [i for i in self.issues if i not in old_issues]:
-            _LOGGER.warning("A new Issue has been found: %s", issue)
+            _LOGGER.warning("An Issue has been found: %s", issue)
         for issue in [i for i in old_issues if i not in self.issues]:
-            _LOGGER.info("An old Issue has been resolved: %s", issue)
+            _LOGGER.info("An Issue is now resolved: %s", issue)
 
     async def update(self):
         """Update the Hub with its latest state data."""
         if self.api_version == 1:
-            self._zones = await self.request("GET", "zones")
-            self._devices = await self.request("GET", "devices")
-            self._issues = await self.request("GET", "issues")
-            self._version = await self.request("GET", "version")
+            self._zones, self._devices, self._issues, self._version = await asyncio.gather(
+                *[
+                    asyncio.ensure_future(self.request("GET", g))
+                    for g in ["zones", "devices", "issues", "version"]
+                ]
+            )
 
         else:  # self.api_version == 3:
-            self._zones = _zones_via_v3_zones(await self.request("GET", "zones"))
-            self._devices = _devices_via_v3_data_mgr(
-                await self.request("GET", "data_manager")
+            zones, data_manager, auth = await asyncio.gather(
+                *[
+                    asyncio.ensure_future(self.request("GET", g))
+                    for g in ["zones", "data_manager", "auth/release"]
+                ]
             )
-            self._issues = _issues_via_v3_zones({"data": self._zones})
-            self._version = _version_via_v3_auth(
-                await self.request("GET", "auth/release")
-            )
+
+            self._zones = _zones_via_v3_zones(zones)
+            self._devices = _devices_via_v3_data_mgr(data_manager)
+            self._issues = _issues_via_v3_zones(zones)
+            self._version = _version_via_v3_auth(auth)
 
         await self._update()  # now convert all the raw JSON
 
@@ -554,7 +538,7 @@ class GeniusZone(GeniusObject):
 
             if raw_json["iType"] not in [
                 ZONE_TYPE.Manager,
-                ZONE_TYPE.Surrogate,
+                ZONE_TYPE.Surrogate,  # Group zones
             ]:  # timer = {} if: Manager
                 result["schedule"]["timer"] = _timer_schedule(raw_json)
 
