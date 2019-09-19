@@ -42,7 +42,7 @@ if DEBUG_MODE is True:
 
     _LOGGER.setLevel(logging.DEBUG)
     _LOGGER.debug("Waiting for debugger to attach...")
-    ptvsd.enable_attach(address=("172.27.0.138", 5679), redirect_output=True)
+    ptvsd.enable_attach(address=("127.0.0.1", 5679), redirect_output=True)
     ptvsd.wait_for_attach()
     _LOGGER.debug("Debugger is attached!")
 
