@@ -663,18 +663,7 @@ class GeniusDevice(GeniusObject):  # pylint: disable=too-few-public-methods
         result = {}
         result["id"] = raw_json["addr"]
 
-        node = raw_json["childNodes"]["_cfg"]["childValues"]
-        result["_config"] = _config = {}
-        for val in ["max_sp", "min_sp", "sku"]:
-            if val in node:
-                _config[val] = node[val]["val"]
-
         node = raw_json["childValues"]
-        result["_state"] = _state = {}
-        for val in ["lastComms", "setback"]:
-            if val in node:
-                _state[val] = node[val]["val"]
-
         if "hash" in node:
             result["type"] = DEVICE_HASH_TO_TYPE[node["hash"]["val"]]
         elif node["SwitchBinary"]["path"].count("/") == 3:
@@ -682,14 +671,41 @@ class GeniusDevice(GeniusObject):  # pylint: disable=too-few-public-methods
         else:
             result["type"] = None
 
-        result["assignedZones"] = [{"name": None}]
-        if node["location"]["val"]:
-            result["assignedZones"] = [{"name": node["location"]["val"]}]
+        try:
+            result["assignedZones"] = [{"name": None}]
+            if node["location"]["val"]:
+                result["assignedZones"] = [{"name": node["location"]["val"]}]
 
-        result["state"] = state = {}
-        state.update([(v, node[k]["val"]) for k, v in STATE_ATTRS.items() if k in node])
-        if "outputOnOff" in state:  # this one should be a bool
-            state["outputOnOff"] = bool(state["outputOnOff"])
+            result["state"] = state = {}
+            state.update(
+                [(v, node[k]["val"]) for k, v in STATE_ATTRS.items() if k in node]
+            )
+            if "outputOnOff" in state:  # this one should be a bool
+                state["outputOnOff"] = bool(state["outputOnOff"])
+
+            result["_state"] = _state = {}
+            for val in ["lastComms", "setback"]:
+                if val in node:
+                    _state[val] = node[val]["val"]
+            if "WakeUp_Interval" in node:
+                _state["wakeupInterval"] = node["WakeUp_Interval"]["val"]
+
+            node = raw_json["childNodes"]["_cfg"]["childValues"]
+            result["_config"] = _config = {}
+            for val in ["max_sp", "min_sp", "sku"]:
+                if val in node:
+                    _config[val] = node[val]["val"]
+
+        except (
+            AttributeError,
+            LookupError,
+            TypeError,
+            UnboundLocalError,
+            ValueError,
+        ) as err:
+            _LOGGER.exception(
+                "Failed to fully convert Device %s, message: %s.", result["id"], err
+            )
 
         self.data = result
 
