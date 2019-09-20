@@ -38,16 +38,13 @@ _LOGGER = logging.getLogger(__name__)
 DEBUG_MODE = False
 
 if DEBUG_MODE is True:
-    import ptvsd
+    import ptvsd  # pylint: disable=import-error
 
     _LOGGER.setLevel(logging.DEBUG)
     _LOGGER.debug("Waiting for debugger to attach...")
     ptvsd.enable_attach(address=("127.0.0.1", 5679), redirect_output=True)
     ptvsd.wait_for_attach()
     _LOGGER.debug("Debugger is attached!")
-
-# pylint3 --max-line-length=100
-# pylint: disable=fixme, too-many-branches, too-many-locals, too-many-statements
 
 
 def natural_sort(dict_list, dict_key) -> List[Dict]:
@@ -110,10 +107,9 @@ def _version_via_v3_zones(raw_json) -> str:
             return HUB_SW_VERSIONS[date_time_idx]
 
 
-class GeniusHub:  # pylint: disable=too-many-instance-attributes
+class GeniusHub:
     """The class for a connection to a Genius Hub."""
 
-    # pylint: disable=too-many-arguments
     def __init__(
         self, hub_id, username=None, password=None, session=None, debug=False
     ) -> None:
@@ -231,7 +227,10 @@ class GeniusHub:  # pylint: disable=too-many-instance-attributes
     async def _update(self):
         """Update the Hub with its latest state data."""
 
-        def populate_objects(obj_list, obj_key, obj_by_id, ObjectClass):
+        def populate_objects(
+            obj_list, obj_key, obj_by_id, ObjectClass
+        ):  # pylint: disable=invalid-name
+            """Create the current list of GeniusHub objects (zones/devices)."""
             entities = []  # list of converted zones/devices
             key = "id" if self.api_version == 1 else obj_key
             for raw_json in obj_list:
@@ -240,7 +239,7 @@ class GeniusHub:  # pylint: disable=too-many-instance-attributes
                 except KeyError:
                     entity = ObjectClass(raw_json[key], raw_json, self)
                 else:
-                    entity._convert(raw_json)
+                    entity._convert(raw_json)  # pylint: disable=protected-access
                 entities.append(entity)
             return entities
 
@@ -356,7 +355,7 @@ class GeniusTestHub(GeniusHub):
         await self._update()  # now convert all the raw JSON
 
 
-class GeniusObject:  # pylint: disable=too-few-public-methods, too-many-instance-attributes
+class GeniusObject:
     """The base class for any Genius object: Zone, Device or Issue."""
 
     def __init__(self, hub, object_attrs) -> None:
@@ -493,17 +492,17 @@ class GeniusZone(GeniusObject):
 
             return root
 
-        result = {}
+        self.data = result = {}
         result["id"] = raw_json["iID"]
         result["name"] = raw_json["strName"]
 
-        result["type"] = ITYPE_TO_TYPE[raw_json["iType"]]
-        if raw_json["iType"] == ZONE_TYPE.TPI and raw_json["zoneSubType"] == 0:
-            result["type"] = ITYPE_TO_TYPE[ZONE_TYPE.ControlOnOffPID]
-
-        result["mode"] = IMODE_TO_MODE[raw_json["iMode"]]
-
         try:
+            result["type"] = ITYPE_TO_TYPE[raw_json["iType"]]
+            if raw_json["iType"] == ZONE_TYPE.TPI and raw_json["zoneSubType"] == 0:
+                result["type"] = ITYPE_TO_TYPE[ZONE_TYPE.ControlOnOffPID]
+
+            result["mode"] = IMODE_TO_MODE[raw_json["iMode"]]
+
             if raw_json["iType"] in [ZONE_TYPE.ControlSP, ZONE_TYPE.TPI]:
                 if not (
                     raw_json["iType"] == ZONE_TYPE.TPI
@@ -534,8 +533,8 @@ class GeniusZone(GeniusObject):
 
             if raw_json["iType"] not in [
                 ZONE_TYPE.Manager,
-                ZONE_TYPE.Surrogate,  # Group zones
-            ]:  # timer = {} if: Manager
+                ZONE_TYPE.Surrogate,
+            ]:  # timer = {} if: Manager, Group
                 result["schedule"]["timer"] = _timer_schedule(raw_json)
 
             if raw_json["iType"] in [ZONE_TYPE.ControlSP]:
@@ -552,8 +551,6 @@ class GeniusZone(GeniusObject):
             _LOGGER.exception(
                 "Failed to fully convert Zone %s, message: %s.", result["id"], err
             )
-
-        self.data = result
 
     @property
     def _has_pir(self) -> bool:
@@ -650,7 +647,7 @@ class GeniusZone(GeniusObject):
         _LOGGER.debug("Zone(%s).set_override_temp(): response = %s", self.id, resp)
 
 
-class GeniusDevice(GeniusObject):  # pylint: disable=too-few-public-methods
+class GeniusDevice(GeniusObject):
     """The class for a Genius Device."""
 
     def __init__(self, device_id, raw_json, hub) -> None:
@@ -667,18 +664,18 @@ class GeniusDevice(GeniusObject):  # pylint: disable=too-few-public-methods
             self.data = raw_json
             return
 
-        result = {}
+        self.data = result = {}
         result["id"] = raw_json["addr"]
 
-        node = raw_json["childValues"]
-        if "hash" in node:
-            result["type"] = DEVICE_HASH_TO_TYPE[node["hash"]["val"]]
-        elif node["SwitchBinary"]["path"].count("/") == 3:
-            result["type"] = f"Dual Channel Receiver - Channel {result['id'][-1]}"
-        else:
-            result["type"] = None
-
         try:
+            node = raw_json["childValues"]
+            if "hash" in node:
+                result["type"] = DEVICE_HASH_TO_TYPE[node["hash"]["val"]]
+            elif node["SwitchBinary"]["path"].count("/") == 3:
+                result["type"] = f"Dual Channel Receiver - Channel {result['id'][-1]}"
+            else:
+                result["type"] = None
+
             result["assignedZones"] = [{"name": None}]
             if node["location"]["val"]:
                 result["assignedZones"] = [{"name": node["location"]["val"]}]
@@ -713,8 +710,6 @@ class GeniusDevice(GeniusObject):  # pylint: disable=too-few-public-methods
             _LOGGER.exception(
                 "Failed to fully convert Device %s, message: %s.", result["id"], err
             )
-
-        self.data = result
 
     @property
     def type(self) -> str:
