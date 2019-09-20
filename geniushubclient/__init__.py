@@ -36,7 +36,7 @@ from .const import (
 logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.INFO)
 _LOGGER = logging.getLogger(__name__)
 
-DEBUG_MODE = True
+DEBUG_MODE = False
 
 if DEBUG_MODE is True:
     import ptvsd  # pylint: disable=import-error
