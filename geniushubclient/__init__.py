@@ -27,6 +27,7 @@ from .const import (
     ITYPE_TO_TYPE,
     MODE_TO_IMODE,
     STATE_ATTRS,
+    TYPE_TO_ITYPE,
     ZONE_KIT,
     ZONE_MODE,
     ZONE_TYPE,
@@ -35,14 +36,14 @@ from .const import (
 logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.INFO)
 _LOGGER = logging.getLogger(__name__)
 
-DEBUG_MODE = False
+DEBUG_MODE = True
 
 if DEBUG_MODE is True:
     import ptvsd  # pylint: disable=import-error
 
     _LOGGER.setLevel(logging.DEBUG)
     _LOGGER.debug("Waiting for debugger to attach...")
-    ptvsd.enable_attach(address=("127.0.0.1", 5679), redirect_output=True)
+    ptvsd.enable_attach(address=("172.27.0.138", 5679), redirect_output=True)
     ptvsd.wait_for_attach()
     _LOGGER.debug("Debugger is attached!")
 
@@ -515,7 +516,14 @@ class GeniusZone(GeniusObject):
                 result["setpoint"] = bool(raw_json["fSP"])
 
             if self._has_pir:
-                result["occupied"] = _is_occupied(raw_json)
+                breakpoint()
+                if TYPE_TO_ITYPE[result["type"]] in [
+                    ZONE_TYPE.ControlSP,
+                    ZONE_TYPE.ControlOnOffPID,
+                ]:
+                    result["occupied"] = _is_occupied(raw_json)
+                else:
+                    result["_state"] = {"occupied": _is_occupied(raw_json)}
 
             if raw_json["iType"] in [
                 ZONE_TYPE.OnOffTimer,
