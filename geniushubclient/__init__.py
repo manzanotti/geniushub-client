@@ -520,7 +520,7 @@ class GeniusZone(GeniusObject):
                 ]:
                     result["occupied"] = _is_occupied(raw_json)
                 else:
-                    result["_state"] = {"occupied": _is_occupied(raw_json)}
+                    result["_occupied"] = _is_occupied(raw_json)
 
             if raw_json["iType"] in [
                 ZONE_TYPE.OnOffTimer,

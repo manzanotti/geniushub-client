@@ -154,13 +154,14 @@ async def main(loop):
         elif args[ISSUES]:
             print(json.dumps(zone.issues))
         else:  # as per args[INFO]
-            print(json.dumps(zone.info))  # detail depends upon verbosity (v=0..2)
+            print(json.dumps({k: v for k, v in zone.info.items() if k != "schedule"}))
             # is: zone (v=0) zone.data (v=1) and zone._raw (v=3)
 
     else:  # as per: args[HUB_ID]
         if args[REBOOT]:
             raise NotImplementedError()  # await hub.reboot()
         elif args[ZONES]:
+            # print(json.dumps([{k: v for k, v in i.items() if k != "schedule"} for i in hub.zones]))
             print(json.dumps(hub.zones))
         elif args[DEVICES]:
             print(json.dumps(hub.devices))
