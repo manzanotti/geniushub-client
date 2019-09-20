@@ -179,11 +179,11 @@ class GeniusHub:
         try:
             async with http_method(
                 self._url_base + url,
-                json=data,
-                headers=self._headers,
                 auth=self._auth,
-                timeout=self._timeout,
+                headers=self._headers,
+                json=data,
                 raise_for_status=True,
+                timeout=self._timeout,
             ) as resp:
                 response = await resp.json(content_type=None)
 
@@ -193,11 +193,11 @@ class GeniusHub:
             )
             async with http_method(
                 self._url_base + url,
-                json=data,
-                headers=self._headers,
                 auth=self._auth,
-                timeout=self._timeout,
+                headers=self._headers,
+                json=data,
                 raise_for_status=True,
+                timeout=self._timeout,
             ) as resp:
                 response = await resp.json(content_type=None)
 
@@ -514,10 +514,7 @@ class GeniusZone(GeniusObject):
                 result["setpoint"] = bool(raw_json["fSP"])
 
             if self._has_pir:
-                if TYPE_TO_ITYPE[result["type"]] in [
-                    ZONE_TYPE.ControlSP,
-                    ZONE_TYPE.ControlOnOffPID,
-                ]:
+                if TYPE_TO_ITYPE[result["type"]] == ZONE_TYPE.ControlSP:
                     result["occupied"] = _is_occupied(raw_json)
                 else:
                     result["_occupied"] = _is_occupied(raw_json)
