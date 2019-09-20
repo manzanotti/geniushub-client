@@ -516,7 +516,6 @@ class GeniusZone(GeniusObject):
                 result["setpoint"] = bool(raw_json["fSP"])
 
             if self._has_pir:
-                breakpoint()
                 if TYPE_TO_ITYPE[result["type"]] in [
                     ZONE_TYPE.ControlSP,
                     ZONE_TYPE.ControlOnOffPID,
