@@ -86,9 +86,9 @@ commands:
 
             . venv/bin/activate
 
-            if [ "<< parameters.test_type >>" == "zones" ]; then VERBOSE="-vv"; else VERBOSE="-v"; fi
+            # if [ "<< parameters.test_type >>" == "zones" ]; then VERBOSE="-vv"; else VERBOSE="-v"; fi
 
-            python ghclient.py ${HUB_TOKEN} << parameters.test_type >> ${VERBOSE} | \
+            python ghclient.py ${HUB_TOKEN} << parameters.test_type >> -v | \
               python -c "import sys, json; print(json.dumps(json.load(sys.stdin, parse_float=lambda x: int(float(x))), indent=4, sort_keys=True))" | \
               tee ${TEST_RESULTS}/<< parameters.test_type >>/v1.json
 
@@ -107,9 +107,9 @@ commands:
 
             . venv/bin/activate
 
-            if [ "<< parameters.test_type >>" == "zones" ]; then VERBOSE="-vv"; else VERBOSE="-v"; fi
+            # if [ "<< parameters.test_type >>" == "zones" ]; then VERBOSE="-vv"; else VERBOSE="-v"; fi
 
-            python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} << parameters.test_type >> ${VERBOSE} | \
+            python ghclient.py ${HUB_ADDRESS} -u ${USERNAME} -p ${PASSWORD} << parameters.test_type >> -v | \
               python -c "import sys, json; print(json.dumps(json.load(sys.stdin, parse_float=lambda x: int(float(x))), indent=4, sort_keys=True))" | \
               tee ${TEST_RESULTS}/<< parameters.test_type >>/v3.json
 

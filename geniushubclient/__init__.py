@@ -382,8 +382,6 @@ class GeniusObject:
         keys = self._attrs["summary_keys"]
         if self._hub.verbosity == 1:
             keys += self._attrs["detail_keys"]
-        if "schedule" in keys:
-            keys.remove("schedule")
 
         return {k: v for k, v in self.data.items() if k in keys}
 
