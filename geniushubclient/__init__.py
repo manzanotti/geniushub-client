@@ -408,7 +408,7 @@ class GeniusZone(GeniusObject):
             self.data = raw_json
             return
 
-        def _is_occupied(node):  # from web app v5.2.4
+        def _is_occupied(node) -> bool:  # from web app v5.2.4
             """Occupancy vs Activity (code from app.js, search for 'occupancyIcon').
 
                 R = occupancy not detected (valid in any mode)
@@ -439,7 +439,7 @@ class GeniusZone(GeniusObject):
 
             return A if p and u and d and (not s) else (O if c > 0 else R)
 
-        def _timer_schedule(raw_json):
+        def _timer_schedule(raw_json) -> Dict:
             root = {"weekly": {}}
             day = -1
 
@@ -466,7 +466,7 @@ class GeniusZone(GeniusObject):
 
             return root
 
-        def _footprint_schedule(raw_json):
+        def _footprint_schedule(raw_json) -> Dict:
             root = {"weekly": {}}
             day = -1
 
@@ -515,7 +515,7 @@ class GeniusZone(GeniusObject):
             elif raw_json["iType"] == ZONE_TYPE.OnOffTimer:
                 result["setpoint"] = bool(raw_json["fSP"])
 
-            if raw_json["iFlagExpectedKit"] & ZONE_KIT.PIR:
+            if self._has_pir:
                 result["occupied"] = _is_occupied(raw_json)
 
             if raw_json["iType"] in [
@@ -556,6 +556,13 @@ class GeniusZone(GeniusObject):
         self.data = result
 
     @property
+    def _has_pir(self) -> bool:
+        """Return True if the zone has a PIR (movement sensor)."""
+        if self._hub.api_version == 1:
+            return "occupied" in self.data
+        return self._raw["iFlagExpectedKit"] & ZONE_KIT.PIR
+
+    @property
     def name(self) -> str:
         """Return the name of the zone, which can change."""
         return self.data["name"]
@@ -581,7 +588,7 @@ class GeniusZone(GeniusObject):
         """
         allowed_modes = [ZONE_MODE.Off, ZONE_MODE.Override, ZONE_MODE.Timer]
 
-        if hasattr(self, "occupied"):  # has a PIR (movement sensor)
+        if self._has_pir:
             allowed_modes += [ZONE_MODE.Footprint]
         allowed_mode_strs = [IMODE_TO_MODE[i] for i in allowed_modes]
 
