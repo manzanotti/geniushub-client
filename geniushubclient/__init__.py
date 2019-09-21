@@ -504,10 +504,6 @@ class GeniusZone(GeniusObject):
             result["mode"] = IMODE_TO_MODE[raw_json["iMode"]]
 
             if raw_json["iType"] in [ZONE_TYPE.ControlSP, ZONE_TYPE.TPI]:
-                # if not (
-                #     raw_json["iType"] == ZONE_TYPE.TPI
-                #     and not raw_json["activeTemperatureDevices"]
-                # ):
                 if raw_json["activeTemperatureDevices"]:
                     result["temperature"] = raw_json["fPV"]
                 result["setpoint"] = raw_json["fSP"]
@@ -546,9 +542,7 @@ class GeniusZone(GeniusObject):
                 result["schedule"]["footprint"] = _footprint_schedule(raw_json)
                 result["_schedule"] = {
                     "footprint": {
-                        "profile": FOOTPRINT_MODES.get(
-                            raw_json["objFootprint"]["iProfile"], "Unknown"
-                        )
+                        "profile": FOOTPRINT_MODES[raw_json["objFootprint"]["iProfile"]]
                     }
                 }
 
