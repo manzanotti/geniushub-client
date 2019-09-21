@@ -543,9 +543,13 @@ class GeniusZone(GeniusObject):
             if raw_json["iType"] in [ZONE_TYPE.ControlSP]:
                 # footprint={...} iff: ControlSP, _even_ if no PIR, otherwise ={}
                 result["schedule"]["footprint"] = _footprint_schedule(raw_json)
-                result["schedule"]["footprint"]["_profile"] = FOOTPRINT_MODES.get(
-                    raw_json["objFootprint"]["iProfile"], "Unknown"
-                )
+                result["_schedule"] = {
+                    "footprint": {
+                        "profile": FOOTPRINT_MODES.get(
+                            raw_json["objFootprint"]["iProfile"], "Unknown"
+                        )
+                    }
+                }
 
         except (
             AttributeError,
