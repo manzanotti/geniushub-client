@@ -19,6 +19,7 @@ from .const import (
     DEFAULT_TIMEOUT_V1,
     DEFAULT_TIMEOUT_V3,
     DEVICE_HASH_TO_TYPE,
+    FOOTPRINT_MODES,
     HUB_SW_VERSIONS,
     IDAY_TO_DAY,
     IMODE_TO_MODE,
@@ -542,6 +543,9 @@ class GeniusZone(GeniusObject):
             if raw_json["iType"] in [ZONE_TYPE.ControlSP]:
                 # footprint={...} iff: ControlSP, _even_ if no PIR, otherwise ={}
                 result["schedule"]["footprint"] = _footprint_schedule(raw_json)
+                result["schedule"]["footprint"]["_profile"] = FOOTPRINT_MODES.get(
+                    raw_json["objFootprint"]["iProfile"], "Unknown"
+                )
 
         except (
             AttributeError,

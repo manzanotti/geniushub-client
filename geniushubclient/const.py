@@ -24,6 +24,11 @@ API_STATUS_ERROR = {
     502: "The hub is offline.",
     503: "The authorization information is invalid.",
 }
+
+FOOTPRINT_MODES = {1: "Super-Eco", 2: "Eco", 3: "Comfort"}
+
+# the following is from the vendor's javascript
+
 ZONE_TYPE = SimpleNamespace(
     Manager=1, OnOffTimer=2, ControlSP=3, ControlOnOffPID=4, TPI=5, Surrogate=6
 )  # from app.js, search for '.Type = {'
