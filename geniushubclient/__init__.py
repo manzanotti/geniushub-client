@@ -19,6 +19,7 @@ from .const import (
     DEFAULT_TIMEOUT_V1,
     DEFAULT_TIMEOUT_V3,
     DEVICE_HASH_TO_TYPE,
+    FOOTPRINT_MODES,
     HUB_SW_VERSIONS,
     IDAY_TO_DAY,
     IMODE_TO_MODE,
@@ -503,10 +504,7 @@ class GeniusZone(GeniusObject):
             result["mode"] = IMODE_TO_MODE[raw_json["iMode"]]
 
             if raw_json["iType"] in [ZONE_TYPE.ControlSP, ZONE_TYPE.TPI]:
-                if not (
-                    raw_json["iType"] == ZONE_TYPE.TPI
-                    and not raw_json["activeTemperatureDevices"]
-                ):
+                if raw_json["activeTemperatureDevices"]:
                     result["temperature"] = raw_json["fPV"]
                 result["setpoint"] = raw_json["fSP"]
 
@@ -542,6 +540,11 @@ class GeniusZone(GeniusObject):
             if raw_json["iType"] in [ZONE_TYPE.ControlSP]:
                 # footprint={...} iff: ControlSP, _even_ if no PIR, otherwise ={}
                 result["schedule"]["footprint"] = _footprint_schedule(raw_json)
+                result["_schedule"] = {
+                    "footprint": {
+                        "profile": FOOTPRINT_MODES[raw_json["objFootprint"]["iProfile"]]
+                    }
+                }
 
         except (
             AttributeError,
