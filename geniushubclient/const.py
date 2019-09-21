@@ -25,7 +25,7 @@ API_STATUS_ERROR = {
     503: "The authorization information is invalid.",
 }
 
-FOOTPRINT_MODES = {1: "Super-Eco", 2: "Eco", 3: "Comfort"}
+FOOTPRINT_MODES = {1: "super-eco", 2: "eco", 3: "comfort"}
 
 # the following is from the vendor's javascript
 
