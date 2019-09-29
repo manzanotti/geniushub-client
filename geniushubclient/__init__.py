@@ -6,7 +6,7 @@ import asyncio
 from datetime import datetime
 from hashlib import sha256
 import json
-from typing import Dict, List  # Any, Optional, Set, Tuple
+from typing import Dict, List, Optional  # Any, Set, Tuple
 
 import logging
 import re
@@ -712,12 +712,12 @@ class GeniusDevice(GeniusObject):
             )
 
     @property
-    def type(self) -> str:
+    def type(self) -> Optional[str]:
         """Return the type of the device, which can change."""
-        return self.data["type"]
+        return self.data.get("type")
 
     @property
-    def assigned_zone(self) -> object:
+    def assigned_zone(self) -> Optional[object]:
         """Return the primary assigned zone, which can change."""
         try:
             return self._hub.zone_by_name[self.data["assignedZones"][0]["name"]]
