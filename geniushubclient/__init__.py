@@ -507,6 +507,9 @@ class GeniusZone(GeniusObject):
                 if raw_json["activeTemperatureDevices"]:
                     result["temperature"] = raw_json["fPV"]
                 result["setpoint"] = raw_json["fSP"]
+            if raw_json["iType"] == ZONE_TYPE.Manager:
+                if raw_json["fPV"]:
+                    result["temperature"] = raw_json["fPV"]
 
             elif raw_json["iType"] == ZONE_TYPE.OnOffTimer:
                 result["setpoint"] = bool(raw_json["fSP"])
