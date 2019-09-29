@@ -546,13 +546,7 @@ class GeniusZone(GeniusObject):
                     }
                 }
 
-        except (
-            AttributeError,
-            LookupError,
-            TypeError,
-            UnboundLocalError,
-            ValueError,
-        ) as err:
+        except (AttributeError, LookupError, TypeError, ValueError) as err:
             _LOGGER.exception(
                 "Failed to fully convert Zone %s, message: %s.", result["id"], err
             )
@@ -674,8 +668,11 @@ class GeniusDevice(GeniusObject):
 
         try:
             node = raw_json["childValues"]
+
             if "hash" in node:
-                result["type"] = DEVICE_HASH_TO_TYPE[node["hash"]["val"]]
+                dev_type = DEVICE_HASH_TO_TYPE.get(node["hash"]["val"])
+                if dev_type:
+                    result["type"] = dev_type
             elif node["SwitchBinary"]["path"].count("/") == 3:
                 result["type"] = f"Dual Channel Receiver - Channel {result['id'][-1]}"
             else:
@@ -700,18 +697,13 @@ class GeniusDevice(GeniusObject):
                 _state["wakeupInterval"] = node["WakeUp_Interval"]["val"]
 
             node = raw_json["childNodes"]["_cfg"]["childValues"]
+
             result["_config"] = _config = {}
             for val in ["max_sp", "min_sp", "sku"]:
                 if val in node:
                     _config[val] = node[val]["val"]
 
-        except (
-            AttributeError,
-            LookupError,
-            TypeError,
-            UnboundLocalError,
-            ValueError,
-        ) as err:
+        except (AttributeError, LookupError, TypeError, ValueError) as err:
             _LOGGER.exception(
                 "Failed to fully convert Device %s, message: %s.", result["id"], err
             )
