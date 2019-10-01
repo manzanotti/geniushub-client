@@ -95,11 +95,6 @@ def _issues_via_v3_zones(raw_json) -> List[Dict]:
     return result
 
 
-def _version_via_v3_auth(raw_json) -> str:
-    """Extract Version from /v3/zones JSON."""
-    return raw_json["data"]["release"]
-
-
 def _version_via_v3_zones(raw_json) -> str:
     """Extract Version from /v3/zones JSON (a hack)."""
     build_date = datetime.strptime(raw_json["data"][0]["strBuildDate"], "%b %d %Y")
@@ -141,13 +136,19 @@ class GeniusHub:
 
         self._verbose = 1
 
-        self.issues = []
-        self.version = self._sense_mode = None
+        self._sense_mode = None
         self._zones = self._devices = self._issues = self._version = None
         self._test_json = {}  # used with GeniusTestHub
 
-        self.zone_by_id = self.device_by_id = {}
-        self.zone_objs = self.zone_by_name = self.device_objs = None
+        self.zone_objs = []
+        self.device_objs = []
+        self.issues = []
+        self.version = {}
+        self.uid = None
+
+        self.zone_by_id = {}
+        self.zone_by_name = {}
+        self.device_by_id = {}
 
     def __repr__(self) -> str:
         return json.dumps(self.version)
@@ -231,7 +232,7 @@ class GeniusHub:
 
         def populate_objects(
             obj_list, obj_key, obj_by_id, ObjectClass
-        ):  # pylint: disable=invalid-name
+        ) -> List:  # pylint: disable=invalid-name
             """Create the current list of GeniusHub objects (zones/devices)."""
             entities = []  # list of converted zones/devices
             key = "id" if self.api_version == 1 else obj_key
@@ -325,7 +326,9 @@ class GeniusHub:
             self._zones = _zones_via_v3_zones(zones)
             self._devices = _devices_via_v3_data_mgr(data_manager)
             self._issues = _issues_via_v3_zones(zones)
-            self._version = _version_via_v3_auth(auth)
+            self._version = auth["data"]["release"]
+
+            self.uid = auth["data"]["UID"]
 
         await self._update()  # now convert all the raw JSON
 

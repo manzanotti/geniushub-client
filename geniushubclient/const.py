@@ -138,6 +138,8 @@ ATTRS_DEVICE = {
 ATTRS_ISSUE = {"summary_keys": ["description", "level"], "detail_keys": []}
 
 # The following MODELs are from Vendor's bower.js, search for: 'Model: [{'
+# 0x0000000200040205 - broken DA-WRV-B
+#
 DEVICES_MODEL = [
     {"hash": "VIRTUAL", "sku": "virtual node", "description": "Virtual Node"},
     {"hash": "0x0000000000000000", "sku": "n/a", "description": "Unrecognised Device"},
