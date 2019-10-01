@@ -169,6 +169,7 @@ async def main(loop):
             print(json.dumps(hub.issues))
         else:  # as per args[INFO]
             print(json.dumps(hub.version))
+            print(hub.uid)
             if hub.api_version == 3:
                 print({"weatherData": hub.zone_by_id[0]._raw["weatherData"]})
 
