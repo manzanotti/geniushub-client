@@ -69,6 +69,8 @@ commands:
 
             curl -Ss -X GET https://my.geniushub.co.uk/v1/<< parameters.test_type >> -H "authorization: Bearer ${HUB_TOKEN}" --connect-timeout 300 > output.json
 
+            wc --words output.json
+
             cat output.json | \
               python -c "import sys, json; print(json.dumps(json.load(sys.stdin, parse_float=lambda x: int(float(x))), indent=4, sort_keys=True))" | \
               tee ${TEST_RESULTS}/<< parameters.test_type >>/curl.json
@@ -91,6 +93,8 @@ commands:
             # if [ "<< parameters.test_type >>" == "zones" ]; then VERBOSE="-vv"; else VERBOSE="-v"; fi
 
             python ghclient.py ${HUB_TOKEN} << parameters.test_type >> -v > output.json
+
+            wc --words output.json
 
             cat output.json | \
               python -c "import sys, json; print(json.dumps(json.load(sys.stdin, parse_float=lambda x: int(float(x))), indent=4, sort_keys=True))" | \
