@@ -367,7 +367,8 @@ class GeniusObject:
         self._hub = hub
         self._attrs = object_attrs
 
-        self.data = self._raw = {}
+        self.data = {}
+        self._raw = {}
 
     def __repr__(self) -> str:
         return json.dumps(
