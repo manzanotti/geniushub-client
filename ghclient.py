@@ -161,8 +161,8 @@ async def main(loop):
         if args[REBOOT]:
             raise NotImplementedError()  # await hub.reboot()
         elif args[ZONES]:
-            # print(json.dumps([{k: v for k, v in i.items() if k != "schedule"} for i in hub.zones]))
-            print(json.dumps(hub.zones))
+            print(json.dumps([{k: v for k, v in i.items() if k != "schedule"} for i in hub.zones]))
+            # print(json.dumps(hub.zones))
         elif args[DEVICES]:
             print(json.dumps(hub.devices))
         elif args[ISSUES]:

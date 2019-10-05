@@ -379,6 +379,10 @@ class GeniusObject:
     def info(self) -> Dict:
         """Return all information for the object."""
         if self._hub.verbosity == 3:
+            keys = ["bInHeatEnabled", "bIsActive", "bOutRequestHeat"]
+            return {k: v for k, v in self._raw.items() if k in keys}
+
+        if self._hub.verbosity == 3:
             return self._raw
 
         if self._hub.verbosity == 2:
@@ -558,6 +562,19 @@ class GeniusZone(GeniusObject):
                 "Failed to fully convert Zone %s, message: %s.", result["id"], err
             )
 
+        try:
+            keys = ["bIsActive", "bOutRequestHeat"]
+            result["_state"] = {k: raw_json[k] for k in keys}
+
+            if raw_json["iType"] in [ZONE_TYPE.ControlSP]:
+                key = "bInHeatEnabled"
+                result["_state"][key] = raw_json[key]
+
+        except (AttributeError, LookupError, TypeError, ValueError) as err:
+            _LOGGER.exception(
+                "Failed to fully convert Zone %s, message: %s.", result["id"], err
+            )
+
     @property
     def _has_pir(self) -> bool:
         """Return True if the zone has a PIR (movement sensor)."""
@@ -696,6 +713,12 @@ class GeniusDevice(GeniusObject):
             if "outputOnOff" in state:  # this one should be a bool
                 state["outputOnOff"] = bool(state["outputOnOff"])
 
+        except (AttributeError, LookupError, TypeError, ValueError) as err:
+            _LOGGER.exception(
+                "Failed to fully convert Device %s, message: %s.", result["id"], err
+            )
+
+        try:
             result["_state"] = _state = {}
             for val in ["lastComms", "setback"]:
                 if val in node:
