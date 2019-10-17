@@ -379,10 +379,6 @@ class GeniusObject:
     def info(self) -> Dict:
         """Return all information for the object."""
         if self._hub.verbosity == 3:
-            keys = ["bInHeatEnabled", "bIsActive", "bOutRequestHeat"]
-            return {k: v for k, v in self._raw.items() if k in keys}
-
-        if self._hub.verbosity == 3:
             return self._raw
 
         if self._hub.verbosity == 2:
@@ -512,9 +508,10 @@ class GeniusZone(GeniusObject):
             result["mode"] = IMODE_TO_MODE[raw_json["iMode"]]
 
             if raw_json["iType"] in [ZONE_TYPE.ControlSP, ZONE_TYPE.TPI]:
-                if raw_json["activeTemperatureDevices"]:
-                    result["temperature"] = raw_json["fPV"]
+                # some zones have a fPV without raw_json["activeTemperatureDevices"]
+                result["temperature"] = raw_json["fPV"]
                 result["setpoint"] = raw_json["fSP"]
+
             if raw_json["iType"] == ZONE_TYPE.Manager:
                 if raw_json["fPV"]:
                     result["temperature"] = raw_json["fPV"]
@@ -559,7 +556,7 @@ class GeniusZone(GeniusObject):
 
         except (AttributeError, LookupError, TypeError, ValueError) as err:
             _LOGGER.exception(
-                "Failed to fully convert Zone %s, message: %s.", result["id"], err
+                "Failed to convert Zone %s, message: %s.", result["id"], err
             )
 
         try:
@@ -715,7 +712,7 @@ class GeniusDevice(GeniusObject):
 
         except (AttributeError, LookupError, TypeError, ValueError) as err:
             _LOGGER.exception(
-                "Failed to fully convert Device %s, message: %s.", result["id"], err
+                "Failed to convert Device %s, message: %s.", result["id"], err
             )
 
         try:

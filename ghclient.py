@@ -67,7 +67,7 @@ from geniushubclient import GeniusHub, GeniusTestHub
 logging.basicConfig(datefmt="%H:%M:%S", format="%(asctime)s %(levelname)s: %(message)s")
 _LOGGER = logging.getLogger(__name__)
 
-FILE_MODE = False  # use test files, or not
+FILE_MODE = False  # use test files instead of a real Hub
 
 HUB_ID = "HUB-ID"
 ZONE_ID = "--zone"
@@ -96,9 +96,11 @@ async def main(loop):
 
     # Option of providing test data (as list of Dicts), or leave both as None
     if FILE_MODE:
-        with open("raw_zones.json", "r") as fh:
-            z = ast.literal_eval(fh.read())
-        with open("raw_devices.json", "r") as fh:
+        with open("raw_zones.json", mode="r") as fh:
+            # z = json.loads(fh.read())  # for O/P from ghclient zones -vvv
+            z = ast.literal_eval(fh.read())  # more forgiving
+        with open("raw_devices.json", mode="r") as fh:
+            # d = json.loads(fh.read())
             d = ast.literal_eval(fh.read())
 
         hub = GeniusTestHub(zones_json=z, device_json=d, session=session, debug=True)
@@ -161,8 +163,10 @@ async def main(loop):
         if args[REBOOT]:
             raise NotImplementedError()  # await hub.reboot()
         elif args[ZONES]:
-            print(json.dumps([{k: v for k, v in i.items() if k != "schedule"} for i in hub.zones]))
-            # print(json.dumps(hub.zones))
+            # print(
+            #     json.dumps([{k: v for k, v in i.items() if k != "schedule"} for i in hub.zones])
+            # )
+            print(json.dumps(hub.zones))  # TODO: this is for CI
         elif args[DEVICES]:
             print(json.dumps(hub.devices))
         elif args[ISSUES]:
