@@ -508,9 +508,10 @@ class GeniusZone(GeniusObject):
             result["mode"] = IMODE_TO_MODE[raw_json["iMode"]]
 
             if raw_json["iType"] in [ZONE_TYPE.ControlSP, ZONE_TYPE.TPI]:
-                if raw_json["activeTemperatureDevices"]:
-                    result["temperature"] = raw_json["fPV"]
+                # some zones have a fPV without raw_json["activeTemperatureDevices"]
+                result["temperature"] = raw_json["fPV"]
                 result["setpoint"] = raw_json["fSP"]
+
             if raw_json["iType"] == ZONE_TYPE.Manager:
                 if raw_json["fPV"]:
                     result["temperature"] = raw_json["fPV"]
@@ -552,6 +553,19 @@ class GeniusZone(GeniusObject):
                         "profile": FOOTPRINT_MODES[raw_json["objFootprint"]["iProfile"]]
                     }
                 }
+
+        except (AttributeError, LookupError, TypeError, ValueError) as err:
+            _LOGGER.exception(
+                "Failed to convert Zone %s, message: %s.", result["id"], err
+            )
+
+        try:
+            keys = ["bIsActive", "bOutRequestHeat"]
+            result["_state"] = {k: raw_json[k] for k in keys}
+
+            if raw_json["iType"] in [ZONE_TYPE.ControlSP]:
+                key = "bInHeatEnabled"
+                result["_state"][key] = raw_json[key]
 
         except (AttributeError, LookupError, TypeError, ValueError) as err:
             _LOGGER.exception(
@@ -696,6 +710,12 @@ class GeniusDevice(GeniusObject):
             if "outputOnOff" in state:  # this one should be a bool
                 state["outputOnOff"] = bool(state["outputOnOff"])
 
+        except (AttributeError, LookupError, TypeError, ValueError) as err:
+            _LOGGER.exception(
+                "Failed to convert Device %s, message: %s.", result["id"], err
+            )
+
+        try:
             result["_state"] = _state = {}
             for val in ["lastComms", "setback"]:
                 if val in node:

@@ -138,7 +138,7 @@ ATTRS_DEVICE = {
 ATTRS_ISSUE = {"summary_keys": ["description", "level"], "detail_keys": []}
 
 # The following MODELs are from Vendor's bower.js, search for: 'Model: [{'
-# 0x0000000200040205 - broken DA-WRV-B
+# 0x0000000200040205 - DanFoss Room thermostat?
 #
 DEVICES_MODEL = [
     {"hash": "VIRTUAL", "sku": "virtual node", "description": "Virtual Node"},
