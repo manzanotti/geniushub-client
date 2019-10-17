@@ -14,9 +14,9 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/zxdavb/geniushub-client",
-    download_url = 'https://github.com/zxdavb/geniushub-client/archive/VERSION.tar.gz',
+    download_url="https://github.com/zxdavb/geniushub-client/archive/VERSION.tar.gz",
     packages=setuptools.find_packages(),
-    keywords = ['genius', 'geniushub', 'heatgenius'],
+    keywords=["genius", "geniushub", "heatgenius"],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
