@@ -37,13 +37,16 @@ from .const import (
 logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.INFO)
 _LOGGER = logging.getLogger(__name__)
 
+DEBUG_LOGGING = False
 DEBUG_MODE = False
 DEBUG_NO_SCHEDULES = False
+
+if DEBUG_LOGGING is True:
+    _LOGGER.setLevel(logging.DEBUG)
 
 if DEBUG_MODE is True:
     import ptvsd  # pylint: disable=import-error
 
-    _LOGGER.setLevel(logging.DEBUG)
     _LOGGER.debug("Waiting for debugger to attach...")
     ptvsd.enable_attach(address=("172.27.0.138", 5679), redirect_output=True)
     ptvsd.wait_for_attach()
