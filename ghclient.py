@@ -11,7 +11,8 @@ Connect to a Genius Hub and interact with it, a Zone, or a Device:
 
 Arguments:
   HUB-ID  either a Hub token, or a Hub hostname/address (which needs user credentials)
-    If a token is provided, then v1 API calls are made, otherwise its v3 API calls
+
+    If a token is provided, then v1 API calls are made, otherwise its v3 API calls.
 
   COMMAND  the method or property to use:
     zones     display all zones attached to the hub, as a list of dicts
@@ -50,7 +51,7 @@ Examples:
     Turn Zone 3 off.
 
   ghclient.py HUB_ID -z 12 -d 3600 -t 19.5
-    Set the override temperature for Zone 12 to 19.5C for 1 hour..
+    Set the override temperature for Zone 12 to 19.5C for 1 hour.
 
 """
 
@@ -134,7 +135,7 @@ async def main(loop):
         # is: device (v=0), device.data (v=1), device._raw (v=3), and device.assigned_zone
 
     elif args[ZONE_ID]:
-        try:  # is the zone_id is a str, or an int?
+        try:  # was the zone_id given as a str, or an int?
             key = int(args[ZONE_ID])
         except ValueError:
             key = args[ZONE_ID]

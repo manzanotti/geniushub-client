@@ -38,6 +38,7 @@ logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.INFO)
 _LOGGER = logging.getLogger(__name__)
 
 DEBUG_MODE = False
+DEBUG_NO_SCHEDULES = False
 
 if DEBUG_MODE is True:
     import ptvsd  # pylint: disable=import-error
@@ -381,6 +382,10 @@ class GeniusObject:
         if self._hub.verbosity == 3:
             return self._raw
 
+        # tip: grep -E '("bOutRequestHeat"|"bInHeatEnabled")..true'
+        if DEBUG_NO_SCHEDULES and self._hub.verbosity == 2:
+            return {k: v for k, v in self.data.items() if k != 'schedule'}
+
         if self._hub.verbosity == 2:
             return self.data
 
@@ -634,13 +639,14 @@ class GeniusZone(GeniusObject):
             resp = resp["data"] if resp["error"] == 0 else resp
         _LOGGER.debug("Zone(%s).set_mode(): response = %s", self.id, resp)
 
-    async def set_override(self, setpoint=None, duration=None):
+    async def set_override(self, setpoint, duration=None):
         """Set the zone to override to a certain temperature.
 
           duration is in seconds
           setpoint is in degrees Celsius
         """
-        assert setpoint is not None or duration is not None
+        setpoint = float(setpoint)
+        duration = int(duration) if duration else 3600
 
         _LOGGER.debug(
             "Zone(%s).set_override(setpoint=%s, duration=%s)...",
