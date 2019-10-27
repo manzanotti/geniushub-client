@@ -3,13 +3,12 @@
    see: https://my.geniushub.co.uk/docs
    """
 import asyncio
-from datetime import datetime
-from hashlib import sha256
 import json
-from typing import Dict, List, Optional  # Any, Set, Tuple
-
 import logging
 import re
+from datetime import datetime
+from hashlib import sha256
+from typing import Dict, List, Optional  # Any, Set, Tuple
 
 import aiohttp
 
@@ -387,7 +386,7 @@ class GeniusObject:
 
         # tip: grep -E '("bOutRequestHeat"|"bInHeatEnabled")..true'
         if DEBUG_NO_SCHEDULES and self._hub.verbosity == 2:
-            return {k: v for k, v in self.data.items() if k != 'schedule'}
+            return {k: v for k, v in self.data.items() if k != "schedule"}
 
         if self._hub.verbosity == 2:
             return self.data
