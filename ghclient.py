@@ -55,8 +55,8 @@ Examples:
 
 """
 
-import asyncio
 import ast
+import asyncio
 import json
 import logging
 
@@ -161,7 +161,7 @@ async def main(loop):
             # is: zone (v=0) zone.data (v=1) and zone._raw (v=3)
 
     else:  # as per: args[HUB_ID]
-        if args[REBOOT]:
+        if args[REBOOT]:  # pylint: disable=no-else-raise
             raise NotImplementedError()  # await hub.reboot()
         elif args[ZONES]:
             # print(
@@ -176,6 +176,7 @@ async def main(loop):
             print(json.dumps(hub.version))
             print(hub.uid)
             if hub.api_version == 3:
+                # pylint: disable=protected-access
                 print({"weatherData": hub.zone_by_id[0]._raw["weatherData"]})
 
     if session:
