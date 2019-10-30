@@ -1,4 +1,4 @@
-# .hound.yml file for evohome
+# .hound.yml file for https://github.com/zxdavb
 
 python:
   enabled: true
