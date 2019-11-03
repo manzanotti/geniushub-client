@@ -68,7 +68,9 @@ from geniushubclient import GeniusHub, GeniusTestHub
 logging.basicConfig(datefmt="%H:%M:%S", format="%(asctime)s %(levelname)s: %(message)s")
 _LOGGER = logging.getLogger(__name__)
 
-FILE_MODE = False  # use test files instead of a real Hub
+# Debugging flags - all False for production releases
+FILE_MODE = True  # use test files instead of a real Hub
+DEBUG_NO_SCHEDULES = False  # don't print schedule data
 
 HUB_ID = "HUB-ID"
 ZONE_ID = "--zone"
@@ -98,11 +100,11 @@ async def main(loop):
     # Option of providing test data (as list of Dicts), or leave both as None
     if FILE_MODE:
         with open("raw_zones.json", mode="r") as fh:
-            # z = json.loads(fh.read())  # for O/P from ghclient zones -vvv
-            z = ast.literal_eval(fh.read())  # more forgiving
+            z = json.loads(fh.read())  # file from: ghclient zones -vvv
+            # z = ast.literal_eval(fh.read())  # file from HA logs
         with open("raw_devices.json", mode="r") as fh:
-            # d = json.loads(fh.read())
-            d = ast.literal_eval(fh.read())
+            d = json.loads(fh.read())  # file from: ghclient zones -vvv
+            # d = ast.literal_eval(fh.read())  # file from HA logs
 
         hub = GeniusTestHub(zones_json=z, device_json=d, session=session, debug=True)
     else:
@@ -131,8 +133,7 @@ async def main(loop):
         except KeyError:
             raise KeyError(f"Device '{args[DEVICE_ID]}' does not exist (by addr).")
 
-        print(device.info)  # detail depends upon verbosity (v=0..3)
-        # is: device (v=0), device.data (v=1), device._raw (v=3), and device.assigned_zone
+        print(device.info)  # v0 = device, v1 = device.data, v3 = device._raw
 
     elif args[ZONE_ID]:
         try:  # was the zone_id given as a str, or an int?
@@ -156,18 +157,24 @@ async def main(loop):
             print(json.dumps(zone.devices))
         elif args[ISSUES]:
             print(json.dumps(zone.issues))
-        else:  # as per args[INFO]
-            print(json.dumps({k: v for k, v in zone.info.items() if k != "schedule"}))
-            # is: zone (v=0) zone.data (v=1) and zone._raw (v=3)
+        else:  # as per args[INFO], v0 = zone, v1 = zone.data, v3 = zone._raw
+            if DEBUG_NO_SCHEDULES:
+                _info = {k: v for k, v in zone.info.items() if k != "schedule"}
+                print(json.dumps(_info))
+            else:
+                print(json.dumps(zone.info))
 
     else:  # as per: args[HUB_ID]
         if args[REBOOT]:  # pylint: disable=no-else-raise
             raise NotImplementedError()  # await hub.reboot()
         elif args[ZONES]:
-            # print(
-            #     json.dumps([{k: v for k, v in i.items() if k != "schedule"} for i in hub.zones])
-            # )
-            print(json.dumps(hub.zones))  # TODO: this is for CI
+            if DEBUG_NO_SCHEDULES:
+                _zones = [
+                    {k: v for k, v in z.items() if k != "schedule"} for z in hub.zones
+                ]
+                print(json.dumps(_zones))
+            else:
+                print(json.dumps(hub.zones))
         elif args[DEVICES]:
             print(json.dumps(hub.devices))
         elif args[ISSUES]:

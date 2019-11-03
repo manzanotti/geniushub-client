@@ -420,3 +420,4 @@ ZONE_KIT = SimpleNamespace(  # ZONE_KIT_MODEL
     GasMeter=1024,
     CO2=2014,
 )  # from app.js, search for '.EquipmentTypes = {'
+

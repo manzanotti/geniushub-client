@@ -36,9 +36,9 @@ from .const import (
 logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.INFO)
 _LOGGER = logging.getLogger(__name__)
 
+# Debugging flags - all False for production releases
 DEBUG_LOGGING = False
 DEBUG_MODE = False
-DEBUG_NO_SCHEDULES = False
 
 if DEBUG_LOGGING is True:
     _LOGGER.setLevel(logging.DEBUG)
@@ -46,7 +46,7 @@ if DEBUG_LOGGING is True:
 if DEBUG_MODE is True:
     import ptvsd  # pylint: disable=import-error
 
-    _LOGGER.debug("Waiting for debugger to attach...")
+    _LOGGER.warning("Waiting for debugger to attach...")
     ptvsd.enable_attach(address=("172.27.0.138", 5679), redirect_output=True)
     ptvsd.wait_for_attach()
     _LOGGER.debug("Debugger is attached!")
@@ -242,7 +242,7 @@ class GeniusHub:
             for raw_json in obj_list:
                 try:  # does the hub already know about this zone/device?
                     entity = obj_by_id[raw_json[key]]
-                except KeyError:
+                except KeyError:  # this is a new zone/device
                     entity = ObjectClass(raw_json[key], raw_json, self)
                 else:
                     entity._convert(raw_json)  # pylint: disable=protected-access
@@ -385,9 +385,6 @@ class GeniusObject:
             return self._raw
 
         # tip: grep -E '("bOutRequestHeat"|"bInHeatEnabled")..true'
-        if DEBUG_NO_SCHEDULES and self._hub.verbosity == 2:
-            return {k: v for k, v in self.data.items() if k != "schedule"}
-
         if self._hub.verbosity == 2:
             return self.data
 
@@ -467,8 +464,11 @@ class GeniusZone(GeniusObject):
                     node["heatingPeriods"] = []
 
                 elif sp_next != node["defaultSetpoint"]:
-                    tm_last = setpoints[idx + 1]["iTm"]
                     # reactive = self._hub._sense_mode & bool(setpoint.get("bReactive"))
+                    if len(setpoints) == idx + 1 or setpoints[idx + 1]["iTm"] == -1:
+                        tm_last = 86400  # 24 * 60 * 60
+                    else:
+                        tm_last = setpoints[idx + 1]["iTm"]
 
                     node["heatingPeriods"].append(
                         {"end": tm_last, "start": tm_next, "setpoint": sp_next}
@@ -507,7 +507,7 @@ class GeniusZone(GeniusObject):
         result["id"] = raw_json["iID"]
         result["name"] = raw_json["strName"]
 
-        try:
+        try:  # convert zone (v1 attributes)
             result["type"] = ITYPE_TO_TYPE[raw_json["iType"]]
             if raw_json["iType"] == ZONE_TYPE.TPI and raw_json["zoneSubType"] == 0:
                 result["type"] = ITYPE_TO_TYPE[ZONE_TYPE.ControlOnOffPID]
@@ -546,12 +546,24 @@ class GeniusZone(GeniusObject):
 
             result["schedule"] = {"timer": {}, "footprint": {}}  # for all zone types
 
+        except (AttributeError, LookupError, TypeError, ValueError) as err:
+            _LOGGER.exception(
+                "Failed to convert Zone %s, message: %s.", result["id"], err
+            )
+
+        try:  # convert timer schedule (v1 attributes)
             if raw_json["iType"] not in [
                 ZONE_TYPE.Manager,
                 ZONE_TYPE.Surrogate,
             ]:  # timer = {} if: Manager, Group
                 result["schedule"]["timer"] = _timer_schedule(raw_json)
 
+        except (AttributeError, LookupError, TypeError, ValueError) as err:
+            _LOGGER.exception(
+                "Failed to convert Zone %s timer, message: %s.", result["id"], err
+            )
+
+        try:  # convert footprint schedule (v1 attributes)
             if raw_json["iType"] in [ZONE_TYPE.ControlSP]:
                 # footprint={...} iff: ControlSP, _even_ if no PIR, otherwise ={}
                 result["schedule"]["footprint"] = _footprint_schedule(raw_json)
@@ -563,10 +575,10 @@ class GeniusZone(GeniusObject):
 
         except (AttributeError, LookupError, TypeError, ValueError) as err:
             _LOGGER.exception(
-                "Failed to convert Zone %s, message: %s.", result["id"], err
+                "Failed to convert Zone %s footprint, message: %s.", result["id"], err
             )
 
-        try:
+        try:  # covert extras (v3 attributes)
             keys = ["bIsActive", "bOutRequestHeat"]
             result["_state"] = {k: raw_json[k] for k in keys}
 
