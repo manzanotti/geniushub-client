@@ -1,4 +1,4 @@
-[![CircleCI](https://circleci.com/gh/zxdavb/geniushub-client.svg?style=svg)](https://circleci.com/gh/zxdavb/geniushub-client)
+[![CircleCI](https://circleci.com/gh/zxdavb/geniushub-client.svg?style=svg)](https://circleci.com/gh/zxdavb/geniushub-client) [![Join the chat at https://gitter.im/geniushub-client/community](https://badges.gitter.im/geniushub-client/community.svg)](https://gitter.im/geniushub-client/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 # geniushub-client
 This is a Python library to provide access to a **Genius Hub** by abstracting its [RESTful API](https://my.geniushub.co.uk/docs). It uses **aiohttp** and is therefore async-friendly.
