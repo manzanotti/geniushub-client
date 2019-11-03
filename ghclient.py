@@ -69,7 +69,7 @@ logging.basicConfig(datefmt="%H:%M:%S", format="%(asctime)s %(levelname)s: %(mes
 _LOGGER = logging.getLogger(__name__)
 
 # Debugging flags - all False for production releases
-FILE_MODE = True  # use test files instead of a real Hub
+FILE_MODE = False  # use test files instead of a real Hub
 DEBUG_NO_SCHEDULES = False  # don't print schedule data
 
 HUB_ID = "HUB-ID"
