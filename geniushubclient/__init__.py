@@ -192,9 +192,9 @@ class GeniusHub:
             ) as resp:
                 response = await resp.json(content_type=None)
 
-        except aiohttp.ServerDisconnectedError as err:
+        except aiohttp.ServerDisconnectedError as exc:
             _LOGGER.debug(
-                "_request(): ServerDisconnectedError (msg=%s), retrying.", err
+                "_request(): ServerDisconnectedError (msg=%s), retrying.", exc
             )
             async with http_method(
                 self._url_base + url,
@@ -546,10 +546,8 @@ class GeniusZone(GeniusObject):
 
             result["schedule"] = {"timer": {}, "footprint": {}}  # for all zone types
 
-        except (AttributeError, LookupError, TypeError, ValueError) as err:
-            _LOGGER.exception(
-                "Failed to convert Zone %s, message: %s.", result["id"], err
-            )
+        except (AttributeError, LookupError, TypeError, ValueError):
+            _LOGGER.exception("Failed to convert Zone %s.", result["id"])
 
         try:  # convert timer schedule (v1 attributes)
             if raw_json["iType"] not in [
@@ -558,10 +556,8 @@ class GeniusZone(GeniusObject):
             ]:  # timer = {} if: Manager, Group
                 result["schedule"]["timer"] = _timer_schedule(raw_json)
 
-        except (AttributeError, LookupError, TypeError, ValueError) as err:
-            _LOGGER.exception(
-                "Failed to convert Zone %s timer, message: %s.", result["id"], err
-            )
+        except (AttributeError, LookupError, TypeError, ValueError):
+            _LOGGER.exception("Failed to convert Zone %s timer schedule.", result["id"])
 
         try:  # convert footprint schedule (v1 attributes)
             if raw_json["iType"] in [ZONE_TYPE.ControlSP]:
@@ -573,9 +569,9 @@ class GeniusZone(GeniusObject):
                     }
                 }
 
-        except (AttributeError, LookupError, TypeError, ValueError) as err:
+        except (AttributeError, LookupError, TypeError, ValueError):
             _LOGGER.exception(
-                "Failed to convert Zone %s footprint, message: %s.", result["id"], err
+                "Failed to convert Zone %s footprint schedule.", result["id"]
             )
 
         try:  # covert extras (v3 attributes)
@@ -586,10 +582,8 @@ class GeniusZone(GeniusObject):
                 key = "bInHeatEnabled"
                 result["_state"][key] = raw_json[key]
 
-        except (AttributeError, LookupError, TypeError, ValueError) as err:
-            _LOGGER.exception(
-                "Failed to fully convert Zone %s, message: %s.", result["id"], err
-            )
+        except (AttributeError, LookupError, TypeError, ValueError):
+            _LOGGER.exception("Failed to convert Zone %s extras.", result["id"])
 
     @property
     def _has_pir(self) -> bool:
@@ -730,10 +724,8 @@ class GeniusDevice(GeniusObject):
             if "outputOnOff" in state:  # this one should be a bool
                 state["outputOnOff"] = bool(state["outputOnOff"])
 
-        except (AttributeError, LookupError, TypeError, ValueError) as err:
-            _LOGGER.exception(
-                "Failed to convert Device %s, message: %s.", result["id"], err
-            )
+        except (AttributeError, LookupError, TypeError, ValueError):
+            _LOGGER.exception("Failed to convert Device %s.")
 
         try:
             result["_state"] = _state = {}
@@ -750,10 +742,8 @@ class GeniusDevice(GeniusObject):
                 if val in node:
                     _config[val] = node[val]["val"]
 
-        except (AttributeError, LookupError, TypeError, ValueError) as err:
-            _LOGGER.exception(
-                "Failed to fully convert Device %s, message: %s.", result["id"], err
-            )
+        except (AttributeError, LookupError, TypeError, ValueError):
+            _LOGGER.exception("Failed to convert Device %s extras.", result["id"])
 
     @property
     def type(self) -> Optional[str]:
