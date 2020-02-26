@@ -5,16 +5,19 @@ DEFAULT_TIMEOUT_V1 = 120
 DEFAULT_TIMEOUT_V3 = 20
 
 # see: https://docs.geniushub.co.uk/pages/viewpage.action?pageId=14221432
+# via: ghclient.py gh.host.com --user=xxx --pass=xxx zones -vvv | grep strBuildDate
 HUB_SW_VERSIONS = {
-    "Dec 31 9999": "5.3.2+",
-    "Jul 23 2019": "5.3.2",  # #          confirmed in testing
+    "Dec 31 9999": "5.3.6+",
+    "Feb 25 2020": "5.3.6",  # to be confirmed
+    "Sep 09 2019": "5.3.5",  # confirmed in testing
+    "Jul 23 2019": "5.3.2",  # confirmed in testing
     "Jun 25 2019": "5.3.0",
     "Dec 20 2018": "5.2.10 (beta)",
-    "Dec 19 2018": "5.2.10",  # #         confirmed in testing
+    "Dec 19 2018": "5.2.10",  # confirmed in testing
     "Jul 11 2018": "5.2.4",
     "Jan 05 2018": "5.2.2",
     "Jan 01 1000": "<5.2.2",
-}
+}  # NB: these are Build dates (strBuildDate), not Release dates (web UI, support site)
 
 API_STATUS_ERROR = {
     400: "The request body or request parameters are invalid.",

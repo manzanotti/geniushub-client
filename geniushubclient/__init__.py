@@ -99,7 +99,11 @@ def _issues_via_v3_zones(raw_json) -> List[Dict]:
 
 
 def _version_via_v3_zones(raw_json) -> str:
-    """Extract Version from /v3/zones JSON (a hack)."""
+    """Extract Version from /v3/zones JSON (a hack).
+
+    This function is used with GeniusTestHub (FILE_MODE == True).
+    """
+    _LOGGER.debug("Build date is: %s", raw_json["data"][0]["strBuildDate"])
     build_date = datetime.strptime(raw_json["data"][0]["strBuildDate"], "%b %d %Y")
 
     for date_time_idx in HUB_SW_VERSIONS:
