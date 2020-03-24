@@ -356,7 +356,7 @@ DEVICES_MODEL = [
         "hash": "0x0000015400011100",
         "sku": "po-plg-b",
     },
-]  # from bower.js, search for: 'Model: [{'
+]
 
 DEVICE_HASH_TO_TYPE = {d["hash"]: d["description"] for d in DEVICES_MODEL}
 

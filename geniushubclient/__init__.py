@@ -320,9 +320,12 @@ class GeniusHub:
         """Update the Hub with its latest state data."""
         if self.api_version == 1:
             get_list = ["zones", "devices", "issues", "version"]
-            self._zones, self._devices, self._issues, self._version = await asyncio.gather(
-                *[self.request("GET", g) for g in get_list]
-            )
+            (
+                self._zones,
+                self._devices,
+                self._issues,
+                self._version,
+            ) = await asyncio.gather(*[self.request("GET", g) for g in get_list])
 
         else:  # self.api_version == 3:
             get_list = ["zones", "data_manager", "auth/release"]
@@ -642,9 +645,7 @@ class GeniusZone(GeniusObject):
             url = f"zones/{self.id}/mode"  # v1 API uses strings
             resp = await self._hub.request("PUT", url, data=mode_str)
         else:  # self._hub.api_version == 3
-            url = (
-                f"zone/{self.id}"
-            )  # v3 API uses dicts  # TODO: check: is it PUT(POST?) vs PATCH
+            url = f"zone/{self.id}"  # v3 API uses dicts  # TODO: check: is it PUT(POST?) vs PATCH
             resp = await self._hub.request("PATCH", url, data={"iMode": mode})
 
         if resp:  # for v1, resp = None?
