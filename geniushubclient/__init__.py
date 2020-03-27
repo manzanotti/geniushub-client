@@ -440,22 +440,23 @@ class GeniusZone(GeniusObject):
             return
 
         def _is_occupied(node) -> bool:  # from web app v5.2.4
-            """Occupancy vs Activity (code from app.js, search for 'occupancyIcon').
+            """
+            Occupancy vs Activity (code from app.js, search for 'occupancyIcon').
 
-                R = occupancy not detected (valid in any mode)
-                O = occupancy detected (valid in any mode)
-                A = occupancy detected, sufficient to call for heat (iff in Sense/FP mode)
+            R = occupancy not detected (valid in any mode)
+            O = occupancy detected (valid in any mode)
+            A = occupancy detected, sufficient to call for heat (iff in Sense/FP mode)
 
-                l = null != i.settings.experimentalFeatures && i.settings.experimentalFeatures.timerPlus,
-                p = parseInt(n.iMode) === e.zoneModes.Mode_Footprint || l,           # in FP/sense mode
-                u = parseInt(n.iFlagExpectedKit) & e.equipmentTypes.Kit_PIR,         # has a PIR
-                d = n.trigger.reactive && n.trigger.output,                          #
-                c = parseInt(n.zoneReactive.fActivityLevel) || 0,
-                s = t.isInFootprintNightMode(n),                                     # night time
+            l = null != i.settings.experimentalFeatures && i.settings.experimentalFeatures.timerPlus,
+            p = parseInt(n.iMode) === e.zoneModes.Mode_Footprint || l,    # sense mode?
+            u = parseInt(n.iFlagExpectedKit) & e.equipmentTypes.Kit_PIR,  # has a PIR
+            d = n.trigger.reactive && n.trigger.output,
+            c = parseInt(n.zoneReactive.fActivityLevel) || 0,
+            s = t.isInFootprintNightMode(n),                              # night time
 
-                occupancyIcon() = p && u && d && !s ? a : c > 0 ? o : r
+            occupancyIcon() = p && u && d && !s ? a : c > 0 ? o : r
 
-                Hint: the following returns "XX">> true ? "XX" : "YY"
+            Hint: the following returns "XX">> true ? "XX" : "YY"
             """
             # pylint: disable=invalid-name
             A = O = True  # noqa: E741
