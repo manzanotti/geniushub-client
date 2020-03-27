@@ -186,12 +186,7 @@ jobs:
       - get_v1_app:  {test_type: "zones"}
       - diff_files:  {test_type: "zones", api_ver: "v1"}
 
-
-workflows:
-  version: 2.1
-
-
-  build: 
+  do_build: 
     <<: *testbed_environment
     steps: 
       - checkout 
@@ -203,6 +198,14 @@ workflows:
           command: |
             pip install -r requirements-dev.txt
 
+
+workflows:
+  version: 2.1
+
+
+  build: 
+    jobs:
+     - do_build
 
   test:
     jobs:
