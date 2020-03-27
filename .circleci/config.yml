@@ -197,10 +197,10 @@ jobs:
             sudo chown -R circleci:circleci /usr/local/lib/python3.7/site-packages
             pip install -r requirements-dev.txt
       - run:
-          name: Check build
+          name: Check formatting
           command: |
-            black --safe --check *.py
-            black --safe --check geniushubclient
+            black --diff --check *.py
+            black --diff --check geniushubclient
       - store_test_results:
           path: source_folder_test_results
       - store_artifacts: 
