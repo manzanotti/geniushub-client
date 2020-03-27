@@ -206,10 +206,10 @@ jobs:
           command: |
             ls -al
       - store_test_results:
-          path: test-results
+          path: source_folder_test_results
       - store_artifacts: 
-          path: htmlcov
-          destination: coverage
+          path: source_folder_artifacts
+          destination: xxxx
 
 
 workflows:
@@ -221,8 +221,8 @@ workflows:
       - make_testbed
 
       - check_build
-      #     requires:
-      #       - make_testbed
+          requires:
+            - make_testbed
       #     pre-steps:
       #       - checkout
       #       - *restore_cache
