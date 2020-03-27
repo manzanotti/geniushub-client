@@ -186,17 +186,30 @@ jobs:
       - get_v1_app:  {test_type: "zones"}
       - diff_files:  {test_type: "zones", api_ver: "v1"}
 
-  do_build: 
+  check_build: 
     <<: *testbed_environment
     steps: 
       - checkout 
       - run:
+          name: Install requirements
           command: |
             sudo chown -R circleci:circleci /usr/local/bin
             sudo chown -R circleci:circleci /usr/local/lib/python3.7/site-packages
-      - run:
-          command: |
             pip install -r requirements-dev.txt
+      - run:
+          name: Check formatting
+          command: |
+            black --safe --quiet *.py
+            black --safe --quiet geniushubclient
+      - run:
+          name: Do unit tests
+          command: |
+            ls -al
+      - store_test_results:
+          path: test-results
+      - store_artifacts: 
+          path: htmlcov
+          destination: coverage
 
 
 workflows:
@@ -205,41 +218,48 @@ workflows:
 
   build: 
     jobs:
-     - do_build
-
-  test:
-    jobs:
       - make_testbed
+      - check_build
+        requires:
+          - make_testbed
+        # pre-steps:
+        #   - checkout
+        #   - *restore_cache
+        #   - *attach_workspace
 
-      - test_zones:
-          requires:
-            - make_testbed
-          pre-steps:
-            - checkout
-            - *restore_cache
-            - *attach_workspace
-          post-steps:
-            - *persist_to_workspace
-            - *store_artifacts
+  # test:
+  #   jobs:
+  #     - make_testbed
 
-      - test_devices:
-          requires:
-            - make_testbed
-          pre-steps:
-            - checkout
-            - *restore_cache
-            - *attach_workspace
-          post-steps:
-            - *persist_to_workspace
-            - *store_artifacts
+  #     - test_zones:
+  #         requires:
+  #           - make_testbed
+  #         pre-steps:
+  #           - checkout
+  #           - *restore_cache
+  #           - *attach_workspace
+  #         post-steps:
+  #           - *persist_to_workspace
+  #           - *store_artifacts
 
-      - test_issues:
-          requires:
-            - make_testbed
-          pre-steps:
-            - checkout
-            - *restore_cache
-            - *attach_workspace
-          post-steps:
-            - *persist_to_workspace
-            - *store_artifacts
+  #     - test_devices:
+  #         requires:
+  #           - make_testbed
+  #         pre-steps:
+  #           - checkout
+  #           - *restore_cache
+  #           - *attach_workspace
+  #         post-steps:
+  #           - *persist_to_workspace
+  #           - *store_artifacts
+
+  #     - test_issues:
+  #         requires:
+  #           - make_testbed
+  #         pre-steps:
+  #           - checkout
+  #           - *restore_cache
+  #           - *attach_workspace
+  #         post-steps:
+  #           - *persist_to_workspace
+  #           - *store_artifacts
