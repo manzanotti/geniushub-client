@@ -220,7 +220,7 @@ workflows:
     jobs:
       - make_testbed
 
-      - check_build
+      - check_build:
           requires:
             - make_testbed
       #     pre-steps:
