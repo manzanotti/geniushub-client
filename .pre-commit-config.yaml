@@ -1,11 +1,6 @@
 # .pre-commit-config.yaml file for https://github.com/zxdavb
 
 repos:
-  - repo: https://github.com/pre-commit/mirrors-isort
-    rev: v4.3.21
-    hooks:
-      - id: isort
-
   - repo: https://gitlab.com/pycqa/flake8
     rev: 3.7.9
     hooks:
