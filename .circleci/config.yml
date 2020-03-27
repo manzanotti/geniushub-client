@@ -219,13 +219,14 @@ workflows:
   build: 
     jobs:
       - make_testbed
-      - check_build
-          requires:
-            - make_testbed
-          pre-steps:
-            - checkout
-            - *restore_cache
-            - *attach_workspace
+
+      # - check_build
+      #     requires:
+      #       - make_testbed
+      #     pre-steps:
+      #       - checkout
+      #       - *restore_cache
+      #       - *attach_workspace
 
   # test:
   #   jobs:
