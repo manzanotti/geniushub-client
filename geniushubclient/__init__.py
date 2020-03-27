@@ -12,26 +12,12 @@ from typing import Dict, List, Optional  # Any, Set, Tuple
 
 import aiohttp
 
-from .const import (
-    ATTRS_DEVICE,
-    ATTRS_ZONE,
-    DEFAULT_TIMEOUT_V1,
-    DEFAULT_TIMEOUT_V3,
-    DEVICE_HASH_TO_TYPE,
-    FOOTPRINT_MODES,
-    HUB_SW_VERSIONS,
-    IDAY_TO_DAY,
-    IMODE_TO_MODE,
-    ISSUE_DESCRIPTION,
-    ISSUE_TEXT,
-    ITYPE_TO_TYPE,
-    MODE_TO_IMODE,
-    STATE_ATTRS,
-    TYPE_TO_ITYPE,
-    ZONE_KIT,
-    ZONE_MODE,
-    ZONE_TYPE,
-)
+from .const import (ATTRS_DEVICE, ATTRS_ZONE, DEFAULT_TIMEOUT_V1,
+                    DEFAULT_TIMEOUT_V3, DEVICE_HASH_TO_TYPE, FOOTPRINT_MODES,
+                    HUB_SW_VERSIONS, IDAY_TO_DAY, IMODE_TO_MODE,
+                    ISSUE_DESCRIPTION, ISSUE_TEXT, ITYPE_TO_TYPE,
+                    MODE_TO_IMODE, STATE_ATTRS, TYPE_TO_ITYPE, ZONE_KIT,
+                    ZONE_MODE, ZONE_TYPE)
 
 logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.INFO)
 _LOGGER = logging.getLogger(__name__)
@@ -330,7 +316,12 @@ class GeniusHub:
         """Update the Hub with its latest state data."""
         if self.genius_service.use_v1_api:
             get_list = ["zones", "devices", "issues", "version"]
-            self._zones, self._devices, self._issues, self._version = await asyncio.gather(
+            (
+                self._zones,
+                self._devices,
+                self._issues,
+                self._version,
+            ) = await asyncio.gather(
                 *[self.genius_service.request("GET", g) for g in get_list]
             )
 
@@ -652,9 +643,7 @@ class GeniusZone(GeniusObject):
             url = f"zones/{self.id}/mode"  # v1 API uses strings
             resp = await self._hub.request("PUT", url, data=mode_str)
         else:  # self._hub.api_version == 3
-            url = (
-                f"zone/{self.id}"
-            )  # v3 API uses dicts  # TODO: check: is it PUT(POST?) vs PATCH
+            url = f"zone/{self.id}"  # TODO: check: is it PUT(POST?) vs PATCH
             resp = await self._hub.request("PATCH", url, data={"iMode": mode})
 
         if resp:  # for v1, resp = None?
