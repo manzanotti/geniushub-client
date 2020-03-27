@@ -106,69 +106,28 @@ def _version_via_v3_zones(raw_json) -> str:
         if datetime.strptime(date_time_idx, "%b %d %Y") <= build_date:
             return HUB_SW_VERSIONS[date_time_idx]
 
-
-class GeniusHub:
-    """The class for a connection to a Genius Hub."""
-
+class GeniusService:
+    """Class that deals with all communication to the physical hub.
+        Does no conversion of data, purely API calls
+        """    
     def __init__(
-        self, hub_id, username=None, password=None, session=None, debug=False
+        self, hub_id, username=None, password=None, session=None
     ) -> None:
-        if debug is True:
-            _LOGGER.setLevel(logging.DEBUG)
-            _LOGGER.debug("Debug mode is explicitly enabled.")
-        else:
-            _LOGGER.debug(
-                "Debug mode is not explicitly enabled (but may be enabled elsewhere)."
-            )
 
         self._session = session if session else aiohttp.ClientSession()
 
-        self.api_version = 3 if username or password else 1
-        if self.api_version == 1:
-            self._auth = None
-            self._url_base = "https://my.geniushub.co.uk/v1/"
-            self._headers = {"authorization": f"Bearer {hub_id}"}
-            self._timeout = aiohttp.ClientTimeout(total=DEFAULT_TIMEOUT_V1)
-        else:  # self.api_version == 3
+        if username or password: # use the v3 Api
             sha = sha256()
             sha.update((username + password).encode("utf-8"))
             self._auth = aiohttp.BasicAuth(login=username, password=sha.hexdigest())
             self._url_base = f"http://{hub_id}:1223/v3/"
             self._headers = {"Connection": "close"}
             self._timeout = aiohttp.ClientTimeout(total=DEFAULT_TIMEOUT_V3)
-
-        self._verbose = 1
-
-        self._sense_mode = None
-        self._zones = self._devices = self._issues = self._version = None
-        self._test_json = {}  # used with GeniusTestHub
-
-        self.zone_objs = []
-        self.device_objs = []
-        self.issues = []
-        self.version = {}
-        self.uid = None
-
-        self.zone_by_id = {}
-        self.zone_by_name = {}
-        self.device_by_id = {}
-
-    def __repr__(self) -> str:
-        return json.dumps(self.version)
-
-    @property
-    def verbosity(self) -> int:
-        """Get/Set the level of detail."""
-        return self._verbose
-
-    @verbosity.setter
-    def verbosity(self, value):
-        if 0 <= value <= 3:
-            self._verbose = value
         else:
-            raise ValueError(
-                f"{value} is not valid for verbosity, the permissible range is (0-3)."
-            )
+            self._auth = None
+            self._url_base = "https://my.geniushub.co.uk/v1/"
+            self._headers = {"authorization": f"Bearer {hub_id}"}
+            self._timeout = aiohttp.ClientTimeout(total=DEFAULT_TIMEOUT_V1)
 
     async def request(self, method, url, data=None):
         """Perform a request."""
@@ -211,6 +170,61 @@ class GeniusHub:
         return response
 
     @property
+    def use_v1_api(self) -> bool:
+        return self._auth is None
+
+
+class GeniusHub:
+    """The class for a connection to a Genius Hub."""
+
+    def __init__(
+        self, hub_id, username=None, password=None, session=None, debug=False
+    ) -> None:
+        if debug is True:
+            _LOGGER.setLevel(logging.DEBUG)
+            _LOGGER.debug("Debug mode is explicitly enabled.")
+        else:
+            _LOGGER.debug(
+                "Debug mode is not explicitly enabled (but may be enabled elsewhere)."
+            )
+
+        self.genius_service = GeniusService(hub_id, username, password, session)
+        self.api_version = 3 if username or password else 1
+
+        self._verbose = 1
+
+        self._sense_mode = None
+        self._zones = self._devices = self._issues = self._version = None
+        self._test_json = {}  # used with GeniusTestHub
+
+        self.zone_objs = []
+        self.device_objs = []
+        self.issues = []
+        self.version = {}
+        self.uid = None
+
+        self.zone_by_id = {}
+        self.zone_by_name = {}
+        self.device_by_id = {}
+
+    def __repr__(self) -> str:
+        return json.dumps(self.version)
+
+    @property
+    def verbosity(self) -> int:
+        """Get/Set the level of detail."""
+        return self._verbose
+
+    @verbosity.setter
+    def verbosity(self, value):
+        if 0 <= value <= 3:
+            self._verbose = value
+        else:
+            raise ValueError(
+                f"{value} is not valid for verbosity, the permissible range is (0-3)."
+            )
+
+    @property
     def zones(self) -> List:
         """Return a list of Zones known to the Hub.
 
@@ -238,7 +252,7 @@ class GeniusHub:
         ) -> List:  # pylint: disable=invalid-name
             """Create the current list of GeniusHub objects (zones/devices)."""
             entities = []  # list of converted zones/devices
-            key = "id" if self.api_version == 1 else obj_key
+            key = "id" if self.genius_service.use_v1_api else obj_key
             for raw_json in obj_list:
                 try:  # does the hub already know about this zone/device?
                     entity = obj_by_id[raw_json[key]]
@@ -272,7 +286,7 @@ class GeniusHub:
 
             return {"description": description, "level": level}
 
-        if self.api_version == 1:
+        if self.genius_service.use_v1_api:
             self._sense_mode = None  # currently, no way to tell
         else:  # self.api_version == 3:
             manager = [z for z in self._zones if z["iID"] == 0][0]
@@ -296,7 +310,7 @@ class GeniusHub:
             zone.device_by_id = {d.id: d for d in zone.device_objs}
 
         old_issues = self.issues
-        if self.api_version == 1:
+        if self.genius_service.use_v1_api:
             self.issues = self._issues
             self.version = self._version
         else:  # self.api_version == 3:
@@ -314,16 +328,16 @@ class GeniusHub:
 
     async def update(self):
         """Update the Hub with its latest state data."""
-        if self.api_version == 1:
+        if self.genius_service.use_v1_api:
             get_list = ["zones", "devices", "issues", "version"]
             self._zones, self._devices, self._issues, self._version = await asyncio.gather(
-                *[self.request("GET", g) for g in get_list]
+                *[self.genius_service.request("GET", g) for g in get_list]
             )
 
         else:  # self.api_version == 3:
             get_list = ["zones", "data_manager", "auth/release"]
             zones, data_manager, auth = await asyncio.gather(
-                *[self.request("GET", g) for g in get_list]
+                *[self.genius_service.request("GET", g) for g in get_list]
             )
 
             self._zones = _zones_via_v3_zones(zones)
