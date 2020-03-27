@@ -1,16 +1,15 @@
-### local .gitignore file use by https://github.com/zxdavb
+### .gitignore file use by https://github.com/zxdavb
 
 !.gitignore
-
-secrets*
-secrets*.*
+!requirements*.txt
 
 *.json
 *.old
 *.out
 *.txt
-.vscode/*
 
+.vscode/*
+.secrets/*
 
 ### github's default .gitignore file
 # https://raw.githubusercontent.com/github/gitignore/master/Python.gitignore
