@@ -1,4 +1,4 @@
-# Python CircleCI 2.0 configuration file for geniushub-client
+# CircleCI 2.1 configuration file for https://github.com/zxdavb/geniushub-client
 # Check https://circleci.com/docs/2.0/language-python/ for more details
 
 version: 2.1
@@ -195,6 +195,7 @@ workflows:
     <<: *testbed_environment
     steps: 
       - checkout 
+      - run:
           command: |
             sudo chown -R circleci:circleci /usr/local/bin
             sudo chown -R circleci:circleci /usr/local/lib/python3.7/site-packages
