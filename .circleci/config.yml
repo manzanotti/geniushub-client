@@ -1,13 +1,14 @@
-# geniushub-client - Python CircleCI 2.0 configuration file
+# Python CircleCI 2.0 configuration file for geniushub-client
 # Check https://circleci.com/docs/2.0/language-python/ for more details
-#
+
 version: 2.1
 
 
 aliases:
   - &testbed_environment
-    docker:
-      - image: circleci/python:3.6.1
+    docker: # run the steps with Docker, see: https://circleci.com/docs/2.0/circleci-images/#python
+      # CircleCI Python images available at: https://hub.docker.com/r/circleci/python/
+      - image: circleci/python:3.7.7
     working_directory: ~/working_directory
     environment:
       TEST_RESULTS: /tmp/workspace/test-results
@@ -44,7 +45,7 @@ aliases:
       - checkout
       - *restore_cache
       - run:
-          name: install dependencies
+          name: Install latest dependencies
           command: |
             python3 -m venv venv
             . venv/bin/activate
@@ -188,7 +189,21 @@ jobs:
 
 workflows:
   version: 2.1
-  test_outputs:
+
+
+  build: 
+    <<: *testbed_environment
+    steps: 
+      - checkout 
+          command: |
+            sudo chown -R circleci:circleci /usr/local/bin
+            sudo chown -R circleci:circleci /usr/local/lib/python3.7/site-packages
+      - run:
+          command: |
+            pip install -r requirements-dev.txt
+
+
+  test:
     jobs:
       - make_testbed
 
