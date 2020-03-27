@@ -2,6 +2,7 @@
 
    see: https://my.geniushub.co.uk/docs
    """
+
 import asyncio
 import json
 import logging
@@ -12,12 +13,26 @@ from typing import Dict, List, Optional  # Any, Set, Tuple
 
 import aiohttp
 
-from .const import (ATTRS_DEVICE, ATTRS_ZONE, DEFAULT_TIMEOUT_V1,
-                    DEFAULT_TIMEOUT_V3, DEVICE_HASH_TO_TYPE, FOOTPRINT_MODES,
-                    HUB_SW_VERSIONS, IDAY_TO_DAY, IMODE_TO_MODE,
-                    ISSUE_DESCRIPTION, ISSUE_TEXT, ITYPE_TO_TYPE,
-                    MODE_TO_IMODE, STATE_ATTRS, TYPE_TO_ITYPE, ZONE_KIT,
-                    ZONE_MODE, ZONE_TYPE)
+from .const import (
+    ATTRS_DEVICE,
+    ATTRS_ZONE,
+    DEFAULT_TIMEOUT_V1,
+    DEFAULT_TIMEOUT_V3,
+    DEVICE_HASH_TO_TYPE,
+    FOOTPRINT_MODES,
+    HUB_SW_VERSIONS,
+    IDAY_TO_DAY,
+    IMODE_TO_MODE,
+    ISSUE_DESCRIPTION,
+    ISSUE_TEXT,
+    ITYPE_TO_TYPE,
+    MODE_TO_IMODE,
+    STATE_ATTRS,
+    TYPE_TO_ITYPE,
+    ZONE_KIT,
+    ZONE_MODE,
+    ZONE_TYPE,
+)
 
 logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.INFO)
 _LOGGER = logging.getLogger(__name__)
@@ -95,6 +110,7 @@ def _version_via_v3_zones(raw_json) -> str:
 
 class GeniusService:
     """Class that deals with all communication to the physical hub.
+
         Does no conversion of data, purely API calls
         """
 
@@ -157,6 +173,7 @@ class GeniusService:
 
     @property
     def use_v1_api(self) -> bool:
+        """Make a fake docstring."""
         return self._auth is None
 
 
@@ -194,6 +211,7 @@ class GeniusHub:
         self.device_by_id = {}
 
     def __repr__(self) -> str:
+        """Make a fake docstring."""
         return json.dumps(self.version)
 
     @property
@@ -379,6 +397,7 @@ class GeniusObject:
         self._raw = {}
 
     def __repr__(self) -> str:
+        """Make a fake docstring."""
         return json.dumps(
             {k: v for k, v in self.data.items() if k in self._attrs["summary_keys"]}
         )
