@@ -106,17 +106,17 @@ def _version_via_v3_zones(raw_json) -> str:
         if datetime.strptime(date_time_idx, "%b %d %Y") <= build_date:
             return HUB_SW_VERSIONS[date_time_idx]
 
+
 class GeniusService:
     """Class that deals with all communication to the physical hub.
         Does no conversion of data, purely API calls
-        """    
-    def __init__(
-        self, hub_id, username=None, password=None, session=None
-    ) -> None:
+        """
+
+    def __init__(self, hub_id, username=None, password=None, session=None) -> None:
 
         self._session = session if session else aiohttp.ClientSession()
 
-        if username or password: # use the v3 Api
+        if username or password:  # use the v3 Api
             sha = sha256()
             sha.update((username + password).encode("utf-8"))
             self._auth = aiohttp.BasicAuth(login=username, password=sha.hexdigest())
