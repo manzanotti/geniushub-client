@@ -199,6 +199,7 @@ jobs:
       - run:
           name: Check formatting (black)
           command: |
+            isort
             black --diff --check *.py
             black --diff --check geniushubclient
       - store_test_results:
