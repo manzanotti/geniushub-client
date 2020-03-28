@@ -9,7 +9,7 @@ aliases:
     docker: # run the steps with Docker, see: https://circleci.com/docs/2.0/circleci-images/#python
       # CircleCI Python images available at: https://hub.docker.com/r/circleci/python/
       - image: circleci/python:3.7.7
-    working_directory: ~/working_directory
+    working_directory: ~/working_directory  # pwd is /home/circleci/working_directory
     environment:
       TEST_RESULTS: /tmp/workspace/test-results
 
@@ -148,9 +148,6 @@ jobs:
       - run:
           name: Install Requirements
           command: |
-            # ls . -al   # working_directory (pwd)
-            # ls ~ -al   # /home/circleci
-
             python3 -m venv venv
             . venv/bin/activate
             pip install --upgrade pip setuptools  # wheel
@@ -215,7 +212,21 @@ workflows:
             - *restore_cache
             - *attach_workspace
 
-  test:
+  # unit_tests:
+  #   jobs:
+  #     - make_testbed
+
+  #     - test_one:
+  #         requires:
+  #           - make_testbed
+  #         pre-steps:
+  #           - *restore_cache
+  #           - *attach_workspace
+  #         post-steps:
+  #           - *persist_to_workspace
+  #           - *store_artifacts
+
+  system_tests:
     jobs:
       - make_testbed
 
@@ -248,3 +259,17 @@ workflows:
           post-steps:
             - *persist_to_workspace
             - *store_artifacts
+
+  # deploy:
+  #   jobs:
+  #     - make_testbed
+
+  #     - test_one:
+  #         requires:
+  #           - make_testbed
+  #         pre-steps:
+  #           - *restore_cache
+  #           - *attach_workspace
+  #         post-steps:
+  #           - *persist_to_workspace
+  #           - *store_artifacts
