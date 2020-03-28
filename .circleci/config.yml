@@ -17,11 +17,11 @@ aliases:
       - checkout
       - restore_cache:
           keys:
-            - v5-dependencies-{{ checksum "requirements-dev.txt" }}
+            - v6-dependencies-{{ checksum "requirements-dev.txt" }}
 
   - &save_cache
       save_cache:
-        key: v5-dependencies-{{ checksum "requirements-dev.txt" }}
+        key: v6-dependencies-{{ checksum "requirements-dev.txt" }}
         paths:
           - ./venv
 
@@ -32,7 +32,7 @@ aliases:
   - &persist_to_workspace
       persist_to_workspace:
         keys:
-          - v4-dependencies-{{ checksum "requirements-dev.txt" }}
+          - v6-dependencies-{{ checksum "requirements-dev.txt" }}
         root: /tmp/workspace
         paths:
           - test-results
@@ -144,19 +144,18 @@ jobs:
   make_testbed:
     <<: *testbed_environment
     steps: 
-      - checkout
+      - checkout  # needed for: 'pip install -r requirements-dev.txt'
       - run:
           name: Install Requirements
           command: |
+            # ls . -al   # working_directory (pwd, will be TLD of repo)
+            # ls ~ -al   # /home/circleci
+            # ls / -al   # /
+
             python3 -m venv venv
             . venv/bin/activate
             pip install --upgrade pip setuptools  # wheel
             pip install -r requirements-dev.txt
-            pwd
-            ls . -al   # TLD of repo
-            ls .. -al  # /home ???
-            ls ~ -al   # /home ???
-            ls / -al   # /home
       - *save_cache
 
 
@@ -200,11 +199,6 @@ jobs:
             # isort --check-only
             black --diff --check *.py
             black --diff --check geniushubclient
-      # - store_test_results:
-      #     path: source_folder_test_results
-      # - store_artifacts: 
-      #     path: source_folder_artifacts
-      #     destination: xxxx
 
 
 workflows:
