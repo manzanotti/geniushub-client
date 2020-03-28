@@ -33,8 +33,11 @@ except ModuleNotFoundError:
         from zone import GeniusZone, natural_sort
         from device import GeniusDevice
     except ModuleNotFoundError:
-        from . import GeniusZone, natural_sort
-        from . import GeniusDevice
+        try:
+            from . import GeniusZone, natural_sort
+            from . import GeniusDevice
+        except ImportError:
+            import GeniusZone
 
 logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.INFO)
 _LOGGER = logging.getLogger(__name__)
