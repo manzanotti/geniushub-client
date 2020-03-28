@@ -20,8 +20,13 @@ from .const import (
     ISSUE_TEXT,
     ZONE_MODE,
 )
-from .zone import GeniusZone, natural_sort
-from .device import GeniusDevice
+
+try:
+    from .zone import GeniusZone, natural_sort
+    from .device import GeniusDevice
+except ModuleNotFoundError:
+    from zone import GeniusZone, natural_sort
+    from device import GeniusDevice
 
 logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.INFO)
 _LOGGER = logging.getLogger(__name__)
