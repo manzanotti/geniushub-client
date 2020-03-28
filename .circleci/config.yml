@@ -14,13 +14,14 @@ aliases:
       TEST_RESULTS: /tmp/workspace/test-results
 
   - &restore_cache
-      restore_cache:
-        keys:
-          - v3-dependencies-{{ checksum "requirements-dev.txt" }}
+      - checkout
+      - restore_cache:
+          keys:
+            - v4-dependencies-{{ checksum "requirements-dev.txt" }}
 
   - &save_cache
       save_cache:
-        key: v3-dependencies-{{ checksum "requirements-dev.txt" }}
+        key: v4-dependencies-{{ checksum "requirements-dev.txt" }}
         paths:
           - ./venv
 
@@ -31,7 +32,7 @@ aliases:
   - &persist_to_workspace
       persist_to_workspace:
         keys:
-          - v3-dependencies-{{ checksum "requirements-dev.txt" }}
+          - v4-dependencies-{{ checksum "requirements-dev.txt" }}
         root: /tmp/workspace
         paths:
           - test-results
@@ -45,7 +46,7 @@ aliases:
       - checkout
       - *restore_cache
       - run:
-          name: Install latest dependencies
+          name: Install Latest Dependencies
           command: |
             python3 -m venv venv
             . venv/bin/activate
@@ -226,8 +227,8 @@ workflows:
           requires:
             - make_testbed
           pre-steps:
-            - checkout  # needed for restore cache
-            - *restore_cache
+            # - checkout  # needed for restore cache
+            - *restore_cache  # includes checkout
             - *attach_workspace
 
   # test:
@@ -250,7 +251,7 @@ workflows:
   #           - make_testbed
   #         pre-steps:
   #           - checkout
-  #           - *restore_cache
+  #           - *restore_cache  # needed for restore cache
   #           - *attach_workspace
   #         post-steps:
   #           - *persist_to_workspace
@@ -261,7 +262,7 @@ workflows:
   #           - make_testbed
   #         pre-steps:
   #           - checkout
-  #           - *restore_cache
+  #           - *restore_cache  # needed for restore cache
   #           - *attach_workspace
   #         post-steps:
   #           - *persist_to_workspace
