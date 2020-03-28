@@ -23,12 +23,15 @@ from .const import (
 import os
 import sys
 
+logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.INFO)
+_LOGGER = logging.getLogger(__name__)
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 sys.path.insert(0, os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
 sys.path.insert(0, os.path.dirname(os.path.abspath(".")))
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 print(sys.path)
-
+_LOGGER.warning("%s", sys.path)
 try:
     from .zone import GeniusZone, natural_sort
     from .device import GeniusDevice
@@ -42,9 +45,6 @@ except ModuleNotFoundError:
             from . import GeniusDevice
         except ImportError:
             import GeniusZone
-
-logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.INFO)
-_LOGGER = logging.getLogger(__name__)
 
 # Debugging flags - all False for production releases
 DEBUG_LOGGING = False
