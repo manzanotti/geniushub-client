@@ -44,7 +44,11 @@ except ModuleNotFoundError:
             from . import GeniusZone, natural_sort
             from . import GeniusDevice
         except ImportError:
-            import GeniusZone
+            try:
+                import GeniusZone
+            except ModuleNotFoundError:
+                print(sys.path)
+                _LOGGER.warning("%s", sys.path)
 
 # Debugging flags - all False for production releases
 DEBUG_LOGGING = False
