@@ -50,7 +50,7 @@ aliases:
             python3 -m venv venv
             . venv/bin/activate
             pip install --upgrade pip  # setuptools wheel
-            pip install -r requirements.txt
+            pip install -r requirements-dev.txt
       - *save_cache
 
 
@@ -159,14 +159,14 @@ jobs:
       - run:
           name: Install basic dependencies
           command: |
+            sudo chown -R circleci:circleci /usr/local/bin
+            sudo chown -R circleci:circleci /usr/local/lib/python3.7/site-packages
             python3 -m venv venv
             . venv/bin/activate
             pip install --upgrade pip  # setuptools wheel
       - run:
           name: Install requirements
           command: |
-            sudo chown -R circleci:circleci /usr/local/bin
-            sudo chown -R circleci:circleci /usr/local/lib/python3.7/site-packages
             pip install -r requirements-dev.txt
       - *save_cache
 
@@ -204,9 +204,9 @@ jobs:
   check_build: 
     <<: *testbed_environment
     steps: 
+      - checkout  # needed for restore cache
       - *restore_cache
       - *attach_workspace
-      - checkout 
       - run:
           name: Check formatting (black)
           command: |
