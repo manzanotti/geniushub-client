@@ -14,13 +14,14 @@ aliases:
       TEST_RESULTS: /tmp/workspace/test-results
 
   - &restore_cache
-      restore_cache:
-        keys:
-          - v6-dependencies-{{ checksum "requirements.txt" }}
+      - checkout
+      - restore_cache:
+          keys:
+            - v7-dependencies-{{ checksum "requirements.txt" }}
 
   - &save_cache
       save_cache:
-        key: v6-dependencies-{{ checksum "requirements.txt" }}
+        key: v7-dependencies-{{ checksum "requirements.txt" }}
         paths:
           - ./venv
 
@@ -31,7 +32,7 @@ aliases:
   - &persist_to_workspace
       persist_to_workspace:
         keys:
-          - v5-dependencies-{{ checksum "requirements.txt" }}
+          - v7-dependencies-{{ checksum "requirements.txt" }}
         root: /tmp/workspace
         paths:
           - test-results
@@ -42,7 +43,7 @@ aliases:
         destination: test_results
 
   - &refresh_cache
-      - checkout
+      # - checkout
       - *restore_cache
       - run:
           name: Install latest dependencies
