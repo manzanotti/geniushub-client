@@ -12,6 +12,7 @@ aliases:
     working_directory: ~/working_directory  # pwd is /home/circleci/working_directory
     environment:
       TEST_RESULTS: /tmp/workspace/test-results
+      PYTHONPATH: /home/circleci/working_directory
 
   - &restore_cache
       - checkout
@@ -260,16 +261,24 @@ workflows:
             - *persist_to_workspace
             - *store_artifacts
 
-  # deploy:
-  #   jobs:
-  #     - make_testbed
-
-  #     - test_one:
-  #         requires:
-  #           - make_testbed
-  #         pre-steps:
-  #           - *restore_cache
-  #           - *attach_workspace
-  #         post-steps:
-  #           - *persist_to_workspace
-  #           - *store_artifacts
+  build-and-deploy:
+    jobs:
+      - build:
+          filters: # required since `deploy` has tag filters AND requires `build`
+            tags:
+              only: /.*/
+      - test:
+          requires:
+            - build
+          filters: # required since `deploy` has tag filters AND requires `build`
+            tags:
+              only: /.*/
+      - deploy:
+          requires:
+            - build
+            - test
+          filters:
+            tags:
+              only: /[0-9]+(\.[0-9]+)*/
+            branches:
+              ignore: /.*/
