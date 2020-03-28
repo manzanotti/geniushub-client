@@ -16,11 +16,11 @@ aliases:
   - &restore_cache
       restore_cache:
         keys:
-          - v5-dependencies-{{ checksum "requirements.txt" }}
+          - v6-dependencies-{{ checksum "requirements.txt" }}
 
   - &save_cache
       save_cache:
-        key: v5-dependencies-{{ checksum "requirements.txt" }}
+        key: v6-dependencies-{{ checksum "requirements.txt" }}
         paths:
           - ./venv
 
@@ -232,7 +232,7 @@ workflows:
           requires:
             - make_testbed
           pre-steps:
-            # - checkout
+            - checkout  # needed for restore cache
             - *restore_cache
             - *attach_workspace
 
@@ -244,7 +244,7 @@ workflows:
           requires:
             - make_testbed
           pre-steps:
-            # - checkout
+            - checkout  # needed for restore cache
             - *restore_cache
             - *attach_workspace
           post-steps:
