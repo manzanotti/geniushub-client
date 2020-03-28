@@ -14,10 +14,9 @@ aliases:
       TEST_RESULTS: /tmp/workspace/test-results
 
   - &restore_cache
-      - checkout
-      - restore_cache:
-          keys:
-            - v7-dependencies-{{ checksum "requirements.txt" }}
+      restore_cache:
+        keys:
+          - v7-dependencies-{{ checksum "requirements.txt" }}
 
   - &save_cache
       save_cache:
