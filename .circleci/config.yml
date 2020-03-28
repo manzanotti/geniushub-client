@@ -17,11 +17,11 @@ aliases:
       - checkout
       - restore_cache:
           keys:
-            - v6-dependencies-{{ checksum "requirements-dev.txt" }}
+            - v9-dependencies-{{ checksum "requirements-dev.txt" }}
 
   - &save_cache
       save_cache:
-        key: v6-dependencies-{{ checksum "requirements-dev.txt" }}
+        key: v9-dependencies-{{ checksum "requirements-dev.txt" }}
         paths:
           - ./venv
 
@@ -32,7 +32,7 @@ aliases:
   - &persist_to_workspace
       persist_to_workspace:
         keys:
-          - v6-dependencies-{{ checksum "requirements-dev.txt" }}
+          - v9-dependencies-{{ checksum "requirements-dev.txt" }}
         root: /tmp/workspace
         paths:
           - test-results
