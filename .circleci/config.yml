@@ -16,11 +16,11 @@ aliases:
   - &restore_cache
       restore_cache:
         keys:
-          - v9-dependencies-{{ checksum "requirements.txt" }}
+          - v0-dependencies-{{ checksum "requirements-dev.txt" }}
 
   - &save_cache
       save_cache:
-        key: v9-dependencies-{{ checksum "requirements.txt" }}
+        key: v0-dependencies-{{ checksum "requirements-dev.txt" }}
         paths:
           - ./venv
 
@@ -31,7 +31,7 @@ aliases:
   - &persist_to_workspace
       persist_to_workspace:
         keys:
-          - v9-dependencies-{{ checksum "requirements.txt" }}
+          - v0-dependencies-{{ checksum "requirements-dev.txt" }}
         root: /tmp/workspace
         paths:
           - test-results
@@ -42,7 +42,7 @@ aliases:
         destination: test_results
 
   - &refresh_cache
-      # - checkout
+      - checkout
       - *restore_cache
       - run:
           name: Install latest dependencies
@@ -156,7 +156,7 @@ jobs:
     <<: *testbed_environment
     steps: 
       - checkout 
-      - *restore_cache
+      # - *restore_cache
       - run:
           name: Install core dependencies
           command: |
@@ -235,39 +235,39 @@ workflows:
             - *restore_cache
             - *attach_workspace
 
-  test:
-    jobs:
-      - make_testbed
+  # test:
+  #   jobs:
+  #     - make_testbed
 
-      - test_zones:
-          requires:
-            - make_testbed
-          pre-steps:
-            - checkout  # needed for restore cache
-            - *restore_cache
-            - *attach_workspace
-          post-steps:
-            - *persist_to_workspace
-            - *store_artifacts
+  #     - test_zones:
+  #         requires:
+  #           - make_testbed
+  #         pre-steps:
+  #           - checkout  # needed for restore cache
+  #           - *restore_cache
+  #           - *attach_workspace
+  #         post-steps:
+  #           - *persist_to_workspace
+  #           - *store_artifacts
 
-      - test_devices:
-          requires:
-            - make_testbed
-          pre-steps:
-            - checkout
-            - *restore_cache
-            - *attach_workspace
-          post-steps:
-            - *persist_to_workspace
-            - *store_artifacts
+  #     - test_devices:
+  #         requires:
+  #           - make_testbed
+  #         pre-steps:
+  #           - checkout
+  #           - *restore_cache
+  #           - *attach_workspace
+  #         post-steps:
+  #           - *persist_to_workspace
+  #           - *store_artifacts
 
-      - test_issues:
-          requires:
-            - make_testbed
-          pre-steps:
-            - checkout
-            - *restore_cache
-            - *attach_workspace
-          post-steps:
-            - *persist_to_workspace
-            - *store_artifacts
+  #     - test_issues:
+  #         requires:
+  #           - make_testbed
+  #         pre-steps:
+  #           - checkout
+  #           - *restore_cache
+  #           - *attach_workspace
+  #         post-steps:
+  #           - *persist_to_workspace
+  #           - *store_artifacts
