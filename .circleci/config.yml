@@ -16,11 +16,11 @@ aliases:
   - &restore_cache
       restore_cache:
         keys:
-          - v2-dependencies-{{ checksum "requirements-dev.txt" }}
+          - v3-dependencies-{{ checksum "requirements-dev.txt" }}
 
   - &save_cache
       save_cache:
-        key: v2-dependencies-{{ checksum "requirements-dev.txt" }}
+        key: v3-dependencies-{{ checksum "requirements-dev.txt" }}
         paths:
           - ./venv
 
@@ -31,7 +31,7 @@ aliases:
   - &persist_to_workspace
       persist_to_workspace:
         keys:
-          - v2-dependencies-{{ checksum "requirements-dev.txt" }}
+          - v3-dependencies-{{ checksum "requirements-dev.txt" }}
         root: /tmp/workspace
         paths:
           - test-results
@@ -155,20 +155,14 @@ jobs:
   make_testbed:
     <<: *testbed_environment
     steps: 
-      - checkout 
-      # - *restore_cache
       - run:
-          name: Install core dependencies
+          name: Install Requirements
           command: |
-            # sudo chown -R circleci:circleci /usr/local/bin
-            # sudo chown -R circleci:circleci /usr/local/lib/python3.7/site-packages
             python3 -m venv venv
-      - run:
-          name: Install requirements
-          command: |
             . venv/bin/activate
             pip install --upgrade pip setuptools  # wheel
             pip install -r requirements-dev.txt
+      - checkout 
       - *save_cache
 
 
