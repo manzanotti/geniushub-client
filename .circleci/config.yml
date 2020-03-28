@@ -17,11 +17,11 @@ aliases:
       - checkout
       - restore_cache:
           keys:
-            - v4-dependencies-{{ checksum "requirements-dev.txt" }}
+            - v5-dependencies-{{ checksum "requirements-dev.txt" }}
 
   - &save_cache
       save_cache:
-        key: v4-dependencies-{{ checksum "requirements-dev.txt" }}
+        key: v5-dependencies-{{ checksum "requirements-dev.txt" }}
         paths:
           - ./venv
 
@@ -41,18 +41,6 @@ aliases:
       store_artifacts:
         path: /tmp/workspace/test-results
         destination: test_results
-
-  - &refresh_cache
-      - checkout
-      - *restore_cache
-      - run:
-          name: Install Latest Dependencies
-          command: |
-            python3 -m venv venv
-            . venv/bin/activate
-            pip install --upgrade pip  # setuptools wheel
-            pip install -r requirements-dev.txt
-      - *save_cache
 
 
 commands:
@@ -164,6 +152,9 @@ jobs:
             . venv/bin/activate
             pip install --upgrade pip setuptools  # wheel
             pip install -r requirements-dev.txt
+            ls . -al
+            ls ~ -al
+            ls / -al
       - *save_cache
 
 
@@ -204,15 +195,14 @@ jobs:
           name: Check formatting (black)
           command: |
             . venv/bin/activate
-            pip list
             # isort --check-only
             black --diff --check *.py
             black --diff --check geniushubclient
-      - store_test_results:
-          path: source_folder_test_results
-      - store_artifacts: 
-          path: source_folder_artifacts
-          destination: xxxx
+      # - store_test_results:
+      #     path: source_folder_test_results
+      # - store_artifacts: 
+      #     path: source_folder_artifacts
+      #     destination: xxxx
 
 
 workflows:
@@ -227,43 +217,39 @@ workflows:
           requires:
             - make_testbed
           pre-steps:
-            # - checkout  # needed for restore cache
-            - *restore_cache  # includes checkout
+            - *restore_cache
             - *attach_workspace
 
-  # test:
-  #   jobs:
-  #     - make_testbed
+  test:
+    jobs:
+      - make_testbed
 
-  #     - test_zones:
-  #         requires:
-  #           - make_testbed
-  #         pre-steps:
-  #           - checkout  # needed for restore cache
-  #           - *restore_cache
-  #           - *attach_workspace
-  #         post-steps:
-  #           - *persist_to_workspace
-  #           - *store_artifacts
+      - test_zones:
+          requires:
+            - make_testbed
+          pre-steps:
+            - *restore_cache
+            - *attach_workspace
+          post-steps:
+            - *persist_to_workspace
+            - *store_artifacts
 
-  #     - test_devices:
-  #         requires:
-  #           - make_testbed
-  #         pre-steps:
-  #           - checkout
-  #           - *restore_cache  # needed for restore cache
-  #           - *attach_workspace
-  #         post-steps:
-  #           - *persist_to_workspace
-  #           - *store_artifacts
+      - test_devices:
+          requires:
+            - make_testbed
+          pre-steps:
+            - *restore_cache 
+            - *attach_workspace
+          post-steps:
+            - *persist_to_workspace
+            - *store_artifacts
 
-  #     - test_issues:
-  #         requires:
-  #           - make_testbed
-  #         pre-steps:
-  #           - checkout
-  #           - *restore_cache  # needed for restore cache
-  #           - *attach_workspace
-  #         post-steps:
-  #           - *persist_to_workspace
-  #           - *store_artifacts
+      - test_issues:
+          requires:
+            - make_testbed
+          pre-steps:
+            - *restore_cache 
+            - *attach_workspace
+          post-steps:
+            - *persist_to_workspace
+            - *store_artifacts
