@@ -204,9 +204,6 @@ jobs:
   check_build: 
     <<: *testbed_environment
     steps: 
-      - checkout  # needed for restore cache
-      - *restore_cache
-      - *attach_workspace
       - run:
           name: Check formatting (black)
           command: |
