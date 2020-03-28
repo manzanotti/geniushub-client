@@ -14,13 +14,14 @@ aliases:
       TEST_RESULTS: /tmp/workspace/test-results
 
   - &restore_cache
-      restore_cache:
-        keys:
-          - v5-dependencies-{{ checksum "requirements.txt" }}
+      - checkout
+      - restore_cache:
+          keys:
+            - v6-dependencies-{{ checksum "requirements-dev.txt" }}
 
   - &save_cache
       save_cache:
-        key: v5-dependencies-{{ checksum "requirements.txt" }}
+        key: v6-dependencies-{{ checksum "requirements-dev.txt" }}
         paths:
           - ./venv
 
@@ -31,7 +32,7 @@ aliases:
   - &persist_to_workspace
       persist_to_workspace:
         keys:
-          - v5-dependencies-{{ checksum "requirements.txt" }}
+          - v6-dependencies-{{ checksum "requirements-dev.txt" }}
         root: /tmp/workspace
         paths:
           - test-results
@@ -40,18 +41,6 @@ aliases:
       store_artifacts:
         path: /tmp/workspace/test-results
         destination: test_results
-
-  - &refresh_cache
-      - checkout
-      - *restore_cache
-      - run:
-          name: Install latest dependencies
-          command: |
-            python3 -m venv venv
-            . venv/bin/activate
-            pip install --upgrade pip  # setuptools wheel
-            pip install -r requirements.txt
-      - *save_cache
 
 
 commands:
@@ -154,7 +143,20 @@ commands:
 jobs:
   make_testbed:
     <<: *testbed_environment
-    steps: *refresh_cache
+    steps: 
+      - checkout  # needed for: 'pip install -r requirements-dev.txt'
+      - run:
+          name: Install Requirements
+          command: |
+            # ls . -al   # working_directory (pwd)
+            # ls ~ -al   # /home/circleci
+
+            python3 -m venv venv
+            . venv/bin/activate
+            pip install --upgrade pip setuptools  # wheel
+            pip install -r requirements-dev.txt
+      - *save_cache
+
 
   test_issues:
     <<: *testbed_environment
@@ -189,24 +191,13 @@ jobs:
   check_build: 
     <<: *testbed_environment
     steps: 
-      - checkout 
-      - run:
-          name: Install requirements
-          command: |
-            sudo chown -R circleci:circleci /usr/local/bin
-            sudo chown -R circleci:circleci /usr/local/lib/python3.7/site-packages
-            pip install -r requirements-dev.txt
       - run:
           name: Check formatting (black)
           command: |
+            . venv/bin/activate
             # isort --check-only
             black --diff --check *.py
             black --diff --check geniushubclient
-      - store_test_results:
-          path: source_folder_test_results
-      - store_artifacts: 
-          path: source_folder_artifacts
-          destination: xxxx
 
 
 workflows:
@@ -221,7 +212,6 @@ workflows:
           requires:
             - make_testbed
           pre-steps:
-            - checkout
             - *restore_cache
             - *attach_workspace
 
@@ -233,7 +223,6 @@ workflows:
           requires:
             - make_testbed
           pre-steps:
-            - checkout
             - *restore_cache
             - *attach_workspace
           post-steps:
@@ -244,8 +233,7 @@ workflows:
           requires:
             - make_testbed
           pre-steps:
-            - checkout
-            - *restore_cache
+            - *restore_cache 
             - *attach_workspace
           post-steps:
             - *persist_to_workspace
@@ -255,8 +243,7 @@ workflows:
           requires:
             - make_testbed
           pre-steps:
-            - checkout
-            - *restore_cache
+            - *restore_cache 
             - *attach_workspace
           post-steps:
             - *persist_to_workspace
