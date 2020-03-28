@@ -20,10 +20,10 @@ aliases:
             - v5-dependencies-{{ checksum "requirements-dev.txt" }}
 
   - &save_cache
-      save_cache:
-        key: v5-dependencies-{{ checksum "requirements-dev.txt" }}
-        paths:
-          - ./venv
+      - save_cache:
+          key: v5-dependencies-{{ checksum "requirements-dev.txt" }}
+          paths:
+            - ./venv
 
   - &attach_workspace
       attach_workspace:
@@ -152,9 +152,11 @@ jobs:
             . venv/bin/activate
             pip install --upgrade pip setuptools  # wheel
             pip install -r requirements-dev.txt
-            ls . -al
-            ls ~ -al
-            ls / -al
+            pwd
+            ls . -al   # TLD of repo
+            ls .. -al  # /home ???
+            ls ~ -al   # /home ???
+            ls / -al   # /home
       - *save_cache
 
 
