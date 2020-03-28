@@ -6,7 +6,6 @@
 import asyncio
 import json
 import logging
-import re
 from datetime import datetime
 from hashlib import sha256
 from typing import Dict, List  # Any, Optional, Set, Tuple
@@ -21,7 +20,7 @@ from .const import (
     ISSUE_TEXT,
     ZONE_MODE,
 )
-from .zone import GeniusZone
+from .zone import GeniusZone, natural_sort
 from .device import GeniusDevice
 
 logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.INFO)
@@ -41,18 +40,6 @@ if DEBUG_MODE is True:
     ptvsd.enable_attach(address=("172.27.0.138", 5679), redirect_output=True)
     ptvsd.wait_for_attach()
     _LOGGER.debug("Debugger is attached!")
-
-
-def natural_sort(dict_list, dict_key) -> List[Dict]:
-    """Return a case-insensitively sorted list with '11' after '2-2'."""
-
-    def _alphanum_key(k):
-        return [
-            int(c) if c.isdigit() else c.lower()
-            for c in re.split("([0-9]+)", k[dict_key])
-        ]
-
-    return sorted(dict_list, key=_alphanum_key)
 
 
 def _zones_via_v3_zones(raw_json) -> List[Dict]:
