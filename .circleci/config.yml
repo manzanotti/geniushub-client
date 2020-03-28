@@ -209,6 +209,7 @@ jobs:
           name: Check formatting (black)
           command: |
             . venv/bin/activate
+            pip list
             # isort --check-only
             black --diff --check *.py
             black --diff --check geniushubclient
