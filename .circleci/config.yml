@@ -155,6 +155,7 @@ jobs:
   make_testbed:
     <<: *testbed_environment
     steps: 
+      - checkout
       - run:
           name: Install Requirements
           command: |
@@ -162,7 +163,6 @@ jobs:
             . venv/bin/activate
             pip install --upgrade pip setuptools  # wheel
             pip install -r requirements-dev.txt
-      - checkout 
       - *save_cache
 
 
