@@ -37,18 +37,14 @@ try:
     from .device import GeniusDevice
 except ModuleNotFoundError:
     try:
-        from zone import GeniusZone, natural_sort
-        from device import GeniusDevice
+        from ..zone import GeniusZone, natural_sort
+        from ..device import GeniusDevice
     except ModuleNotFoundError:
         try:
             from . import GeniusZone, natural_sort
             from . import GeniusDevice
         except ImportError:
-            try:
-                import GeniusZone
-            except ModuleNotFoundError:
-                print(sys.path)
-                _LOGGER.warning("%s", sys.path)
+            import GeniusZone
 
 # Debugging flags - all False for production releases
 DEBUG_LOGGING = False
