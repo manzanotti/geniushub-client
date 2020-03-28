@@ -25,6 +25,7 @@ import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 sys.path.insert(0, os.path.dirname(os.path.abspath(".")))
+print(sys.path)
 
 try:
     from .zone import GeniusZone, natural_sort
