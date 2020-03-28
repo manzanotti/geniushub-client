@@ -25,9 +25,8 @@ try:
     from .zone import GeniusZone, natural_sort
     from .device import GeniusDevice
 except ModuleNotFoundError:
-    import GeniusZone
-    import natural_sort
-    import GeniusDevice
+    from zone import GeniusZone, natural_sort
+    from device import GeniusDevice
 
 logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.INFO)
 _LOGGER = logging.getLogger(__name__)
