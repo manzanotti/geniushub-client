@@ -16,11 +16,11 @@ aliases:
   - &restore_cache
       restore_cache:
         keys:
-          - v8-dependencies-{{ checksum "requirements.txt" }}
+          - v9-dependencies-{{ checksum "requirements.txt" }}
 
   - &save_cache
       save_cache:
-        key: v8-dependencies-{{ checksum "requirements.txt" }}
+        key: v9-dependencies-{{ checksum "requirements.txt" }}
         paths:
           - ./venv
 
@@ -31,7 +31,7 @@ aliases:
   - &persist_to_workspace
       persist_to_workspace:
         keys:
-          - v8-dependencies-{{ checksum "requirements.txt" }}
+          - v9-dependencies-{{ checksum "requirements.txt" }}
         root: /tmp/workspace
         paths:
           - test-results
@@ -156,11 +156,12 @@ jobs:
     <<: *testbed_environment
     steps: 
       - checkout 
+      - *restore_cache
       - run:
-          name: Install basic dependencies
+          name: Install core dependencies
           command: |
-            sudo chown -R circleci:circleci /usr/local/bin
-            sudo chown -R circleci:circleci /usr/local/lib/python3.7/site-packages
+            # sudo chown -R circleci:circleci /usr/local/bin
+            # sudo chown -R circleci:circleci /usr/local/lib/python3.7/site-packages
             python3 -m venv venv
             . venv/bin/activate
             pip install --upgrade pip  # setuptools wheel
