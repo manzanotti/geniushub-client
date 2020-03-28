@@ -154,7 +154,22 @@ commands:
 jobs:
   make_testbed:
     <<: *testbed_environment
-    steps: *refresh_cache
+    steps: 
+      - checkout 
+      - run:
+          name: Install basic dependencies
+          command: |
+            python3 -m venv venv
+            . venv/bin/activate
+            pip install --upgrade pip  # setuptools wheel
+      - run:
+          name: Install requirements
+          command: |
+            sudo chown -R circleci:circleci /usr/local/bin
+            sudo chown -R circleci:circleci /usr/local/lib/python3.7/site-packages
+            pip install -r requirements-dev.txt
+      - *save_cache
+
 
   test_issues:
     <<: *testbed_environment
@@ -189,13 +204,9 @@ jobs:
   check_build: 
     <<: *testbed_environment
     steps: 
+      - *restore_cache
+      - *attach_workspace
       - checkout 
-      - run:
-          name: Install requirements
-          command: |
-            sudo chown -R circleci:circleci /usr/local/bin
-            sudo chown -R circleci:circleci /usr/local/lib/python3.7/site-packages
-            pip install -r requirements-dev.txt
       - run:
           name: Check formatting (black)
           command: |
@@ -221,7 +232,7 @@ workflows:
           requires:
             - make_testbed
           pre-steps:
-            - checkout
+            # - checkout
             - *restore_cache
             - *attach_workspace
 
@@ -233,7 +244,7 @@ workflows:
           requires:
             - make_testbed
           pre-steps:
-            - checkout
+            # - checkout
             - *restore_cache
             - *attach_workspace
           post-steps:
