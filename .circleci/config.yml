@@ -20,10 +20,10 @@ aliases:
             - v5-dependencies-{{ checksum "requirements-dev.txt" }}
 
   - &save_cache
-      - save_cache:
-          key: v5-dependencies-{{ checksum "requirements-dev.txt" }}
-          paths:
-            - ./venv
+      save_cache:
+        key: v5-dependencies-{{ checksum "requirements-dev.txt" }}
+        paths:
+          - ./venv
 
   - &attach_workspace
       attach_workspace:
