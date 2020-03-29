@@ -149,7 +149,7 @@ class GeniusHub:
         key = "addr" if self.verbosity == 3 else "id"
         return natural_sort([d.info for d in self.device_objs], key)
 
-    async def _update(self):
+    def _update(self):
         """Update the Hub with its latest state data."""
 
         def populate_objects(obj_list, obj_key, obj_by_id, ObjectClass) -> List:
@@ -255,7 +255,7 @@ class GeniusHub:
 
             self.uid = auth["data"]["UID"]
 
-        await self._update()  # now convert all the raw JSON
+        self._update()  # now parse all the JSON
 
     async def reboot(self):
         """Reboot the hub."""
@@ -282,4 +282,4 @@ class GeniusTestHub(GeniusHub):
         self._issues = self._issues_via_v3_zones({"data": self._zones})
         self._version = self._version_via_v3_zones({"data": self._zones})  # a hack
 
-        await self._update()  # now convert all the raw JSON
+        self._update()  # now parse all the JSON
