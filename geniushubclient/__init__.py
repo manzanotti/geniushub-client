@@ -20,32 +20,23 @@ from .const import (
     ISSUE_TEXT,
     ZONE_MODE,
 )
-import os
-import sys
+
+# import os
+# import sys
+
+# sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+# sys.path.insert(0, os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
+# sys.path.insert(0, os.path.dirname(os.path.abspath(".")))
+# sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# sys.path.append(os.path.realpath("."))
+# print(sys.path)
+# _LOGGER.warning("%s", sys.path)
+
+from .zone import GeniusZone, natural_sort
+from .device import GeniusDevice
 
 logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.INFO)
 _LOGGER = logging.getLogger(__name__)
-
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-sys.path.insert(0, os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
-sys.path.insert(0, os.path.dirname(os.path.abspath(".")))
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.append(os.path.realpath("."))
-print(sys.path)
-_LOGGER.warning("%s", sys.path)
-try:
-    from .zone import GeniusZone, natural_sort
-    from .device import GeniusDevice
-except ModuleNotFoundError:
-    try:
-        from zone import GeniusZone, natural_sort
-        from device import GeniusDevice
-    except ModuleNotFoundError:
-        try:
-            from . import GeniusZone, natural_sort
-            from . import GeniusDevice
-        except ImportError:
-            import GeniusZone
 
 # Debugging flags - all False for production releases
 DEBUG_LOGGING = False

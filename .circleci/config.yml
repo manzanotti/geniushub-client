@@ -12,7 +12,6 @@ aliases:
     working_directory: ~/working_directory  # pwd is /home/circleci/working_directory
     environment:
       TEST_RESULTS: /tmp/workspace/test-results
-      PYTHONPATH: /home/circleci/working_directory
 
   - &restore_cache
       - checkout
