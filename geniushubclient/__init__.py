@@ -38,8 +38,8 @@ try:
     from .device import GeniusDevice
 except ModuleNotFoundError:
     try:
-        from ..zone import GeniusZone, natural_sort
-        from ..device import GeniusDevice
+        from zone import GeniusZone, natural_sort
+        from device import GeniusDevice
     except ModuleNotFoundError:
         try:
             from . import GeniusZone, natural_sort
