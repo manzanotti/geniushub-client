@@ -26,7 +26,7 @@ if DEBUG_LOGGING is True:
     _LOGGER.setLevel(logging.DEBUG)
 
 if DEBUG_MODE is True:
-    import ptvsd  # pylint: disable=import-error
+    import ptvsd
 
     _LOGGER.warning("Waiting for debugger to attach...")
     ptvsd.enable_attach(address=("172.27.0.138", 5679), redirect_output=True)
@@ -152,9 +152,7 @@ class GeniusHub:
     async def _update(self):
         """Update the Hub with its latest state data."""
 
-        def populate_objects(
-            obj_list, obj_key, obj_by_id, ObjectClass
-        ) -> List:  # pylint: disable=invalid-name
+        def populate_objects(obj_list, obj_key, obj_by_id, ObjectClass) -> List:
             """Create the current list of GeniusHub objects (zones/devices)."""
             entities = []  # list of converted zones/devices
             key = "id" if self.genius_service.use_v1_api else obj_key
@@ -164,7 +162,7 @@ class GeniusHub:
                 except KeyError:  # this is a new zone/device
                     entity = ObjectClass(raw_json[key], raw_json, self)
                 else:
-                    entity._convert(raw_json)  # pylint: disable=protected-access
+                    entity._convert(raw_json)
                 entities.append(entity)
             return entities
 

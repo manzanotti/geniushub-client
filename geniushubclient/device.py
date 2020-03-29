@@ -48,7 +48,7 @@ class GeniusDevice(GeniusObject):
     def __init__(self, device_id, raw_json, hub) -> None:
         super().__init__(hub, ATTRS_DEVICE)
 
-        self.id = device_id  # pylint: disable=invalid-name
+        self.id = device_id
 
         self._convert(raw_json)
 

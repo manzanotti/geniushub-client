@@ -39,7 +39,7 @@ class GeniusZone(GeniusObject):
     def __init__(self, zone_id, raw_json, hub) -> None:
         super().__init__(hub, ATTRS_ZONE)
 
-        self.id = zone_id  # pylint: disable=invalid-name
+        self.id = zone_id
 
         self.device_objs = []
         self.device_by_id = {}
@@ -54,8 +54,7 @@ class GeniusZone(GeniusObject):
             return
 
         def _is_occupied(node) -> bool:  # from web app v5.2.4
-            """
-            Occupancy vs Activity (code from app.js, search for 'occupancyIcon').
+            """Occupancy vs Activity (code from app.js, search for 'occupancyIcon').
 
             R = occupancy not detected (valid in any mode)
             O = occupancy detected (valid in any mode)
@@ -72,7 +71,6 @@ class GeniusZone(GeniusObject):
 
             Hint: the following returns "XX">> true ? "XX" : "YY"
             """
-            # pylint: disable=invalid-name
             A = O = True  # noqa: E741
             R = False
 
