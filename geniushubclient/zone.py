@@ -1,12 +1,9 @@
-"""Python client library for the Genius Hub API.
+"""Python client library for the Genius Hub API."""
 
-    see: https://my.geniushub.co.uk/docs
-    """
-
+import logging
 import re
 from typing import Dict, List  # Any, Optional, Set, Tuple
 
-from . import _LOGGER
 from .const import (
     ATTRS_ZONE,
     FOOTPRINT_MODES,
@@ -20,6 +17,8 @@ from .const import (
     ZONE_TYPE,
 )
 from .device import GeniusObject
+
+_LOGGER = logging.getLogger(__name__)
 
 
 def natural_sort(dict_list, dict_key) -> List[Dict]:

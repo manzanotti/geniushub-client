@@ -2,9 +2,11 @@
 
 import aiohttp
 from hashlib import sha256
+import logging
 
-from . import _LOGGER
 from .const import DEFAULT_TIMEOUT_V1, DEFAULT_TIMEOUT_V3
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class GeniusService:

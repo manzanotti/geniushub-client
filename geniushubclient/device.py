@@ -1,11 +1,13 @@
 """Python client library for the Genius Hub API."""
 
+import logging
 from typing import Dict, Optional  # Any, List, Set, Tuple
 
 import json
 
-from . import _LOGGER
 from .const import ATTRS_DEVICE, DEVICE_HASH_TO_TYPE, STATE_ATTRS
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class GeniusObject:
