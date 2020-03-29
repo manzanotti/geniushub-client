@@ -1,25 +1,17 @@
 """Python client library for the Genius Hub API.
 
-   see: https://my.geniushub.co.uk/docs
-   """
+    see: https://github.com/zxdavb/geniushub-client
+    see: https://my.geniushub.co.uk/docs
+    """
 
 import asyncio
 import json
 import logging
 from datetime import datetime
-from hashlib import sha256
 from typing import Dict, List  # Any, Optional, Set, Tuple
 
-import aiohttp
-
-from .const import (
-    DEFAULT_TIMEOUT_V1,
-    DEFAULT_TIMEOUT_V3,
-    HUB_SW_VERSIONS,
-    ISSUE_DESCRIPTION,
-    ISSUE_TEXT,
-    ZONE_MODE,
-)
+from .const import HUB_SW_VERSIONS, ISSUE_DESCRIPTION, ISSUE_TEXT, ZONE_MODE
+from .session import GeniusService
 from .zone import GeniusZone, natural_sort
 from .device import GeniusDevice
 
@@ -40,118 +32,6 @@ if DEBUG_MODE is True:
     ptvsd.enable_attach(address=("172.27.0.138", 5679), redirect_output=True)
     ptvsd.wait_for_attach()
     _LOGGER.debug("Debugger is attached!")
-
-
-def _zones_via_v3_zones(raw_json) -> List[Dict]:
-    """Extract Zones from /v3/zones JSON."""
-    return raw_json["data"]
-
-
-def _devices_via_v3_data_mgr(raw_json) -> List[Dict]:
-    """Extract Devices from /v3/data_manager JSON."""
-    result = []
-    for site in [
-        x for x in raw_json["data"]["childNodes"].values() if x["addr"] != "WeatherData"
-    ]:
-        for device in [x for x in site["childNodes"].values() if x["addr"] != "1"]:
-            result.append(device)
-            for channel in [
-                x for x in device["childNodes"].values() if x["addr"] != "_cfg"
-            ]:
-                temp = dict(channel)
-                temp["addr"] = f"{device['addr']}-{channel['addr']}"
-                result.append(temp)
-    return result
-
-
-def _issues_via_v3_zones(raw_json) -> List[Dict]:
-    """Extract Issues from /v3/zones JSON."""
-    result = []
-    for zone in raw_json["data"]:
-        for issue in zone["lstIssues"]:
-            if "data" not in issue:
-                issue["data"] = {}
-            issue["data"]["location"] = zone["strName"]
-            result.append(issue)
-    return result
-
-
-def _version_via_v3_zones(raw_json) -> str:
-    """Extract Version from /v3/zones JSON (a hack)."""
-    build_date = datetime.strptime(raw_json["data"][0]["strBuildDate"], "%b %d %Y")
-
-    for date_time_idx in HUB_SW_VERSIONS:
-        if datetime.strptime(date_time_idx, "%b %d %Y") <= build_date:
-            return HUB_SW_VERSIONS[date_time_idx]
-
-
-class GeniusService:
-    """Class that deals with all communication to the physical hub.
-
-        Does no conversion of data, purely API calls
-        """
-
-    def __init__(self, hub_id, username=None, password=None, session=None) -> None:
-
-        self._session = session if session else aiohttp.ClientSession()
-
-        if username or password:  # use the v3 Api
-            sha = sha256()
-            sha.update((username + password).encode("utf-8"))
-            self._auth = aiohttp.BasicAuth(login=username, password=sha.hexdigest())
-            self._url_base = f"http://{hub_id}:1223/v3/"
-            self._headers = {"Connection": "close"}
-            self._timeout = aiohttp.ClientTimeout(total=DEFAULT_TIMEOUT_V3)
-        else:
-            self._auth = None
-            self._url_base = "https://my.geniushub.co.uk/v1/"
-            self._headers = {"authorization": f"Bearer {hub_id}"}
-            self._timeout = aiohttp.ClientTimeout(total=DEFAULT_TIMEOUT_V1)
-
-    async def request(self, method, url, data=None):
-        """Perform a request."""
-        _LOGGER.debug("_request(method=%s, url=%s, data=%s)", method, url, data)
-
-        http_method = {
-            "GET": self._session.get,
-            "PATCH": self._session.patch,
-            "POST": self._session.post,
-            "PUT": self._session.put,
-        }.get(method)
-
-        try:
-            async with http_method(
-                self._url_base + url,
-                auth=self._auth,
-                headers=self._headers,
-                json=data,
-                raise_for_status=True,
-                timeout=self._timeout,
-            ) as resp:
-                response = await resp.json(content_type=None)
-
-        except aiohttp.ServerDisconnectedError as exc:
-            _LOGGER.debug(
-                "_request(): ServerDisconnectedError (msg=%s), retrying.", exc
-            )
-            async with http_method(
-                self._url_base + url,
-                auth=self._auth,
-                headers=self._headers,
-                json=data,
-                raise_for_status=True,
-                timeout=self._timeout,
-            ) as resp:
-                response = await resp.json(content_type=None)
-
-        if method != "GET":
-            _LOGGER.debug("_request(): response=%s", response)
-        return response
-
-    @property
-    def use_v1_api(self) -> bool:
-        """Make a fake docstring."""
-        return self._auth is None
 
 
 class GeniusHub:
@@ -188,8 +68,52 @@ class GeniusHub:
         self.device_by_id = {}
 
     def __repr__(self) -> str:
-        """Make a fake docstring."""
         return json.dumps(self.version)
+
+    @staticmethod
+    def _zones_via_v3_zones(raw_json) -> List[Dict]:
+        """Extract Zones from /v3/zones JSON."""
+        return raw_json["data"]
+
+    @staticmethod
+    def _devices_via_v3_data_mgr(raw_json) -> List[Dict]:
+        """Extract Devices from /v3/data_manager JSON."""
+        result = []
+        for site in [
+            x
+            for x in raw_json["data"]["childNodes"].values()
+            if x["addr"] != "WeatherData"
+        ]:
+            for device in [x for x in site["childNodes"].values() if x["addr"] != "1"]:
+                result.append(device)
+                for channel in [
+                    x for x in device["childNodes"].values() if x["addr"] != "_cfg"
+                ]:
+                    temp = dict(channel)
+                    temp["addr"] = f"{device['addr']}-{channel['addr']}"
+                    result.append(temp)
+        return result
+
+    @staticmethod
+    def _issues_via_v3_zones(raw_json) -> List[Dict]:
+        """Extract Issues from /v3/zones JSON."""
+        result = []
+        for zone in raw_json["data"]:
+            for issue in zone["lstIssues"]:
+                if "data" not in issue:
+                    issue["data"] = {}
+                issue["data"]["location"] = zone["strName"]
+                result.append(issue)
+        return result
+
+    @staticmethod
+    def _version_via_v3_zones(raw_json) -> str:
+        """Extract Version from /v3/zones JSON (a hack)."""
+        build_date = datetime.strptime(raw_json["data"][0]["strBuildDate"], "%b %d %Y")
+
+        for date_time_idx in HUB_SW_VERSIONS:
+            if datetime.strptime(date_time_idx, "%b %d %Y") <= build_date:
+                return HUB_SW_VERSIONS[date_time_idx]
 
     @property
     def verbosity(self) -> int:
@@ -326,9 +250,9 @@ class GeniusHub:
                 *[self.genius_service.request("GET", g) for g in get_list]
             )
 
-            self._zones = _zones_via_v3_zones(zones)
-            self._devices = _devices_via_v3_data_mgr(data_manager)
-            self._issues = _issues_via_v3_zones(zones)
+            self._zones = self._zones_via_v3_zones(zones)
+            self._devices = self._devices_via_v3_data_mgr(data_manager)
+            self._issues = self._issues_via_v3_zones(zones)
             self._version = auth["data"]["release"]
 
             self.uid = auth["data"]["UID"]
@@ -357,7 +281,7 @@ class GeniusTestHub(GeniusHub):
         """Update the Hub with its latest state data."""
         self._zones = self._test_json["zones"]
         self._devices = self._test_json["devices"]
-        self._issues = _issues_via_v3_zones({"data": self._zones})
-        self._version = _version_via_v3_zones({"data": self._zones})  # a hack
+        self._issues = self._issues_via_v3_zones({"data": self._zones})
+        self._version = self._version_via_v3_zones({"data": self._zones})  # a hack
 
         await self._update()  # now convert all the raw JSON

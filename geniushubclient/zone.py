@@ -1,3 +1,5 @@
+"""Python client library for the Genius Hub API."""
+
 import logging
 import re
 from typing import Dict, List  # Any, Optional, Set, Tuple

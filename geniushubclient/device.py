@@ -1,3 +1,5 @@
+"""Python client library for the Genius Hub API."""
+
 import logging
 from typing import Dict, Optional  # Any, List, Set, Tuple
 
@@ -19,7 +21,6 @@ class GeniusObject:
         self._raw = {}
 
     def __repr__(self) -> str:
-        """Make a fake docstring."""
         return json.dumps(
             {k: v for k, v in self.data.items() if k in self._attrs["summary_keys"]}
         )
