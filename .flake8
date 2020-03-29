@@ -3,7 +3,9 @@
 [flake8]
   ignore = D105,D107
 
-  max-line-length = 88  # as used by black
+  # max-line-length as used by black
+  max-line-length = 88
 
   per-file-ignores =
+    geniushubclient/const.py:E501
     geniushubclient/zone.py:D208,E501
