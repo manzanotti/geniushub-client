@@ -1,10 +1,12 @@
 # .flake8 file for https://github.com/zxdavb
 
 [flake8]
-  ignore = E226,E302,E41
+  ignore = E41,E226,E302,E501
 
     # max-line-length as used by black
     max-line-length = 88
 
   per-file-ignores =
-    geniushubclient/__init__.py:D107,D208,E501
+    geniushubclient/__init__.py:D107
+    geniushubclient/device.py:D100,D107
+    geniushubclient/zone.py:D100,D107,D208
