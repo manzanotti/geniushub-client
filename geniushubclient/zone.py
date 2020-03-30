@@ -24,13 +24,13 @@ _LOGGER = logging.getLogger(__name__)
 def natural_sort(dict_list, dict_key) -> List[Dict]:
     """Return a case-insensitively sorted list with '11' after '2-2'."""
 
-    def _alphanum_key(k):
+    def alphanum_key(k):
         return [
             int(c) if c.isdigit() else c.lower()
             for c in re.split("([0-9]+)", k[dict_key])
         ]
 
-    return sorted(dict_list, key=_alphanum_key)
+    return sorted(dict_list, key=alphanum_key)
 
 
 class GeniusZone(GeniusBase):
