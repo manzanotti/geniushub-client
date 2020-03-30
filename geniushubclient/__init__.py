@@ -121,7 +121,7 @@ class GeniusHub:
         return self._verbose
 
     @verbosity.setter
-    def verbosity(self, value):
+    def verbosity(self, value) -> None:
         if 0 <= value <= 3:
             self._verbose = value
         else:
@@ -152,7 +152,7 @@ class GeniusHub:
     def _update(self):
         """Update the Hub with its latest state data."""
 
-        def populate_objects(obj_list, obj_key, obj_by_id, ObjectClass) -> List:
+        def populate_objects(obj_list, obj_key, obj_by_id, GeniusObject) -> List:
             """Create the current list of GeniusHub objects (zones/devices)."""
             entities = []  # list of converted zones/devices
             key = "id" if self.genius_service.use_v1_api else obj_key
@@ -160,7 +160,7 @@ class GeniusHub:
                 try:  # does the hub already know about this zone/device?
                     entity = obj_by_id[raw_json[key]]
                 except KeyError:  # this is a new zone/device
-                    entity = ObjectClass(raw_json[key], raw_json, self)
+                    entity = GeniusObject(raw_json[key], raw_json, self)
                 else:
                     entity._convert(raw_json)
                 entities.append(entity)
@@ -229,7 +229,7 @@ class GeniusHub:
         for issue in [i for i in old_issues if i not in self.issues]:
             _LOGGER.info("An Issue is now resolved: %s", issue)
 
-    async def update(self):
+    async def update(self) -> None:
         """Update the Hub with its latest state data."""
         if self.genius_service.use_v1_api:
             get_list = ["zones", "devices", "issues", "version"]
@@ -257,7 +257,7 @@ class GeniusHub:
 
         self._update()  # now parse all the JSON
 
-    async def reboot(self):
+    async def reboot(self) -> None:
         """Reboot the hub."""
         # x.post("/v3/system/reboot", { username: e, password: t, json:{} })
         raise NotImplementedError
@@ -275,7 +275,7 @@ class GeniusTestHub(GeniusHub):
         self._test_json["zones"] = zones_json
         self._test_json["devices"] = device_json
 
-    async def update(self):
+    async def update(self) -> None:
         """Update the Hub with its latest state data."""
         self._zones = self._test_json["zones"]
         self._devices = self._test_json["devices"]

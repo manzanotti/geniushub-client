@@ -248,7 +248,7 @@ class GeniusZone(GeniusBase):
         """Return a list of Issues known to the Zone."""
         raise NotImplementedError
 
-    async def set_mode(self, mode):
+    async def set_mode(self, mode) -> None:
         """Set the mode of the zone.
 
           mode is in {'off', 'timer', footprint', 'override'}
@@ -282,7 +282,7 @@ class GeniusZone(GeniusBase):
             resp = resp["data"] if resp["error"] == 0 else resp
         _LOGGER.debug("Zone(%s).set_mode(): response = %s", self.id, resp)
 
-    async def set_override(self, setpoint, duration=None):
+    async def set_override(self, setpoint, duration=None) -> None:
         """Set the zone to override to a certain temperature.
 
           duration is in seconds
