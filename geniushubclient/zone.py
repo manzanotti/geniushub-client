@@ -53,7 +53,7 @@ class GeniusZone(GeniusObject):
             self.data = raw_json
             return
 
-        def _is_occupied(node) -> bool:  # from web app v5.2.4
+        def is_occupied(node) -> bool:  # from web app v5.2.4
             """Occupancy vs Activity (code from app.js, search for 'occupancyIcon').
 
             R = occupancy not detected (valid in any mode)
@@ -83,7 +83,7 @@ class GeniusZone(GeniusObject):
 
             return A if p and u and d and (not s) else (O if c > 0 else R)
 
-        def _timer_schedule(raw_json) -> Dict:
+        def timer_schedule(raw_json) -> Dict:
             root = {"weekly": {}}
             day = -1
 
@@ -113,7 +113,7 @@ class GeniusZone(GeniusObject):
 
             return root
 
-        def _footprint_schedule(raw_json) -> Dict:
+        def footprint_schedule(raw_json) -> Dict:
             root = {"weekly": {}}
             day = -1
 
@@ -165,9 +165,9 @@ class GeniusZone(GeniusObject):
 
             if self._has_pir:
                 if TYPE_TO_ITYPE[result["type"]] == ZONE_TYPE.ControlSP:
-                    result["occupied"] = _is_occupied(raw_json)
+                    result["occupied"] = is_occupied(raw_json)
                 else:
-                    result["_occupied"] = _is_occupied(raw_json)
+                    result["_occupied"] = is_occupied(raw_json)
 
             if raw_json["iType"] in [
                 ZONE_TYPE.OnOffTimer,
@@ -191,7 +191,7 @@ class GeniusZone(GeniusObject):
                 ZONE_TYPE.Manager,
                 ZONE_TYPE.Surrogate,
             ]:  # timer = {} if: Manager, Group
-                result["schedule"]["timer"] = _timer_schedule(raw_json)
+                result["schedule"]["timer"] = timer_schedule(raw_json)
 
         except (AttributeError, LookupError, TypeError, ValueError):
             _LOGGER.exception("Failed to convert Zone %s timer schedule.", result["id"])
@@ -199,7 +199,7 @@ class GeniusZone(GeniusObject):
         try:  # convert footprint schedule (v1 attributes)
             if raw_json["iType"] in [ZONE_TYPE.ControlSP]:
                 # footprint={...} iff: ControlSP, _even_ if no PIR, otherwise ={}
-                result["schedule"]["footprint"] = _footprint_schedule(raw_json)
+                result["schedule"]["footprint"] = footprint_schedule(raw_json)
                 result["_schedule"] = {
                     "footprint": {
                         "profile": FOOTPRINT_MODES[raw_json["objFootprint"]["iProfile"]]
