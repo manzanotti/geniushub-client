@@ -16,7 +16,7 @@ from .const import (
     ZONE_MODE,
     ZONE_TYPE,
 )
-from .device import GeniusObject
+from .device import GeniusBase
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ def natural_sort(dict_list, dict_key) -> List[Dict]:
     return sorted(dict_list, key=_alphanum_key)
 
 
-class GeniusZone(GeniusObject):
+class GeniusZone(GeniusBase):
     """The class for a Genius Zone."""
 
     def __init__(self, zone_id, raw_json, hub) -> None:
