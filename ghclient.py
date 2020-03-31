@@ -165,6 +165,8 @@ async def main(loop):
     if args.debug_mode > 2:
         breakpoint()
 
+    session = None
+
     # Option of providing test data (as list of Dicts), or leave both as None
     if FILE_MODE:
         with open("raw_zones.json", mode="r") as fh:
@@ -176,11 +178,12 @@ async def main(loop):
 
         hub = GeniusTestHub(zones_json=z, device_json=d, debug=True)
     else:
+        session = aiohttp.ClientSession()
         hub = GeniusHub(
             hub_id=args.hub_id,
             username=args.username,
             password=args.password,
-            session=aiohttp.ClientSession(),
+            session=session,
             debug=args.debug_mode,
         )
 
