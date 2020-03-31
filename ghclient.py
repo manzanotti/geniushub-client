@@ -124,6 +124,22 @@ def _parse_args():
         print(f"Invalid parameters, namespace is: {args[1]}")
         return
 
+    if args_cmd.command not in [None, "zones", "devices", "issues", "info", "reboot"]:
+        print(f"Unknown command, namespace is: {args_cmd}")
+        return None
+
+    if args_cmd.zone_id and args_cmd.command not in [None, "devices", "issues", "info"]:
+        print(f"Invalid arguments, namespace is: {args_cmd}")
+        return None
+
+    if any([args_cmd.mode, args_cmd.secs, args_cmd.temp]) and not args_cmd.zone_id:
+        print(f"Invalid arguments, namespace is: {args_cmd}")
+        return None
+
+    if args_cmd.device_id and args_cmd.command not in [None, "issues", "info"]:
+        print(f"Invalid arguments, namespace is: {args_cmd}")
+        return None
+
     return argparse.Namespace(**vars(args[0]), **vars(args_cmd))
 
 
@@ -131,6 +147,7 @@ async def main(loop):
     """Return the JSON as requested."""
 
     args = _parse_args()
+    # print(args)
     if args is None:
         return
 
@@ -204,11 +221,11 @@ async def main(loop):
             await zone.set_mode(args.mode)
         elif args.temp:
             await zone.set_override(args.temp, args.secs)
-        elif args.devices:
+        elif args.command == "devices":
             print(json.dumps(zone.devices))
-        elif args.issues:
+        elif args.command == "issues":
             print(json.dumps(zone.issues))
-        else:  # as per args.info, v0 = zone, v1 = zone.data, v3 = zone._raw
+        else:  # args.command == "info"
             if DEBUG_NO_SCHEDULES:
                 _info = {k: v for k, v in zone.data.items() if k != "schedule"}
                 print(json.dumps(_info))
@@ -230,7 +247,7 @@ async def main(loop):
             print(json.dumps(hub.devices))
         elif args.command == "issues":
             print(json.dumps(hub.issues))
-        else:  # rgs.command == "info"
+        else:  # args.command == "info"
             print(f"VER = {json.dumps(hub.version)}")
             print(f"UID = {hub.uid}")
             if hub.api_version == 3:

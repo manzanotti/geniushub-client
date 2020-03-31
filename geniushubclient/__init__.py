@@ -209,7 +209,7 @@ class GeniusHub:
             }
 
         for issue in [i for i in self.issues if i not in old_issues]:
-            _LOGGER.warning("An Issue has been found: %s", issue)
+            _LOGGER.debug("An Issue has been found: %s", issue)
         for issue in [i for i in old_issues if i not in self.issues]:
             _LOGGER.data("An Issue is now resolved: %s", issue)
 
