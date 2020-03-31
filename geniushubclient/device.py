@@ -10,7 +10,7 @@ from .const import ATTRS_DEVICE, DEVICE_HASH_TO_TYPE, STATE_ATTRS
 _LOGGER = logging.getLogger(__name__)
 
 
-class GeniusObject:
+class GeniusBase:
     """The base class for any Genius object: Zone, Device or Issue."""
 
     def __init__(self, hub, object_attrs) -> None:
@@ -42,7 +42,7 @@ class GeniusObject:
         return {k: v for k, v in self.data.items() if k in keys}
 
 
-class GeniusDevice(GeniusObject):
+class GeniusDevice(GeniusBase):
     """The class for a Genius Device."""
 
     def __init__(self, device_id, raw_json, hub) -> None:
@@ -59,8 +59,7 @@ class GeniusDevice(GeniusObject):
             self.data = raw_json
             return
 
-        self.data = result = {}
-        result["id"] = raw_json["addr"]
+        self.data = result = {"id": raw_json["addr"]}
 
         try:
             node = raw_json["childValues"]
@@ -86,7 +85,7 @@ class GeniusDevice(GeniusObject):
                 state["outputOnOff"] = bool(state["outputOnOff"])
 
         except (AttributeError, LookupError, TypeError, ValueError):
-            _LOGGER.exception("Failed to convert Device %s.")
+            _LOGGER.exception("Failed to convert Device %s.", result["id"])
 
         try:
             result["_state"] = _state = {}

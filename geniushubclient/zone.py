@@ -140,9 +140,7 @@ class GeniusZone(GeniusBase):
 
             return root
 
-        self.data = result = {}
-        result["id"] = raw_json["iID"]
-        result["name"] = raw_json["strName"]
+        self.data = result = {"id": raw_json["iID"], "name": raw_json["strName"]}
 
         try:  # convert zone (v1 attributes)
             result["type"] = ITYPE_TO_TYPE[raw_json["iType"]]
