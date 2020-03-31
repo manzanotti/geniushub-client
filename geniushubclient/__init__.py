@@ -18,14 +18,9 @@ from .device import GeniusDevice
 logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.INFO)
 _LOGGER = logging.getLogger(__name__)
 
-# Debugging flags - all False for production releases
-DEBUG_LOGGING = False
-if DEBUG_LOGGING is True:
-    _LOGGER.setLevel(logging.DEBUG)
-
 
 class GeniusHub:
-    """The class for a connection to a Genius Hub."""
+    """The class for a Genius Hub."""
 
     def __init__(
         self, hub_id, username=None, password=None, session=None, debug=False
