@@ -13,52 +13,50 @@ _LOGGER = logging.getLogger(__name__)
 class GeniusBase:
     """The base class for any Genius object: Zone, Device or Issue."""
 
-    def __init__(self, hub, object_attrs) -> None:
+    def __init__(self, entity_id, raw_json, hub, entity_attrs) -> None:
+        self.id = entity_id
+        self._raw = raw_json
         self._hub = hub
-        self._attrs = object_attrs
+        self._attrs = entity_attrs
 
         self._data = {}
-        self._raw = {}
 
     def __repr__(self) -> str:
         return json.dumps(
-            {k: v for k, v in self._data.items() if k in self._attrs["summary_keys"]}
+            {k: v for k, v in self.data.items() if k in self._attrs["summary_keys"]}
         )
 
     @property
-    def data(self) -> Dict:
+    def info(self) -> Dict:
         """Return all information for the object."""
         if self._hub.verbosity == 3:
             return self._raw
 
         # tip: grep -E '("bOutRequestHeat"|"bInHeatEnabled")..true'
         if self._hub.verbosity == 2:
-            return self._data
+            return self.data
 
         keys = self._attrs["summary_keys"]
         if self._hub.verbosity == 1:
             keys += self._attrs["detail_keys"]
 
-        return {k: v for k, v in self._data.items() if k in keys}
+        return {k: v for k, v in self.data.items() if k in keys}
 
 
 class GeniusDevice(GeniusBase):
     """The class for a Genius Device."""
 
     def __init__(self, device_id, raw_json, hub) -> None:
-        super().__init__(hub, ATTRS_DEVICE)
-
-        self.id = device_id
-
-        self._data = raw_json if self._hub.api_version == 1 else {}
-        self._raw = raw_json
-        _ = self.data
+        super().__init__(device_id, raw_json, hub, ATTRS_DEVICE)
 
     @property
     def data(self) -> Dict:
         """Convert a device's v3 JSON to the v1 schema."""
         if self._data:
-            return super().data
+            return self._data
+        if self._hub.api_version == 1:
+            self._data = self._raw
+            return self._data
 
         self._data = result = {"id": self._raw["addr"]}
         raw_json = self._raw  # TODO: remove raw_json, use self._raw
@@ -107,7 +105,7 @@ class GeniusDevice(GeniusBase):
         except (AttributeError, LookupError, TypeError, ValueError):
             _LOGGER.exception("Failed to convert Device %s extras.", result["id"])
 
-        return super().data
+        return self._data
 
     @property
     def type(self) -> Optional[str]:
@@ -118,6 +116,6 @@ class GeniusDevice(GeniusBase):
     def assigned_zone(self) -> Optional[object]:
         """Return the primary assigned zone, which can change."""
         try:
-            return self._hub.zone_by_name[self._data["assignedZones"][0]["name"]]
+            return self._hub.zone_by_name[self.data["assignedZones"][0]["name"]]
         except KeyError:
             return None

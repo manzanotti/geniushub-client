@@ -119,7 +119,7 @@ class GeniusHubBase:
           v1/zones:         id, name, type, mode, temperature, setpoint,
           occupied, override, schedule
         """
-        return [z.data for z in self.zone_objs]
+        return [z.info for z in self.zone_objs]
 
     @property
     def devices(self) -> List:
@@ -129,7 +129,7 @@ class GeniusHubBase:
           v1/devices:         id, type, assignedZones, state
         """
         key = "addr" if self.verbosity == 3 else "id"
-        return natural_sort([d.data for d in self.device_objs], key)
+        return natural_sort([d.info for d in self.device_objs], key)
 
     def update(self):
         """Update the Hub with its latest state data."""

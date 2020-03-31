@@ -37,22 +37,19 @@ class GeniusZone(GeniusBase):
     """The class for a Genius Zone."""
 
     def __init__(self, zone_id, raw_json, hub) -> None:
-        super().__init__(hub, ATTRS_ZONE)
-
-        self.id = zone_id
+        super().__init__(zone_id, raw_json, hub, ATTRS_ZONE)
 
         self.device_objs = []
         self.device_by_id = {}
-
-        self._data = raw_json if self._hub.api_version == 1 else {}
-        self._raw = raw_json
-        _ = self.data
 
     @property
     def data(self) -> Dict:
         """Convert a zone's v3 JSON to the v1 schema."""
         if self._data:
-            return super().data
+            return self._data
+        if self._hub.api_version == 1:
+            self._data = self._raw
+            return self._data
 
         def is_occupied(node) -> bool:  # from web app v5.2.4
             """Occupancy vs Activity (code from app.js, search for 'occupancyIcon').
@@ -222,7 +219,7 @@ class GeniusZone(GeniusBase):
         except (AttributeError, LookupError, TypeError, ValueError):
             _LOGGER.exception("Failed to convert Zone %s extras.", result["id"])
 
-        return super().data
+        return self._data
 
     @property
     def _has_pir(self) -> bool:
@@ -234,7 +231,7 @@ class GeniusZone(GeniusBase):
     @property
     def name(self) -> str:
         """Return the name of the zone, which can change."""
-        return self._data["name"]
+        return self.data["name"]
 
     @property
     def devices(self) -> List:
@@ -243,7 +240,7 @@ class GeniusZone(GeniusBase):
           This is a v1 API: GET /zones/{zoneId}devices
         """
         key = "addr" if self._hub.verbosity == 3 else "id"
-        return natural_sort([d.data for d in self.device_objs], key)
+        return natural_sort([d.info for d in self.device_objs], key)
 
     @property
     def issues(self) -> List:
