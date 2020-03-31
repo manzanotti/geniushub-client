@@ -118,6 +118,6 @@ class GeniusDevice(GeniusBase):
     def assigned_zone(self) -> Optional[object]:
         """Return the primary assigned zone, which can change."""
         try:
-            return self._hub.zone_by_name[self.data["assignedZones"][0]["name"]]
+            return self._hub.zone_by_name[self._data["assignedZones"][0]["name"]]
         except KeyError:
             return None

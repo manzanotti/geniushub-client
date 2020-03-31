@@ -193,9 +193,7 @@ class GeniusHub:
         self.device_by_id = {d.id: d for d in self.device_objs}
 
         for zone in zones:  # TODO: this need checking
-            zone.device_objs = [
-                d for d in devices if d._data["assignedZones"][0]["name"] == zone.name
-            ]
+            zone.device_objs = [d for d in devices if d.assigned_zone == zone.name]
             zone.device_by_id = {d.id: d for d in zone.device_objs}
 
         old_issues = self.issues
