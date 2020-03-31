@@ -92,51 +92,27 @@ ZONES = "zones"
 VERBOSE = "-v"
 
 
+# class Namespace:
+#     def __init__(self, **kwargs):
+#         self.__dict__.update(kwargs)
+
+
 def _parse_args():
-    parser = argparse.ArgumentParser()
-
+    parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("hub_id", help="either a Hub token, or a Hub hostname/address")
-
-    parser.add_argument("zones", action="store_true", help="of the hub")
-    parser.add_argument(
-        "devices", action="store_true", nargs="?", help="of the hub/zone"
-    )
-    parser.add_argument(
-        "info", action="store_true", nargs="?", help="of the hub/zone/device"
-    )
-    parser.add_argument(
-        "issues", action="store_true", nargs="?", help="of the hub/zone/device"
-    )
-    parser.add_argument("reboot", action="store_true", nargs="?", help="reboot the hub")
 
     group = parser.add_argument_group("user credentials (iff using v3 API)")
     group.add_argument("-u", "--username", type=str)
     group.add_argument("-p", "--password", type=str)
 
-    parser.add_argument("-z", "--zone", help="a Zone (id or name)")
-    parser.add_argument("-d", "--device", help="a Device (a string)")
-
-    group = parser.add_argument_group("used with a zone")
-    group.add_argument(
-        "-m", MODE, help="set mode to: off, timer, footprint, override",
-    )
-
-    group.add_argument(
-        "-s", SECS, help="set the override duration, in seconds",
-    )
-
-    group.add_argument(
-        "-t", TEMP, help="set the override temperature, in Celsius",
-    )
-
     group = parser.add_argument_group("various options")
     group.add_argument(
         "-v",
+        "--verbosity",
         action="count",
-        default=1,
+        default=0,
         help="increasing verbosity, -vvv gives raw JSON",
     )
-
     group.add_argument(
         "-x",
         "--debug_mode",
@@ -145,31 +121,52 @@ def _parse_args():
         help="0=none, 1=enable_attach, 2=wait_for_attach",
     )
 
-    args = parser.parse_args()
+    args = parser.parse_known_args()
 
-    if bool(args.username) ^ bool(args.password):
+    if bool(args[0].username) ^ bool(args[0].password):
         parser.error("--username and --password must be given together, or not at all")
         return None
 
-    if args.zone:
-        pass
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument("command", nargs="?", default="")
 
-    elif args.device:
-        pass
+    group = parser.add_mutually_exclusive_group()
+    parser.add_argument("-z", "--zone_id", help="a Zone (id or name)")
+    parser.add_argument("-d", "--device_id", help="a Device (a string)")
 
-    else:
-        pass
+    group = parser.add_argument_group("used with a zone")
+    group.add_argument("-m", MODE, help="set mode to: off, timer, footprint, override")
+    group.add_argument("-s", SECS, help="set the override duration, in seconds")
+    group.add_argument("-t", TEMP, help="set the override temperature, in Celsius")
 
-    return args
+    args_cmd = parser.parse_args(args[1])
+
+    # if args_cmd.command == "":
+    #     pass
+    # elif args_cmd.command == "zones":
+    #     pass
+    # elif args_cmd.command == "devices":
+    #     pass
+    # elif args_cmd.command == "issues":
+    #     pass
+    # elif args_cmd.command == "info":
+    #     pass
+    # elif args_cmd.command == "reboot":
+    #     pass
+    # else:
+    #     pass
+
+    return argparse.Namespace(**vars(args[0]), **vars(args_cmd))
 
 
 async def main(loop):
     """Return the JSON as requested."""
 
     args = _parse_args()
+    print("XXX", args)
 
     if args.debug_mode > 0:
-        import ptvsd  # pylint: disable=import-error
+        import ptvsd
 
         print(f"Debugging is enabled, listening on: {DEBUG_ADDR}:{DEBUG_PORT}.")
         ptvsd.enable_attach(address=(DEBUG_ADDR, DEBUG_PORT))
@@ -178,8 +175,6 @@ async def main(loop):
             print("Waiting for debugger to attach...")
             ptvsd.wait_for_attach()
             print("Debugger is attached!")
-
-    print(args)
 
     session = aiohttp.ClientSession()  # test with/without
 
@@ -202,7 +197,7 @@ async def main(loop):
             debug=False,
         )
 
-    hub.verbosity = args[VERBOSE]
+    hub.verbosity = args.verbosity
 
     await hub.update()  # initialise: enumerate all zones, devices & issues
     # ait hub.update()  # for testing, do twice in a row to check for no duplicates
@@ -211,49 +206,47 @@ async def main(loop):
     # z = await hub._zones  # raw_zones.json
     # d = await hub._devices  # raw_devices.json
 
-    if args[DEVICE_ID]:
-        key = args[DEVICE_ID]  # a device_id is always a str, never an int
-
+    if args.device_id:
         try:  # does a Device with this ID exist?
-            device = hub.device_by_id[key]
+            device = hub.device_by_id[args.device_id]  # device_id is a str, not an int
         except KeyError:
-            raise KeyError(f"Device '{args[DEVICE_ID]}' does not exist (by addr).")
+            raise KeyError(f"Device '{args.device_id}' does not exist (by addr).")
 
         print(device.data)  # v0 = device, v1 = device.data, v3 = device._raw
 
-    elif args[ZONE_ID]:
+    elif args.zone_id:
         try:  # was the zone_id given as a str, or an int?
-            key = int(args[ZONE_ID])
+            zone_id = int(args.zone_id)
         except ValueError:
-            key = args[ZONE_ID]
+            zone_id = args.zone_id
             find_zone_by_key = hub.zone_by_name
         else:
             find_zone_by_key = hub.zone_by_id
 
         try:  # does a Zone with this ID exist?
-            zone = find_zone_by_key[key]
+            zone = find_zone_by_key[zone_id]
         except KeyError:
-            raise KeyError(f"Zone '{args[ZONE_ID]}' does not exist (by name or ID).")
+            raise KeyError(f"Zone '{args.zone_id}' does not exist (by name or ID).")
 
-        if args[MODE]:
-            await zone.set_mode(args[MODE])
-        elif args[TEMP]:
-            await zone.set_override(args[TEMP], args[SECS])
-        elif args[DEVICES]:
+        if args.mode:
+            await zone.set_mode(args.mode)
+        elif args.temp:
+            await zone.set_override(args.temp, args.secs)
+        elif args.devices:
             print(json.dumps(zone.devices))
-        elif args[ISSUES]:
+        elif args.issues:
             print(json.dumps(zone.issues))
-        else:  # as per args[INFO], v0 = zone, v1 = zone.data, v3 = zone._raw
+        else:  # as per args.info, v0 = zone, v1 = zone.data, v3 = zone._raw
             if DEBUG_NO_SCHEDULES:
                 _info = {k: v for k, v in zone.data.items() if k != "schedule"}
                 print(json.dumps(_info))
             else:
                 print(json.dumps(zone.data))
 
-    else:  # as per: args[HUB_ID]
-        if args[REBOOT]:  # pylint: disable=no-else-raise
+    else:  # as per: args.hub_id
+        if args.command == "reboot":
             raise NotImplementedError()  # await hub.reboot()
-        elif args[ZONES]:
+        elif args.command == "zones":
             if DEBUG_NO_SCHEDULES:
                 _zones = [
                     {k: v for k, v in z.items() if k != "schedule"} for z in hub.zones
@@ -261,16 +254,15 @@ async def main(loop):
                 print(json.dumps(_zones))
             else:
                 print(json.dumps(hub.zones))
-        elif args[DEVICES]:
+        elif args.command == "devices":
             print(json.dumps(hub.devices))
-        elif args[ISSUES]:
+        elif args.command == "issues":
             print(json.dumps(hub.issues))
-        else:  # as per args[INFO]
-            print(json.dumps(hub.version))
-            print(hub.uid)
+        else:  # rgs.command == "info"
+            print(f"VER = {json.dumps(hub.version)}")
+            print(f"UID = {hub.uid}")
             if hub.api_version == 3:
-                # pylint: disable=protected-access
-                print({"weatherData": hub.zone_by_id[0]._raw["weatherData"]})
+                print(f"XXX =", {"weatherData": hub.zone_by_id[0]._raw["weatherData"]})
 
     if session:
         await session.close()
