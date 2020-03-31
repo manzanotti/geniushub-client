@@ -92,11 +92,6 @@ ZONES = "zones"
 VERBOSE = "-v"
 
 
-# class Namespace:
-#     def __init__(self, **kwargs):
-#         self.__dict__.update(kwargs)
-
-
 def _parse_args():
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("hub_id", help="either a Hub token, or a Hub hostname/address")
@@ -128,7 +123,7 @@ def _parse_args():
         return None
 
     parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument("command", nargs="?", default="")
+    parser.add_argument("command", nargs="?")
 
     group = parser.add_mutually_exclusive_group()
     parser.add_argument("-z", "--zone_id", help="a Zone (id or name)")
@@ -139,7 +134,11 @@ def _parse_args():
     group.add_argument("-s", SECS, help="set the override duration, in seconds")
     group.add_argument("-t", TEMP, help="set the override temperature, in Celsius")
 
-    args_cmd = parser.parse_args(args[1])
+    try:
+        args_cmd = parser.parse_args(args[1])
+    except IndexError:
+        print(f"Invalid parameters: {args[1]}")
+        return
 
     # if args_cmd.command == "":
     #     pass
@@ -163,7 +162,10 @@ async def main(loop):
     """Return the JSON as requested."""
 
     args = _parse_args()
-    print("XXX", args)
+    # print("XXX", args)
+
+    if args is None:
+        return
 
     if args.debug_mode > 0:
         import ptvsd
