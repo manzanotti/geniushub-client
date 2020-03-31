@@ -33,13 +33,13 @@ class GeniusBase:
 
         # tip: grep -E '("bOutRequestHeat"|"bInHeatEnabled")..true'
         if self._hub.verbosity == 2:
-            return self._data
+            return self.data
 
         keys = self._attrs["summary_keys"]
         if self._hub.verbosity == 1:
             keys += self._attrs["detail_keys"]
 
-        return {k: v for k, v in self._data.items() if k in keys}
+        return {k: v for k, v in self.data.items() if k in keys}
 
 
 class GeniusDevice(GeniusBase):
@@ -50,8 +50,8 @@ class GeniusDevice(GeniusBase):
 
         self.id = device_id
 
-        self._raw = raw_json
         self._data = raw_json if self._hub.api_version == 1 else {}
+        self._raw = raw_json
 
     @property
     def data(self) -> Dict:
