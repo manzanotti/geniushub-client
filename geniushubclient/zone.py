@@ -44,14 +44,14 @@ class GeniusZone(GeniusBase):
         self.device_objs = []
         self.device_by_id = {}
 
-        self._raw = raw_json
         self._data = raw_json if self._hub.api_version == 1 else {}
+        self._raw = raw_json
 
     @property
-    def data(self) -> Dict:
+    def info(self) -> Dict:
         """Convert a zone's v3 JSON to the v1 schema."""
         if self._data:
-            return self._data
+            return super().info
 
         def is_occupied(node) -> bool:  # from web app v5.2.4
             """Occupancy vs Activity (code from app.js, search for 'occupancyIcon').
@@ -221,19 +221,19 @@ class GeniusZone(GeniusBase):
         except (AttributeError, LookupError, TypeError, ValueError):
             _LOGGER.exception("Failed to convert Zone %s extras.", result["id"])
 
-        return self._data
+        return super().info
 
     @property
     def _has_pir(self) -> bool:
         """Return True if the zone has a PIR (movement sensor)."""
         if self._hub.api_version == 1:
-            return "occupied" in self.data
+            return "occupied" in self.info
         return self._raw["iFlagExpectedKit"] & ZONE_KIT.PIR
 
     @property
     def name(self) -> str:
         """Return the name of the zone, which can change."""
-        return self.data["name"]
+        return self.info["name"]
 
     @property
     def devices(self) -> List:

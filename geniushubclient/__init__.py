@@ -176,7 +176,7 @@ class GeniusHub:
             if "{device_type}" in description:
                 # don't use nodeHash, it won't pick up (e.g. DCR - Channel 1)
                 # vice_type = DEVICE_HASH_TO_TYPE[raw_json["data"]["nodeHash"]]
-                device_type = self.device_by_id[raw_json["data"]["nodeID"]].data["type"]
+                device_type = self.device_by_id[raw_json["data"]["nodeID"]].info["type"]
 
             if "{zone_name}" in description and "{device_type}" in description:
                 description = description.format(
@@ -208,7 +208,7 @@ class GeniusHub:
 
         for zone in zones:  # TODO: this need checking
             zone.device_objs = [
-                d for d in devices if d.data["assignedZones"][0]["name"] == zone.name
+                d for d in devices if d.info["assignedZones"][0]["name"] == zone.name
             ]
             zone.device_by_id = {d.id: d for d in zone.device_objs}
 

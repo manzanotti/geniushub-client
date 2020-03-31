@@ -33,13 +33,13 @@ class GeniusBase:
 
         # tip: grep -E '("bOutRequestHeat"|"bInHeatEnabled")..true'
         if self._hub.verbosity == 2:
-            return self.data
+            return self._data
 
         keys = self._attrs["summary_keys"]
         if self._hub.verbosity == 1:
             keys += self._attrs["detail_keys"]
 
-        return {k: v for k, v in self.data.items() if k in keys}
+        return {k: v for k, v in self._data.items() if k in keys}
 
 
 class GeniusDevice(GeniusBase):
@@ -54,10 +54,10 @@ class GeniusDevice(GeniusBase):
         self._raw = raw_json
 
     @property
-    def data(self) -> Dict:
+    def info(self) -> Dict:
         """Convert a device's v3 JSON to the v1 schema."""
         if self._data:
-            return self._data
+            return super().info
 
         self._data = result = {"id": self._raw["addr"]}
         raw_json = self._raw  # TODO: remove raw_json, use self._raw
@@ -106,17 +106,17 @@ class GeniusDevice(GeniusBase):
         except (AttributeError, LookupError, TypeError, ValueError):
             _LOGGER.exception("Failed to convert Device %s extras.", result["id"])
 
-        return self._data
+        return super().info
 
     @property
     def type(self) -> Optional[str]:
         """Return the type of the device, which can change."""
-        return self._data.get("type")
+        return self.info.get("type")
 
     @property
     def assigned_zone(self) -> Optional[object]:
         """Return the primary assigned zone, which can change."""
         try:
-            return self._hub.zone_by_name[self._data["assignedZones"][0]["name"]]
+            return self._hub.zone_by_name[self.info["assignedZones"][0]["name"]]
         except KeyError:
             return None
