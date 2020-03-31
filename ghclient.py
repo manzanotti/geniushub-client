@@ -64,12 +64,11 @@ import json
 import logging
 
 import aiohttp
-from docopt import docopt
 
 from geniushubclient import GeniusHub, GeniusTestHub
 
 DEBUG_ADDR = "172.27.0.138"
-DEBUG_PORT = 5679
+DEBUG_PORT = 5678
 
 logging.basicConfig(datefmt="%H:%M:%S", format="%(asctime)s %(levelname)s: %(message)s")
 _LOGGER = logging.getLogger(__name__)
@@ -81,8 +80,6 @@ DEBUG_NO_SCHEDULES = False  # don't print schedule data
 HUB_ID = "HUB-ID"
 ZONE_ID = "--zone"
 DEVICE_ID = "--device"
-USERNAME = "--user"
-PASSWORD = "--pass"
 MODE = "--mode"
 SECS = "--secs"
 TEMP = "--temp"
@@ -98,70 +95,76 @@ VERBOSE = "-v"
 def _parse_args():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("hub-id", help="either a Hub token, or a Hub hostname/address")
+    parser.add_argument("hub_id", help="either a Hub token, or a Hub hostname/address")
 
-    # group = parser.add_mutually_exclusive_group(required=True)  # one is required
-    # group.add_argument("-s", "--serial_port", help="poll port for packets")
-    # group.add_argument("-i", "--input_file", help="read file for packets")
-
-    # group = parser.add_group()
-    # group.add_argument(
-    #     "-u",
-    #     "--user",
-    #     help="discard all packets to/from these devices, e.g. ['32:654321']",
-    # )
-    # group.add_argument(
-    #     "-z",
-    #     ZONE_ID,
-    #     help="the identifer of a Zone (id or name)",
-    # )
-
-    # group.add_argument(
-    #     "-m",
-    #     MODE,
-    #     help="set mode to: off, timer, footprint, override",
-    # )
-
-    # group.add_argument(
-    #     "-s",
-    #     SECS,
-    #     help="set the override duration, in seconds",
-    # )
-
-    # group.add_argument(
-    #     "-t",
-    #     TEMP,
-    #     help="set the override temperature, in Celsius",
-    # )
-
-    # parser.add_argument(
-    #     "-d",
-    #     DEVICE_ID,
-    #     help="the identifer of a Device (a string)",
-    # )
-
+    parser.add_argument("zones", action="store_true", help="of the hub")
     parser.add_argument(
+        "devices", action="store_true", nargs="?", help="of the hub/zone"
+    )
+    parser.add_argument(
+        "info", action="store_true", nargs="?", help="of the hub/zone/device"
+    )
+    parser.add_argument(
+        "issues", action="store_true", nargs="?", help="of the hub/zone/device"
+    )
+    parser.add_argument("reboot", action="store_true", nargs="?", help="reboot the hub")
+
+    group = parser.add_argument_group("user credentials (iff using v3 API)")
+    group.add_argument("-u", "--username", type=str)
+    group.add_argument("-p", "--password", type=str)
+
+    parser.add_argument("-z", "--zone", help="a Zone (id or name)")
+    parser.add_argument("-d", "--device", help="a Device (a string)")
+
+    group = parser.add_argument_group("used with a zone")
+    group.add_argument(
+        "-m", MODE, help="set mode to: off, timer, footprint, override",
+    )
+
+    group.add_argument(
+        "-s", SECS, help="set the override duration, in seconds",
+    )
+
+    group.add_argument(
+        "-t", TEMP, help="set the override temperature, in Celsius",
+    )
+
+    group = parser.add_argument_group("various options")
+    group.add_argument(
         "-v",
         action="count",
         default=1,
         help="increasing verbosity, -vvv gives raw JSON",
     )
 
-    parser.add_argument(
-        "-z",
+    group.add_argument(
+        "-x",
         "--debug_mode",
         action="count",
         default=0,
         help="0=none, 1=enable_attach, 2=wait_for_attach",
     )
 
-    return parser.parse_args()
+    args = parser.parse_args()
+
+    if bool(args.username) ^ bool(args.password):
+        parser.error("--username and --password must be given together, or not at all")
+        return None
+
+    if args.zone:
+        pass
+
+    elif args.device:
+        pass
+
+    else:
+        pass
+
+    return args
 
 
 async def main(loop):
     """Return the JSON as requested."""
-
-    # args = docopt(__doc__)
 
     args = _parse_args()
 
@@ -192,9 +195,9 @@ async def main(loop):
         hub = GeniusTestHub(zones_json=z, device_json=d, session=session, debug=True)
     else:
         hub = GeniusHub(
-            hub_id=args[HUB_ID],
-            username=args[USERNAME],
-            password=args[PASSWORD],
+            hub_id=args.hub_id,
+            username=args.username,
+            password=args.password,
             session=session,
             debug=False,
         )
