@@ -20,18 +20,8 @@ _LOGGER = logging.getLogger(__name__)
 
 # Debugging flags - all False for production releases
 DEBUG_LOGGING = False
-DEBUG_MODE = False
-
 if DEBUG_LOGGING is True:
     _LOGGER.setLevel(logging.DEBUG)
-
-if DEBUG_MODE is True:
-    import ptvsd
-
-    _LOGGER.warning("Waiting for debugger to attach...")
-    ptvsd.enable_attach(address=("127.0.0.1", 5678), redirect_output=True)
-    ptvsd.wait_for_attach()
-    _LOGGER.debug("Debugger is attached!")
 
 
 class GeniusHub:

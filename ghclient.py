@@ -77,20 +77,6 @@ _LOGGER = logging.getLogger(__name__)
 FILE_MODE = False  # use test files instead of a real Hub
 DEBUG_NO_SCHEDULES = False  # don't print schedule data
 
-HUB_ID = "HUB-ID"
-ZONE_ID = "--zone"
-DEVICE_ID = "--device"
-MODE = "--mode"
-SECS = "--secs"
-TEMP = "--temp"
-
-DEVICES = "devices"
-ISSUES = "issues"
-REBOOT = "reboot"
-ZONES = "zones"
-
-VERBOSE = "-v"
-
 
 def _parse_args():
     parser = argparse.ArgumentParser(add_help=False)
@@ -130,9 +116,9 @@ def _parse_args():
     parser.add_argument("-d", "--device_id", help="a Device (a string)")
 
     group = parser.add_argument_group("used with a zone")
-    group.add_argument("-m", MODE, help="set mode to: off, timer, footprint, override")
-    group.add_argument("-s", SECS, help="set the override duration, in seconds")
-    group.add_argument("-t", TEMP, help="set the override temperature, in Celsius")
+    group.add_argument("-m", "--mode", help="set to: off, timer, footprint, override")
+    group.add_argument("-s", "--secs", help="set override duration, in seconds")
+    group.add_argument("-t", "--temp", help="set override temperature, in Celsius")
 
     try:
         args_cmd = parser.parse_args(args[1])
