@@ -207,9 +207,7 @@ workflows:
 
       - check_build:
           requires:
-            - test_zones
-            - test_devices
-            - test_issues
+            - make_testbed
           pre-steps:
             - *restore_cache
             - *attach_workspace
