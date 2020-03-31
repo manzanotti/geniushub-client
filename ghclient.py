@@ -157,10 +157,13 @@ async def main(loop):
         print(f"Debugging is enabled, listening on: {DEBUG_ADDR}:{DEBUG_PORT}.")
         ptvsd.enable_attach(address=(DEBUG_ADDR, DEBUG_PORT))
 
-        if args.debug_mode > 1:
-            print("Waiting for debugger to attach...")
-            ptvsd.wait_for_attach()
-            print("Debugger is attached!")
+    if args.debug_mode > 1:
+        print("Waiting for debugger to attach...")
+        ptvsd.wait_for_attach()
+        print("Debugger is attached!")
+
+    if args.debug_mode > 2:
+        breakpoint()
 
     session = aiohttp.ClientSession()  # test with/without
 
@@ -180,7 +183,7 @@ async def main(loop):
             username=args.username,
             password=args.password,
             session=session,
-            debug=False,
+            debug=args.debug_mode,
         )
 
     hub.verbosity = args.verbosity
