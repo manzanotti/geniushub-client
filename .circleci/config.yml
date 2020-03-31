@@ -207,14 +207,16 @@ workflows:
 
       - check_build:
           requires:
-            - make_testbed
+            - test_zones
+            - test_devices
+            - test_issues
           pre-steps:
             - *restore_cache
             - *attach_workspace
 
       - test_zones:
           requires:
-            - check_build
+            - make_testbed
           pre-steps:
             - *restore_cache
             - *attach_workspace
@@ -224,7 +226,7 @@ workflows:
 
       - test_devices:
           requires:
-            - check_build
+            - make_testbed
           pre-steps:
             - *restore_cache
             - *attach_workspace
@@ -234,7 +236,7 @@ workflows:
 
       - test_issues:
           requires:
-            - check_build
+            - make_testbed
           pre-steps:
             - *restore_cache
             - *attach_workspace

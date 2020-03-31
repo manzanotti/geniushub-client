@@ -1,3 +1,5 @@
+# noqa: E501
+
 """
 Usage: ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] [(zones | devices | info | issues)] [-v | -vv | -vvv ]
        ghclient.py HUB-ID [(--user=USERNAME --pass=PASSWORD)] reboot

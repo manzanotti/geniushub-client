@@ -49,13 +49,14 @@ class GeniusHub:
             )
 
         self.genius_service = GeniusService(hub_id, username, password, session)
+        self.request = self.genius_service.request
         self.api_version = 3 if username or password else 1
 
         self._verbose = 1
 
         self._sense_mode = None
         self._zones = self._devices = self._issues = self._version = None
-        self._test_json = {}  # used with GeniusTestHub
+        self._test_json = {}  # v3_zones(raw_json) used by GeniusTestHub
 
         self.zone_objs = []
         self.device_objs = []

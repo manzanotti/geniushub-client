@@ -31,7 +31,7 @@ class GeniusService:
 
     async def request(self, method, url, data=None):
         """Perform a request."""
-        _LOGGER.debug("_request(method=%s, url=%s, data=%s)", method, url, data)
+        _LOGGER.debug("request(method=%s, url=%s, data=%s)", method, url, data)
 
         http_method = {
             "GET": self._session.get,
@@ -52,9 +52,7 @@ class GeniusService:
                 response = await resp.json(content_type=None)
 
         except aiohttp.ServerDisconnectedError as exc:
-            _LOGGER.debug(
-                "_request(): ServerDisconnectedError (msg=%s), retrying.", exc
-            )
+            _LOGGER.debug("request(): ServerDisconnectedError (msg=%s), retrying.", exc)
             async with http_method(
                 self._url_base + url,
                 auth=self._auth,
@@ -66,7 +64,7 @@ class GeniusService:
                 response = await resp.json(content_type=None)
 
         if method != "GET":
-            _LOGGER.debug("_request(): response=%s", response)
+            _LOGGER.debug("request(): response=%s", response)
         return response
 
     @property
