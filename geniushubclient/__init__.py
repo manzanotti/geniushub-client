@@ -31,6 +31,7 @@ class GeniusHubBase:
                 "Debug mode is not explicitly enabled (but may be enabled elsewhere)."
             )
 
+        self.genius_service = self.request = None
         self.api_version = 3 if username else 1
         self._sense_mode = None
         self._verbose = 1
