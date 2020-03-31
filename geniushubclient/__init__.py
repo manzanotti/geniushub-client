@@ -137,7 +137,7 @@ class GeniusHubBase:
         def populate_objects(obj_list, obj_key, obj_by_id, GeniusObject) -> List:
             """Create the current list of GeniusHub objects (zones/devices)."""
             entities = []  # list of converted zones/devices
-            key = "id" if self.genius_service.use_v1_api else obj_key
+            key = "id" if self.api_version == 1 else obj_key
             for raw_json in obj_list:
                 try:  # does the hub already know about this zone/device?
                     entity = obj_by_id[raw_json[key]]
@@ -171,7 +171,7 @@ class GeniusHubBase:
 
             return {"description": description, "level": level}
 
-        if self.genius_service.use_v1_api:
+        if self.api_version == 1:
             self._sense_mode = None  # currently, no way to tell
         else:  # self.api_version == 3:
             manager = [z for z in self._zones if z["iID"] == 0][0]
@@ -193,7 +193,7 @@ class GeniusHubBase:
             zone.device_by_id = {d.id: d for d in zone.device_objs}
 
         old_issues = self.issues
-        if self.genius_service.use_v1_api:
+        if self.api_version == 1:
             self.issues = self._issues
             self.version = self._version
         else:  # self.api_version == 3:
