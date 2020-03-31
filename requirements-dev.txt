@@ -1,5 +1,4 @@
 aiohttp==3.6.2
-docopt==0.6.2
 
 black==19.10b0
 flake8==3.7.9
