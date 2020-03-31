@@ -55,7 +55,7 @@ Examples:
 
 """
 
-import ast
+# import ast
 import asyncio
 import json
 import logging
@@ -133,7 +133,7 @@ async def main(loop):
         except KeyError:
             raise KeyError(f"Device '{args[DEVICE_ID]}' does not exist (by addr).")
 
-        print(device.info)  # v0 = device, v1 = device.data, v3 = device._raw
+        print(device.data)  # v0 = device, v1 = device.data, v3 = device._raw
 
     elif args[ZONE_ID]:
         try:  # was the zone_id given as a str, or an int?
@@ -159,10 +159,10 @@ async def main(loop):
             print(json.dumps(zone.issues))
         else:  # as per args[INFO], v0 = zone, v1 = zone.data, v3 = zone._raw
             if DEBUG_NO_SCHEDULES:
-                _info = {k: v for k, v in zone.info.items() if k != "schedule"}
+                _info = {k: v for k, v in zone.data.items() if k != "schedule"}
                 print(json.dumps(_info))
             else:
-                print(json.dumps(zone.info))
+                print(json.dumps(zone.data))
 
     else:  # as per: args[HUB_ID]
         if args[REBOOT]:  # pylint: disable=no-else-raise
