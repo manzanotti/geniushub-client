@@ -19,12 +19,10 @@ logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.INFO)
 _LOGGER = logging.getLogger(__name__)
 
 
-class GeniusHub:
+class GeniusHubBase:
     """The class for a Genius Hub."""
 
-    def __init__(
-        self, hub_id, username=None, password=None, session=None, debug=False
-    ) -> None:
+    def __init__(self, hub_id, username=None, debug=False) -> None:
         if debug is True:
             _LOGGER.setLevel(logging.DEBUG)
             _LOGGER.debug("Debug mode is explicitly enabled.")
@@ -33,13 +31,10 @@ class GeniusHub:
                 "Debug mode is not explicitly enabled (but may be enabled elsewhere)."
             )
 
-        self.genius_service = GeniusService(hub_id, username, password, session)
-        self.request = self.genius_service.request
         self.api_version = 3 if username else 1
-
+        self._sense_mode = None
         self._verbose = 1
 
-        self._sense_mode = None
         self._zones = self._devices = self._issues = self._version = None
         self._test_json = {}  # v3_zones(raw_json) used by GeniusTestHub
 
@@ -135,7 +130,7 @@ class GeniusHub:
         key = "addr" if self.verbosity == 3 else "id"
         return natural_sort([d.data for d in self.device_objs], key)
 
-    def _update(self):
+    def update(self):
         """Update the Hub with its latest state data."""
 
         def populate_objects(obj_list, obj_key, obj_by_id, GeniusObject) -> List:
@@ -211,7 +206,24 @@ class GeniusHub:
         for issue in [i for i in self.issues if i not in old_issues]:
             _LOGGER.warning("An Issue has been found: %s", issue)
         for issue in [i for i in old_issues if i not in self.issues]:
-            _LOGGER.data("An Issue is now resolved: %s", issue)
+            _LOGGER.info("An Issue is now resolved: %s", issue)
+
+    async def reboot(self) -> None:
+        """Reboot the hub."""
+        # x.post("/v3/system/reboot", { username: e, password: t, json:{} })
+        raise NotImplementedError
+
+
+class GeniusHub(GeniusHubBase):
+    """The class for a Genius Hub."""
+
+    def __init__(
+        self, hub_id, username=None, password=None, session=None, debug=False
+    ) -> None:
+        super().__init__(hub_id, username=username, debug=debug)
+
+        self.genius_service = GeniusService(hub_id, username, password, session)
+        self.request = self.genius_service.request
 
     async def update(self) -> None:
         """Update the Hub with its latest state data."""
@@ -239,20 +251,15 @@ class GeniusHub:
 
             self.uid = auth["data"]["UID"]
 
-        self._update()  # now parse all the JSON
-
-    async def reboot(self) -> None:
-        """Reboot the hub."""
-        # x.post("/v3/system/reboot", { username: e, password: t, json:{} })
-        raise NotImplementedError
+        super().update()  # now parse all the JSON
 
 
-class GeniusTestHub(GeniusHub):
+class GeniusTestHub(GeniusHubBase):
     """The test class for a Genius Hub - uses a test file."""
 
     def __init__(self, zones_json, device_json, debug=None) -> None:
         super().__init__("test_hub", username="test", debug=debug)
-        _LOGGER.data("Using GeniusTestHub()")
+        _LOGGER.info("Using GeniusTestHub()")
 
         self._test_json["zones"] = zones_json
         self._test_json["devices"] = device_json
@@ -264,4 +271,4 @@ class GeniusTestHub(GeniusHub):
         self._issues = self._issues_via_v3_zones({"data": self._zones})
         self._version = self._version_via_v3_zones({"data": self._zones})  # a hack
 
-        self._update()  # now parse all the JSON
+        super().update()  # now parse all the JSON
