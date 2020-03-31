@@ -58,6 +58,7 @@ Examples:
 """
 
 # import ast
+import argparse
 import asyncio
 import json
 import logging
@@ -66,6 +67,9 @@ import aiohttp
 from docopt import docopt
 
 from geniushubclient import GeniusHub, GeniusTestHub
+
+DEBUG_ADDR = "172.27.0.138"
+DEBUG_PORT = 5679
 
 logging.basicConfig(datefmt="%H:%M:%S", format="%(asctime)s %(levelname)s: %(message)s")
 _LOGGER = logging.getLogger(__name__)
@@ -91,11 +95,88 @@ ZONES = "zones"
 VERBOSE = "-v"
 
 
+def _parse_args():
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("hub-id", help="either a Hub token, or a Hub hostname/address")
+
+    # group = parser.add_mutually_exclusive_group(required=True)  # one is required
+    # group.add_argument("-s", "--serial_port", help="poll port for packets")
+    # group.add_argument("-i", "--input_file", help="read file for packets")
+
+    # group = parser.add_group()
+    # group.add_argument(
+    #     "-u",
+    #     "--user",
+    #     help="discard all packets to/from these devices, e.g. ['32:654321']",
+    # )
+    # group.add_argument(
+    #     "-z",
+    #     ZONE_ID,
+    #     help="the identifer of a Zone (id or name)",
+    # )
+
+    # group.add_argument(
+    #     "-m",
+    #     MODE,
+    #     help="set mode to: off, timer, footprint, override",
+    # )
+
+    # group.add_argument(
+    #     "-s",
+    #     SECS,
+    #     help="set the override duration, in seconds",
+    # )
+
+    # group.add_argument(
+    #     "-t",
+    #     TEMP,
+    #     help="set the override temperature, in Celsius",
+    # )
+
+    # parser.add_argument(
+    #     "-d",
+    #     DEVICE_ID,
+    #     help="the identifer of a Device (a string)",
+    # )
+
+    parser.add_argument(
+        "-v",
+        action="count",
+        default=1,
+        help="increasing verbosity, -vvv gives raw JSON",
+    )
+
+    parser.add_argument(
+        "-z",
+        "--debug_mode",
+        action="count",
+        default=0,
+        help="0=none, 1=enable_attach, 2=wait_for_attach",
+    )
+
+    return parser.parse_args()
+
+
 async def main(loop):
     """Return the JSON as requested."""
 
-    args = docopt(__doc__)
-    # print(args)
+    # args = docopt(__doc__)
+
+    args = _parse_args()
+
+    if args.debug_mode > 0:
+        import ptvsd  # pylint: disable=import-error
+
+        print(f"Debugging is enabled, listening on: {DEBUG_ADDR}:{DEBUG_PORT}.")
+        ptvsd.enable_attach(address=(DEBUG_ADDR, DEBUG_PORT))
+
+        if args.debug_mode > 1:
+            print("Waiting for debugger to attach...")
+            ptvsd.wait_for_attach()
+            print("Debugger is attached!")
+
+    print(args)
 
     session = aiohttp.ClientSession()  # test with/without
 
