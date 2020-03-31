@@ -165,8 +165,6 @@ async def main(loop):
     if args.debug_mode > 2:
         breakpoint()
 
-    session = None
-
     # Option of providing test data (as list of Dicts), or leave both as None
     if FILE_MODE:
         with open("raw_zones.json", mode="r") as fh:
@@ -176,6 +174,7 @@ async def main(loop):
             d = json.loads(fh.read())  # file from: ghclient zones -vvv
             # d = ast.literal_eval(fh.read())  # file from HA logs
 
+        session = None
         hub = GeniusTestHub(zones_json=z, device_json=d, debug=True)
     else:
         session = aiohttp.ClientSession()
