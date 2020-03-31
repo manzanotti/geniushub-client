@@ -44,14 +44,14 @@ class GeniusZone(GeniusBase):
         self.device_objs = []
         self.device_by_id = {}
 
-        self._convert(raw_json)
-
-    def _convert(self, raw_json) -> None:
-        """Convert a zone's v3 JSON to the v1 schema."""
         self._raw = raw_json
-        if self._hub.api_version == 1:
-            self.data = raw_json
-            return
+        self._data = raw_json if self._hub.api_version == 1 else {}
+
+    @property
+    def data(self) -> Dict:
+        """Convert a zone's v3 JSON to the v1 schema."""
+        if self._data:
+            return self._data
 
         def is_occupied(node) -> bool:  # from web app v5.2.4
             """Occupancy vs Activity (code from app.js, search for 'occupancyIcon').
@@ -140,7 +140,8 @@ class GeniusZone(GeniusBase):
 
             return root
 
-        self.data = result = {"id": raw_json["iID"], "name": raw_json["strName"]}
+        self._data = result = {"id": self._raw["iID"], "name": self._raw["strName"]}
+        raw_json = self._raw  # TODO: remove raw_json, use self._raw
 
         try:  # convert zone (v1 attributes)
             result["type"] = ITYPE_TO_TYPE[raw_json["iType"]]
@@ -209,7 +210,7 @@ class GeniusZone(GeniusBase):
                 "Failed to convert Zone %s footprint schedule.", result["id"]
             )
 
-        try:  # covert extras (v3 attributes)
+        try:  # convert extras (v3 attributes)
             keys = ["bIsActive", "bOutRequestHeat"]
             result["_state"] = {k: raw_json[k] for k in keys}
 
@@ -219,6 +220,8 @@ class GeniusZone(GeniusBase):
 
         except (AttributeError, LookupError, TypeError, ValueError):
             _LOGGER.exception("Failed to convert Zone %s extras.", result["id"])
+
+        return self._data
 
     @property
     def _has_pir(self) -> bool:
