@@ -121,23 +121,8 @@ def _parse_args():
     try:
         args_cmd = parser.parse_args(args[1])
     except IndexError:
-        print(f"Invalid parameters: {args[1]}")
+        print(f"Invalid parameters, namespace is: {args[1]}")
         return
-
-    # if args_cmd.command == "":
-    #     pass
-    # elif args_cmd.command == "zones":
-    #     pass
-    # elif args_cmd.command == "devices":
-    #     pass
-    # elif args_cmd.command == "issues":
-    #     pass
-    # elif args_cmd.command == "info":
-    #     pass
-    # elif args_cmd.command == "reboot":
-    #     pass
-    # else:
-    #     pass
 
     return argparse.Namespace(**vars(args[0]), **vars(args_cmd))
 
@@ -146,8 +131,6 @@ async def main(loop):
     """Return the JSON as requested."""
 
     args = _parse_args()
-    # print("XXX", args)
-
     if args is None:
         return
 
