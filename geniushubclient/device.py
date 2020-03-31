@@ -26,7 +26,7 @@ class GeniusBase:
         )
 
     @property
-    def info(self) -> Dict:
+    def data(self) -> Dict:
         """Return all information for the object."""
         if self._hub.verbosity == 3:
             return self._raw
@@ -52,12 +52,13 @@ class GeniusDevice(GeniusBase):
 
         self._data = raw_json if self._hub.api_version == 1 else {}
         self._raw = raw_json
+        _ = self.data
 
     @property
-    def info(self) -> Dict:
+    def data(self) -> Dict:
         """Convert a device's v3 JSON to the v1 schema."""
         if self._data:
-            return super().info
+            return super().data
 
         self._data = result = {"id": self._raw["addr"]}
         raw_json = self._raw  # TODO: remove raw_json, use self._raw
@@ -106,17 +107,17 @@ class GeniusDevice(GeniusBase):
         except (AttributeError, LookupError, TypeError, ValueError):
             _LOGGER.exception("Failed to convert Device %s extras.", result["id"])
 
-        return super().info
+        return super().data
 
     @property
     def type(self) -> Optional[str]:
         """Return the type of the device, which can change."""
-        return self.info.get("type")
+        return self.data.get("type")
 
     @property
     def assigned_zone(self) -> Optional[object]:
         """Return the primary assigned zone, which can change."""
         try:
-            return self._hub.zone_by_name[self.info["assignedZones"][0]["name"]]
+            return self._hub.zone_by_name[self.data["assignedZones"][0]["name"]]
         except KeyError:
             return None

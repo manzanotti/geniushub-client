@@ -137,7 +137,7 @@ class GeniusHub:
           v1/zones:         id, name, type, mode, temperature, setpoint,
           occupied, override, schedule
         """
-        return [z.info for z in self.zone_objs]
+        return [z.data for z in self.zone_objs]
 
     @property
     def devices(self) -> List:
@@ -147,7 +147,7 @@ class GeniusHub:
           v1/devices:         id, type, assignedZones, state
         """
         key = "addr" if self.verbosity == 3 else "id"
-        return natural_sort([d.info for d in self.device_objs], key)
+        return natural_sort([d.data for d in self.device_objs], key)
 
     def _update(self):
         """Update the Hub with its latest state data."""
@@ -176,7 +176,7 @@ class GeniusHub:
             if "{device_type}" in description:
                 # don't use nodeHash, it won't pick up (e.g. DCR - Channel 1)
                 # vice_type = DEVICE_HASH_TO_TYPE[raw_json["data"]["nodeHash"]]
-                device_type = self.device_by_id[raw_json["data"]["nodeID"]].info["type"]
+                device_type = self.device_by_id[raw_json["data"]["nodeID"]].data["type"]
 
             if "{zone_name}" in description and "{device_type}" in description:
                 description = description.format(
@@ -208,7 +208,7 @@ class GeniusHub:
 
         for zone in zones:  # TODO: this need checking
             zone.device_objs = [
-                d for d in devices if d.info["assignedZones"][0]["name"] == zone.name
+                d for d in devices if d.data["assignedZones"][0]["name"] == zone.name
             ]
             zone.device_by_id = {d.id: d for d in zone.device_objs}
 
@@ -227,7 +227,7 @@ class GeniusHub:
         for issue in [i for i in self.issues if i not in old_issues]:
             _LOGGER.warning("An Issue has been found: %s", issue)
         for issue in [i for i in old_issues if i not in self.issues]:
-            _LOGGER.info("An Issue is now resolved: %s", issue)
+            _LOGGER.data("An Issue is now resolved: %s", issue)
 
     async def update(self) -> None:
         """Update the Hub with its latest state data."""
@@ -270,7 +270,7 @@ class GeniusTestHub(GeniusHub):
         super().__init__(
             "test_hub", username="test", password="xx", session=session, debug=debug
         )
-        _LOGGER.info("Using GeniusTestHub()")
+        _LOGGER.data("Using GeniusTestHub()")
 
         self._test_json["zones"] = zones_json
         self._test_json["devices"] = device_json
