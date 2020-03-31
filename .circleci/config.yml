@@ -143,7 +143,7 @@ commands:
 jobs:
   make_testbed:
     <<: *testbed_environment
-    steps: 
+    steps:
       - checkout  # needed for: 'pip install -r requirements-dev.txt'
       - run:
           name: Install Requirements
@@ -185,9 +185,9 @@ jobs:
       - get_v1_app:  {test_type: "zones"}
       - diff_files:  {test_type: "zones", api_ver: "v1"}
 
-  check_build: 
+  check_build:
     <<: *testbed_environment
-    steps: 
+    steps:
       - run:
           name: Check formatting (black)
           command: |
@@ -201,7 +201,7 @@ workflows:
   version: 2.1
 
 
-  build: 
+  build-and-test:
     jobs:
       - make_testbed
 
@@ -212,27 +212,9 @@ workflows:
             - *restore_cache
             - *attach_workspace
 
-  # unit_tests:
-  #   jobs:
-  #     - make_testbed
-
-  #     - test_one:
-  #         requires:
-  #           - make_testbed
-  #         pre-steps:
-  #           - *restore_cache
-  #           - *attach_workspace
-  #         post-steps:
-  #           - *persist_to_workspace
-  #           - *store_artifacts
-
-  system_tests:
-    jobs:
-      - make_testbed
-
       - test_zones:
           requires:
-            - make_testbed
+            - check_build
           pre-steps:
             - *restore_cache
             - *attach_workspace
@@ -242,9 +224,9 @@ workflows:
 
       - test_devices:
           requires:
-            - make_testbed
+            - check_build
           pre-steps:
-            - *restore_cache 
+            - *restore_cache
             - *attach_workspace
           post-steps:
             - *persist_to_workspace
@@ -252,9 +234,9 @@ workflows:
 
       - test_issues:
           requires:
-            - make_testbed
+            - check_build
           pre-steps:
-            - *restore_cache 
+            - *restore_cache
             - *attach_workspace
           post-steps:
             - *persist_to_workspace
