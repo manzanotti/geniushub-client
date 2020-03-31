@@ -35,7 +35,7 @@ class GeniusHub:
 
         self.genius_service = GeniusService(hub_id, username, password, session)
         self.request = self.genius_service.request
-        self.api_version = 3 if username or password else 1
+        self.api_version = 3 if username else 1
 
         self._verbose = 1
 
@@ -209,7 +209,7 @@ class GeniusHub:
             }
 
         for issue in [i for i in self.issues if i not in old_issues]:
-            _LOGGER.debug("An Issue has been found: %s", issue)
+            _LOGGER.warning("An Issue has been found: %s", issue)
         for issue in [i for i in old_issues if i not in self.issues]:
             _LOGGER.data("An Issue is now resolved: %s", issue)
 
@@ -250,10 +250,8 @@ class GeniusHub:
 class GeniusTestHub(GeniusHub):
     """The test class for a Genius Hub - uses a test file."""
 
-    def __init__(self, zones_json, device_json, session=None, debug=None) -> None:
-        super().__init__(
-            "test_hub", username="test", password="xx", session=session, debug=debug
-        )
+    def __init__(self, zones_json, device_json, debug=None) -> None:
+        super().__init__("test_hub", username="test", debug=debug)
         _LOGGER.data("Using GeniusTestHub()")
 
         self._test_json["zones"] = zones_json
