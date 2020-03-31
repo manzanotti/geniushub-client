@@ -234,7 +234,7 @@ class GeniusZone(GeniusBase):
     @property
     def name(self) -> str:
         """Return the name of the zone, which can change."""
-        return self.data["name"]
+        return self._data["name"]
 
     @property
     def devices(self) -> List:
