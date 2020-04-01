@@ -144,7 +144,8 @@ class GeniusHubBase:
                 except KeyError:  # this is a new zone/device
                     entity = GeniusObject(raw_json[key], raw_json, self)
                 else:
-                    entity._convert(raw_json)
+                    entity._data = None
+                    entity._raw = raw_json
                 entities.append(entity)
             return entities
 
@@ -177,6 +178,7 @@ class GeniusHubBase:
             manager = [z for z in self._zones if z["iID"] == 0][0]
             self._sense_mode = bool(manager["lOptions"] & ZONE_MODE.Other)
 
+        # TODO: this looks dodgy: replacing rather than updating entitys
         zones = self.zone_objs = populate_objects(
             self._zones, "iID", self.zone_by_id, GeniusZone
         )

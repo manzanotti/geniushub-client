@@ -28,7 +28,7 @@ class GeniusBase:
 
     @property
     def info(self) -> Dict:
-        """Return all information for the object."""
+        """Return information of the GH entity, detail according to verbosity."""
         if self._hub.verbosity == 3:
             return self._raw
 
@@ -59,10 +59,9 @@ class GeniusDevice(GeniusBase):
             return self._data
 
         self._data = result = {"id": self._raw["addr"]}
-        raw_json = self._raw  # TODO: remove raw_json, use self._raw
 
         try:
-            node = raw_json["childValues"]
+            node = self._raw["childValues"]
 
             if "hash" in node:
                 dev_type = DEVICE_HASH_TO_TYPE.get(node["hash"]["val"])
@@ -95,7 +94,7 @@ class GeniusDevice(GeniusBase):
             if "WakeUp_Interval" in node:
                 _state["wakeupInterval"] = node["WakeUp_Interval"]["val"]
 
-            node = raw_json["childNodes"]["_cfg"]["childValues"]
+            node = self._raw["childNodes"]["_cfg"]["childValues"]
 
             result["_config"] = _config = {}
             for val in ["max_sp", "min_sp", "sku"]:
