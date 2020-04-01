@@ -4,6 +4,8 @@
     see: https://my.geniushub.co.uk/docs
     """
 
+__version__ = "0.7.0.b2"
+
 import asyncio
 import json
 import logging

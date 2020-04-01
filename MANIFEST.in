@@ -1,0 +1,8 @@
+include *.py
+include requirements.txt
+include LICENSE
+include README.md
+
+prune .circleci
+exclude *.txt
+exclude .flake8 .pre-commit-config.yaml

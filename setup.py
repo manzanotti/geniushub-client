@@ -4,7 +4,13 @@ import sys
 from setuptools import find_packages, setup
 from setuptools.command.install import install
 
-VERSION = "0.6.30p1"
+
+with open("geniushubclient/__init__.py") as fp:
+    for line in fp:
+        if line.strip().startswith("__version__"):
+            VERSION = eval(line.split("=")[-1])
+            break
+
 
 with open("README.md", "r") as fh:
     LONG_DESCRIPTION = fh.read()
@@ -25,7 +31,7 @@ setup(
     name="geniushub-client",
     version=VERSION,
     packages=find_packages(),
-    install_requires=["aiohttp=>3.6.1"],
+    install_requires=["aiohttp"],
     # metadata to display on PyPI
     author="David Bonnes",
     author_email="zxdavb@gmail.com",
@@ -38,6 +44,7 @@ setup(
     license="XXX",
     classifiers=[
         "Development Status :: 4 - Beta",
+        "Operating System :: OS Independent",
         "Programming Language :: Python :: 3.7",
         "Topic :: Home Automation",
     ],
