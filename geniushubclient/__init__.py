@@ -4,7 +4,7 @@
     see: https://my.geniushub.co.uk/docs
     """
 
-__version__ = "0.7.0.b3"
+__version__ = "0.7.0.b4"
 
 import asyncio
 import json
