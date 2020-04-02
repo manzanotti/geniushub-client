@@ -2,6 +2,7 @@
 
 import logging
 from typing import Dict, Optional  # Any, List, Set, Tuple
+from abc import abstractmethod
 
 import json
 
@@ -41,6 +42,12 @@ class GeniusBase:
             keys += self._attrs["detail_keys"]
 
         return {k: v for k, v in self.data.items() if k in keys}
+
+    @property
+    @abstractmethod
+    def data(self) -> Dict:
+        """Return the data describing the entity."""
+        pass
 
 
 class GeniusDevice(GeniusBase):
