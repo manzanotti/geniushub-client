@@ -7,7 +7,7 @@ This library can use either the **_offical_ v1 API** with a [hub token](https://
 
 If you use the v3 API, you can interrogate the hub directly, rather than via Heat Genius' own servers. Note that the v3 API is undocumented, and so this functionality may break at any time. In fact, the v3 to v1 conversion if best efforts and may even be broken as is for some edge cases - it was tested with HW, on/off (i.e. smart plugs), and radiators only.
 
-It is a WIP, and is missing some functionality (e.g. schedules). In addition, there are some other limitations (see below).
+It is a WIP, and may be missing some functionality. In addition, there are some other limitations (see below).
 
 It is based upon work by [@GeoffAtHome](https://github.com/zxdavb/geniushub-client/commits?author=GeoffAtHome) - thanks!
 
