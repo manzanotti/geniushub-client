@@ -3,6 +3,7 @@
 import logging
 import re
 from typing import Dict, List  # Any, Optional, Set, Tuple
+from dataclasses import dataclass
 
 from .const import (
     ATTRS_ZONE,
@@ -33,14 +34,127 @@ def natural_sort(dict_list, dict_key) -> List[Dict]:
     return sorted(dict_list, key=alphanum_key)
 
 
+@dataclass
+class CurrentState:
+    """The current state of the zone.
+
+        Intended to be properties that can change in the lifecycle of the zone.
+    """
+
+    is_active: bool = False
+    is_requesting_heat: bool = False
+    mode: int = 0
+    mode_name: str = ""
+    temperature: float = 0.0
+    set_point: float = 0.0
+    is_occupied: bool = False
+
+
+@dataclass
+class Properties:
+    """The properties of the zone.
+
+        Intended to be the properties that are fixed for the lifecycle of the zone
+    """
+
+    type: int = 0
+    type_name: str = ""
+    has_room_sensor: bool = False
+
+
+@dataclass
+class DaySchedule:
+    """The day in a schedule. Contains a list of heating periods."""
+
+    index: int
+    name: str
+    default_setpoint: float
+    heating_periods: List
+
+
+@dataclass
+class HeatingPeriod:
+    """The heating period data."""
+
+    start: int
+    end: int
+    set_point: float
+
+
+@dataclass
+class Override:
+    """The override data for the zone."""
+
+    duration: int
+    set_point: float
+
+
+@dataclass
+class WarmUp:
+    """The warmup data for the zone."""
+
+    enabled: bool = False
+    calcs_enabled: bool = False
+    lag_time: int = 0
+    rise_rate: float = 0
+    rise_time: int = 0
+    total_time: int = 0
+
+
+@dataclass
+class Reactive:
+    """The reactive data for the zone."""
+
+    activity_level: float = 0.0
+
+
+@dataclass
+class Footprint:
+    """The footprint data for the zone."""
+
+    is_night: bool = False
+    reactive: Reactive = None
+
+
+@dataclass
+class Trigger:
+    """The trigger data for the zone."""
+
+    reactive: bool = False
+    output: int = 0
+
+
 class GeniusZone(GeniusBase):
     """The class for a Genius Zone."""
 
     def __init__(self, zone_id, raw_json, hub) -> None:
         super().__init__(zone_id, raw_json, hub, ATTRS_ZONE)
 
+        self._state = CurrentState()
+        self._properties = Properties()
+        self._footprint = Footprint()
+        self._trigger = Trigger()
+        self._timer_schedule = []
+        self._footprint_schedule = []
+        self._override = None
+        self._warmup = WarmUp()
         self.device_objs = []
         self.device_by_id = {}
+
+        if self._hub.api_version == 3:
+            self.update(raw_json)
+
+    def update(self, json):
+        """Parse the json and use it to populate the data classes."""
+        self.update_state(json)
+        self.update_properties(json)
+        self.update_timer_schedule(json)
+        self.update_footprint_schedule(json)
+        self.update_footprint(json)
+        self.update_warmup(json)
+        self.update_override(json)
+        self.update_trigger(json)
+        self.update_is_occupied(json)
 
     @property
     def data(self) -> Dict:
@@ -115,22 +229,27 @@ class GeniusZone(GeniusBase):
             root = {"weekly": {}}
             day = -1
 
-            setpoints = raw_json["objFootprint"]
-            for idx, setpoint in enumerate(setpoints["lstSP"]):
+            footprint_data = raw_json["objFootprint"]
+
+            footprint_away_setpoint = footprint_data["fFootprintAwaySP"]
+            footprint_tm_night_start = footprint_data["iFootprintTmNightStart"]
+
+            footprint_setpoints = footprint_data["lstSP"]
+            for idx, setpoint in enumerate(footprint_setpoints):
                 tm_next = setpoint["iTm"]
                 sp_next = setpoint["fSP"]
 
                 if setpoint["iDay"] > day:
                     day += 1
                     node = root["weekly"][IDAY_TO_DAY[day]] = {}
-                    node["defaultSetpoint"] = setpoints["fFootprintAwaySP"]
+                    node["defaultSetpoint"] = footprint_away_setpoint
                     node["heatingPeriods"] = []
 
-                if sp_next != setpoints["fFootprintAwaySP"]:
-                    if tm_next == setpoints["iFootprintTmNightStart"]:
+                if sp_next != footprint_away_setpoint:
+                    if tm_next == footprint_tm_night_start:
                         tm_last = 86400  # 24 * 60 * 60
                     else:
-                        tm_last = setpoints["lstSP"][idx + 1]["iTm"]
+                        tm_last = footprint_setpoints[idx + 1]["iTm"]
 
                     node["heatingPeriods"].append(
                         {"end": tm_last, "start": tm_next, "setpoint": sp_next}
@@ -147,6 +266,8 @@ class GeniusZone(GeniusBase):
                 result["type"] = ITYPE_TO_TYPE[ZONE_TYPE.ControlOnOffPID]
 
             result["mode"] = IMODE_TO_MODE[raw_json["iMode"]]
+
+            self.update_properties(raw_json)
 
             if raw_json["iType"] in [ZONE_TYPE.ControlSP, ZONE_TYPE.TPI]:
                 # some zones have a fPV without raw_json["activeTemperatureDevices"]
@@ -212,6 +333,8 @@ class GeniusZone(GeniusBase):
             keys = ["bIsActive", "bOutRequestHeat"]
             result["_state"] = {k: raw_json[k] for k in keys}
 
+            self.update_state(raw_json)
+
             if raw_json["iType"] in [ZONE_TYPE.ControlSP]:
                 key = "bInHeatEnabled"
                 result["_state"][key] = raw_json[key]
@@ -221,17 +344,256 @@ class GeniusZone(GeniusBase):
 
         return self._data
 
+    def update_state(self, json):
+        """Parse the json and use it to populate the state data class."""
+        try:
+            self._state.is_active = json["bIsActive"]
+            self._state.is_requesting_heat = json["bOutRequestHeat"]
+
+            iType = json["iType"]
+            if iType in [ZONE_TYPE.ControlSP, ZONE_TYPE.TPI]:
+                # some zones have a fPV without raw_json["activeTemperatureDevices"]
+                self._state.temperature = json["fPV"]
+                self._state.set_point = json["fSP"]
+
+            if iType == ZONE_TYPE.Manager:
+                if json["fPV"]:
+                    self._state.temperature = json["fPV"]
+
+            mode = json["iMode"]
+            self._state.mode = mode
+            self._state.mode_name = IMODE_TO_MODE[mode]
+
+        except (AttributeError, LookupError, TypeError, ValueError):
+            _LOGGER.exception("Failed to set Zone %s state.", self.id)
+
+    def update_properties(self, json):
+        """Parse the json and use it to populate the properties data class."""
+        try:
+            iType = json["iType"]
+            self._properties.type = iType
+
+            self._properties.type_name = ITYPE_TO_TYPE[iType]
+            if iType == ZONE_TYPE.TPI and json["zoneSubType"] == 0:
+                self._properties.type_name = ITYPE_TO_TYPE[ZONE_TYPE.ControlOnOffPID]
+                self._properties.type = ZONE_TYPE.ControlOnOffPID
+
+            self._properties.has_room_sensor = json["iFlagExpectedKit"] & ZONE_KIT.PIR
+
+        except (AttributeError, LookupError, TypeError, ValueError):
+            _LOGGER.exception("Failed to set Zone %s properties.", self.id)
+
+    def update_footprint(self, json):
+        """Parse the json and use it to populate the footprint data class."""
+        try:
+            footprint_json = json["objFootprint"]
+            self._footprint.is_night = footprint_json["bIsNight"]
+
+            reactive_json = footprint_json["objReactive"]
+            reactive = Reactive(reactive_json["fActivityLevel"])
+            self._footprint.reactive = reactive
+
+        except (AttributeError, LookupError, TypeError, ValueError):
+            _LOGGER.exception("Failed to set Zone %s footprint.", self.id)
+
+    def update_trigger(self, json):
+        """Parse the json and use it to populate the trigger data class."""
+        try:
+            trigger_json = json["trigger"]
+            self._trigger.reactive = trigger_json["reactive"]
+            self._trigger.output = trigger_json["output"]
+
+        except (AttributeError, LookupError, TypeError, ValueError):
+            _LOGGER.exception("Failed to set Zone %s trigger.", self.id)
+
+    def update_is_occupied(self, json):
+        """Parse the json and use it to populate is_occupied on the state data class."""
+        try:
+            if not self._properties.has_room_sensor:
+                self._state.is_occupied = False
+                return
+
+            if self._footprint.is_night:
+                self._state.is_occupied = False
+                return
+
+            if not self._trigger.reactive | self._trigger.output:
+                self._state.is_occupied = False
+                return
+
+            self._state.is_occupied = self._footprint.reactive.activity_level > 0.0
+
+        except (AttributeError, LookupError, TypeError, ValueError):
+            _LOGGER.exception("Failed to set Zone %s is_occupied.", self.id)
+
+    def update_timer_schedule(self, json):
+        """Parse the json and use it to populate the timer_schedule data class."""
+        try:
+            dayIndex = -1
+
+            setpoints = json["objTimer"]
+            default_set_point = json["fSP"]
+            number_of_set_points = len(setpoints)
+
+            for idx, setpoint in enumerate(setpoints):
+                start_time = setpoint["iTm"]
+                temperature = setpoint["fSP"]
+                if json["iType"] == ZONE_TYPE.OnOffTimer:
+                    temperature = bool(temperature)
+
+                if setpoint["iDay"] > dayIndex:
+                    dayIndex += 1
+                    day = DaySchedule(
+                        dayIndex, IDAY_TO_DAY[dayIndex], default_set_point, []
+                    )
+                    self._timer_schedule.append(day)
+
+                # Only create a heating period if the temperature isn't at the default set point
+                # for the room.
+                if temperature != day.default_setpoint:
+                    # reactive = self._hub._sense_mode & bool(setpoint.get("bReactive"))
+                    end_time = 86400  # default to the end of the day (in seconds)
+
+                    # Unless the next heating period has a value
+                    if (
+                        number_of_set_points != idx + 1
+                        and setpoints[idx + 1]["iTm"] != -1  # noqa: W503
+                    ):
+                        end_time = setpoints[idx + 1]["iTm"]
+
+                    day.heating_periods.append(
+                        HeatingPeriod(start_time, end_time, temperature)
+                    )
+                    self._timer_schedule[dayIndex] = day
+
+        except (AttributeError, LookupError, TypeError, ValueError):
+            _LOGGER.exception("Failed to set Zone %s timer schedule.", self.id)
+
+    def update_footprint_schedule(self, json):
+        """Parse the json and use it to populate the footprint_schedule data class."""
+        try:
+            dayIndex = -1
+
+            footprint_data = json["objFootprint"]
+
+            default_set_point = footprint_data["fFootprintAwaySP"]
+            footprint_tm_night_start = footprint_data["iFootprintTmNightStart"]
+
+            setpoints = footprint_data["lstSP"]
+
+            for idx, setpoint in enumerate(setpoints):
+                start_time = setpoint["iTm"]
+                temperature = setpoint["fSP"]
+
+                if setpoint["iDay"] > dayIndex:
+                    dayIndex += 1
+                    day = DaySchedule(
+                        dayIndex, IDAY_TO_DAY[dayIndex], default_set_point, []
+                    )
+                    self._footprint_schedule.append(day)
+
+                # Only create a heating period if the temperature isn't at the default set point
+                # for the room.
+                if temperature != day.default_setpoint:
+                    # reactive = self._hub._sense_mode & bool(setpoint.get("bReactive"))
+                    end_time = 86400  # default to the end of the day (in seconds)
+
+                    # Unless the next start time doesn't equal the default start of night time
+                    if start_time != footprint_tm_night_start:
+                        end_time = setpoints[idx + 1]["iTm"]
+
+                    day.heating_periods.append(
+                        HeatingPeriod(start_time, end_time, temperature)
+                    )
+                    self._footprint_schedule[dayIndex] = day
+
+        except (AttributeError, LookupError, TypeError, ValueError):
+            _LOGGER.exception("Failed to set Zone %s footprint schedule.", self.id)
+
+    def update_override(self, json):
+        """Parse the json and use it to populate the override data class."""
+        try:
+            self._override = None
+            iType = json["iType"]
+            if iType in [
+                ZONE_TYPE.OnOffTimer,
+                ZONE_TYPE.ControlSP,
+                ZONE_TYPE.TPI,
+            ]:
+                duration = json["iBoostTimeRemaining"]
+                if duration != 0:
+                    set_point = json["fBoostSP"]
+                    self._override = Override(duration, set_point)
+
+        except (AttributeError, LookupError, TypeError, ValueError):
+            _LOGGER.exception("Failed to set Zone %s override.", self.id)
+
+    def update_warmup(self, json):
+        """Parse the json and use it to populate the warmup data class."""
+        try:
+            warmup = json["warmupDuration"]
+            if warmup is not None:
+                self._warmup.enabled = warmup["bEnable"]
+                self._warmup.calcs_enabled = warmup["bEnableCalcs"]
+                self._warmup.rise_rate = warmup["fRiseRate"]
+                self._warmup.lag_time = warmup["iLagTime"]
+                self._warmup.rise_time = warmup["iRiseTime"]
+                self._warmup.total_time = warmup["iTotalTime"]
+
+        except (AttributeError, LookupError, TypeError, ValueError):
+            _LOGGER.exception("Failed to set Zone %s warmup.", self.id)
+
+    @property
+    def state(self) -> CurrentState:
+        """Return the current state of the zone."""
+        return self._state
+
+    @property
+    def properties(self) -> Properties:
+        """Return the properties of the zone."""
+        return self._properties
+
+    @property
+    def timer_schedule(self) -> List:
+        """Return the timer schedule."""
+        return self._timer_schedule
+
+    @property
+    def footprint_schedule(self) -> List:
+        """Return the footprint schedule."""
+        return self._footprint_schedule
+
+    @property
+    def override(self) -> Override:
+        """Return the override data."""
+        return self._override
+
+    @property
+    def warmup(self) -> WarmUp:
+        """Return the warmup data."""
+        return self._warmup
+
+    @property
+    def footprint(self) -> Footprint:
+        """Return the footprint data (not including the schedule)."""
+        return self._footprint
+
+    @property
+    def trigger(self) -> Trigger:
+        """Return the trigger data."""
+        return self._trigger
+
+    @property
+    def name(self) -> str:
+        """Return the name of the zone, which can change."""
+        return self.data["name"]
+
     @property
     def _has_pir(self) -> bool:
         """Return True if the zone has a PIR (movement sensor)."""
         if self._hub.api_version == 1:
             return "occupied" in self.data
         return self._raw["iFlagExpectedKit"] & ZONE_KIT.PIR
-
-    @property
-    def name(self) -> str:
-        """Return the name of the zone, which can change."""
-        return self.data["name"]
 
     @property
     def devices(self) -> List:
