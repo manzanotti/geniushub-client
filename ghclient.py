@@ -65,7 +65,7 @@ import aiohttp
 
 from geniushubclient import GeniusHub, GeniusTestHub
 
-DEBUG_ADDR = "172.27.0.138"
+DEBUG_ADDR = "0.0.0.0"
 DEBUG_PORT = 5678
 
 logging.basicConfig(datefmt="%H:%M:%S", format="%(asctime)s %(levelname)s: %(message)s")
