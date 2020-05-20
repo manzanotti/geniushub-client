@@ -21,7 +21,7 @@ class GeniusZoneTimerScheduleTests(unittest.TestCase):
 
     _heating_period_start = 72000
     _heating_period_end = 73800
-    _heating_period_set_point = 19.0
+    _heating_period_setpoint = 19.0
 
     raw_json = {
         "iID": _device_id,
@@ -75,7 +75,7 @@ class GeniusZoneTimerScheduleTests(unittest.TestCase):
                 "iTm": -1
             }, {
                 "bReactive": 0.0,
-                "fSP": _heating_period_set_point,
+                "fSP": _heating_period_setpoint,
                 "iDay": 0,
                 "iTm": _heating_period_start
             }, {
@@ -203,7 +203,7 @@ class GeniusZoneTimerScheduleTests(unittest.TestCase):
 
         genius_zone = GeniusZone(self._device_id, self.raw_json, self.hub)
         day = genius_zone.timer_schedule[0]
-        self.assertEqual(day.name, "sunday")
+        self.assertEqual(day.name(), "sunday")
 
     def test_when_timer_schedule_updated_then_timer_schedule_first_day_has_2_heating_periods(self):  # noqa: E501
         "Check that the first day of the timer schedule has 2 heating periods"
@@ -212,13 +212,13 @@ class GeniusZoneTimerScheduleTests(unittest.TestCase):
         day = genius_zone.timer_schedule[0]
         self.assertEqual(len(day.heating_periods), 2)
 
-    def test_when_timer_schedule_updated_then_timer_schedule_first_day_first_heating_period_has_correct_set_point(self):  # noqa: E501
+    def test_when_timer_schedule_updated_then_timer_schedule_first_day_first_heating_period_has_correct_setpoint(self):  # noqa: E501
         "Check that the first heating period of the first day of the timer schedule has the correct set point set"  # noqa: E501
 
         genius_zone = GeniusZone(self._device_id, self.raw_json, self.hub)
         day = genius_zone.timer_schedule[0]
         heating_period = day.heating_periods[0]
-        self.assertEqual(heating_period.set_point, self._heating_period_set_point)
+        self.assertEqual(heating_period.setpoint, self._heating_period_setpoint)
 
     def test_when_timer_schedule_updated_then_timer_schedule_first_day_first_heating_period_has_correct_start(self):  # noqa: E501
         "Check that the first heating period of the first day of the timer schedule has the correct start time set"  # noqa: E501
@@ -235,6 +235,13 @@ class GeniusZoneTimerScheduleTests(unittest.TestCase):
         day = genius_zone.timer_schedule[0]
         heating_period = day.heating_periods[0]
         self.assertEqual(heating_period.end, self._heating_period_end)
+
+    def test_when_timer_schedule_updated_then_timer_schedule_last_day_has_correct_name(self):  # noqa: E501
+        "Check that the last day of the timer schedule has the correct name set"
+
+        genius_zone = GeniusZone(self._device_id, self.raw_json, self.hub)
+        day = genius_zone.timer_schedule[1]
+        self.assertEqual(day.name(), "monday")
 
     def test_when_next_heating_period_does_not_have_start_time_then_timer_schedule_first_day_second_heating_period_has_correct_end(self):  # noqa: E501
         "Check that the last heating period of the first day of the timer schedule has the end time set to end of day when next heating periodhas -1 start time"  # noqa: E501

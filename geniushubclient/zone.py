@@ -3,7 +3,7 @@
 import logging
 import re
 from typing import Dict, List  # Any, Optional, Set, Tuple
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from .const import (
     ATTRS_ZONE,
@@ -46,7 +46,7 @@ class CurrentState:
     mode: int = 0
     mode_name: str = ""
     temperature: float = 0.0
-    set_point: float = 0.0
+    setpoint: float = 0.0
     is_occupied: bool = False
 
 
@@ -57,7 +57,7 @@ class Properties:
         Intended to be the properties that are fixed for the lifecycle of the zone
     """
 
-    type: int = 0
+    zone_type: int = 0
     type_name: str = ""
     has_room_sensor: bool = False
 
@@ -66,27 +66,30 @@ class Properties:
 class DaySchedule:
     """The day in a schedule. Contains a list of heating periods."""
 
-    index: int
-    name: str
-    default_setpoint: float
-    heating_periods: List
+    index: int = 0
+    default_setpoint: float = 0.0
+    heating_periods: List = field(default_factory=list)
+
+    def name(self) -> str:
+        """Return the name of the day."""
+        return IDAY_TO_DAY[self.index]
 
 
 @dataclass
 class HeatingPeriod:
     """The heating period data."""
 
-    start: int
-    end: int
-    set_point: float
+    start: int = 0
+    end: int = 0
+    setpoint: float = 0.0
 
 
 @dataclass
 class Override:
     """The override data for the zone."""
 
-    duration: int
-    set_point: float
+    duration: int = 0
+    setpoint: float = 0.0
 
 
 @dataclass
@@ -137,7 +140,7 @@ class GeniusZone(GeniusBase):
         self._timer_schedule = []
         self._footprint_schedule = []
         self._override = None
-        self._warmup = WarmUp()
+        self._warmup = None
         self.device_objs = []
         self.device_by_id = {}
 
@@ -146,12 +149,22 @@ class GeniusZone(GeniusBase):
 
     def update(self, json):
         """Parse the json and use it to populate the data classes."""
-        self.update_state(json)
         self.update_properties(json)
-        self.update_timer_schedule(json)
-        self.update_footprint_schedule(json)
-        self.update_footprint(json)
-        self.update_warmup(json)
+        self.update_state(json)
+
+        itype = json["iType"]
+
+        # Whole-house zones don't have time schedules
+        if itype not in [ZONE_TYPE.Manager, ZONE_TYPE.Surrogate]:
+            self.update_timer_schedule(json)
+
+        if itype in [ZONE_TYPE.ControlSP]:
+            self.update_footprint_schedule(json)
+            self.update_footprint(json)
+
+        if itype in [ZONE_TYPE.ControlSP, ZONE_TYPE.ControlOnOffPID]:
+            self.update_warmup(json)
+
         self.update_override(json)
         self.update_trigger(json)
         self.update_is_occupied(json)
@@ -354,11 +367,10 @@ class GeniusZone(GeniusBase):
             if iType in [ZONE_TYPE.ControlSP, ZONE_TYPE.TPI]:
                 # some zones have a fPV without raw_json["activeTemperatureDevices"]
                 self._state.temperature = json["fPV"]
-                self._state.set_point = json["fSP"]
+                self._state.setpoint = json["fSP"]
 
-            if iType == ZONE_TYPE.Manager:
-                if json["fPV"]:
-                    self._state.temperature = json["fPV"]
+            if iType == ZONE_TYPE.Manager and "fPV" in json:
+                self._state.temperature = json["fPV"]
 
             mode = json["iMode"]
             self._state.mode = mode
@@ -370,13 +382,12 @@ class GeniusZone(GeniusBase):
     def update_properties(self, json):
         """Parse the json and use it to populate the properties data class."""
         try:
-            iType = json["iType"]
-            self._properties.type = iType
+            self._properties.zone_type = iType = json["iType"]
 
             self._properties.type_name = ITYPE_TO_TYPE[iType]
             if iType == ZONE_TYPE.TPI and json["zoneSubType"] == 0:
                 self._properties.type_name = ITYPE_TO_TYPE[ZONE_TYPE.ControlOnOffPID]
-                self._properties.type = ZONE_TYPE.ControlOnOffPID
+                self._properties.zone_type = ZONE_TYPE.ControlOnOffPID
 
             self._properties.has_room_sensor = json["iFlagExpectedKit"] & ZONE_KIT.PIR
 
@@ -390,8 +401,7 @@ class GeniusZone(GeniusBase):
             self._footprint.is_night = footprint_json["bIsNight"]
 
             reactive_json = footprint_json["objReactive"]
-            reactive = Reactive(reactive_json["fActivityLevel"])
-            self._footprint.reactive = reactive
+            self._footprint.reactive = Reactive(reactive_json["fActivityLevel"])
 
         except (AttributeError, LookupError, TypeError, ValueError):
             _LOGGER.exception("Failed to set Zone %s footprint.", self.id)
@@ -411,17 +421,12 @@ class GeniusZone(GeniusBase):
         try:
             if not self._properties.has_room_sensor:
                 self._state.is_occupied = False
-                return
-
-            if self._footprint.is_night:
+            elif self._footprint.is_night:
                 self._state.is_occupied = False
-                return
-
-            if not self._trigger.reactive | self._trigger.output:
+            elif not self._trigger.reactive | self._trigger.output:
                 self._state.is_occupied = False
-                return
-
-            self._state.is_occupied = self._footprint.reactive.activity_level > 0.0
+            else:
+                self._state.is_occupied = self._footprint.reactive.activity_level > 0.0
 
         except (AttributeError, LookupError, TypeError, ValueError):
             _LOGGER.exception("Failed to set Zone %s is_occupied.", self.id)
@@ -429,11 +434,11 @@ class GeniusZone(GeniusBase):
     def update_timer_schedule(self, json):
         """Parse the json and use it to populate the timer_schedule data class."""
         try:
-            dayIndex = -1
+            day_idx = -1
 
             setpoints = json["objTimer"]
-            default_set_point = json["fSP"]
-            number_of_set_points = len(setpoints)
+            default_setpoint = json["fSP"]
+            number_of_setpoints = len(setpoints)
 
             for idx, setpoint in enumerate(setpoints):
                 start_time = setpoint["iTm"]
@@ -441,14 +446,12 @@ class GeniusZone(GeniusBase):
                 if json["iType"] == ZONE_TYPE.OnOffTimer:
                     temperature = bool(temperature)
 
-                if setpoint["iDay"] > dayIndex:
-                    dayIndex += 1
-                    day = DaySchedule(
-                        dayIndex, IDAY_TO_DAY[dayIndex], default_set_point, []
-                    )
+                if setpoint["iDay"] > day_idx:
+                    day_idx += 1
+                    day = DaySchedule(day_idx, default_setpoint)
                     self._timer_schedule.append(day)
 
-                # Only create a heating period if the temperature isn't at the default set point
+                # Only create a heating period if the temperature isn't at the default setpoint
                 # for the room.
                 if temperature != day.default_setpoint:
                     # reactive = self._hub._sense_mode & bool(setpoint.get("bReactive"))
@@ -456,7 +459,7 @@ class GeniusZone(GeniusBase):
 
                     # Unless the next heating period has a value
                     if (
-                        number_of_set_points != idx + 1
+                        number_of_setpoints != idx + 1
                         and setpoints[idx + 1]["iTm"] != -1  # noqa: W503
                     ):
                         end_time = setpoints[idx + 1]["iTm"]
@@ -464,7 +467,7 @@ class GeniusZone(GeniusBase):
                     day.heating_periods.append(
                         HeatingPeriod(start_time, end_time, temperature)
                     )
-                    self._timer_schedule[dayIndex] = day
+                    self._timer_schedule[day_idx] = day
 
         except (AttributeError, LookupError, TypeError, ValueError):
             _LOGGER.exception("Failed to set Zone %s timer schedule.", self.id)
@@ -472,11 +475,11 @@ class GeniusZone(GeniusBase):
     def update_footprint_schedule(self, json):
         """Parse the json and use it to populate the footprint_schedule data class."""
         try:
-            dayIndex = -1
+            day_idx = -1
 
             footprint_data = json["objFootprint"]
 
-            default_set_point = footprint_data["fFootprintAwaySP"]
+            default_setpoint = footprint_data["fFootprintAwaySP"]
             footprint_tm_night_start = footprint_data["iFootprintTmNightStart"]
 
             setpoints = footprint_data["lstSP"]
@@ -485,11 +488,9 @@ class GeniusZone(GeniusBase):
                 start_time = setpoint["iTm"]
                 temperature = setpoint["fSP"]
 
-                if setpoint["iDay"] > dayIndex:
-                    dayIndex += 1
-                    day = DaySchedule(
-                        dayIndex, IDAY_TO_DAY[dayIndex], default_set_point, []
-                    )
+                if setpoint["iDay"] > day_idx:
+                    day_idx += 1
+                    day = DaySchedule(day_idx, default_setpoint)
                     self._footprint_schedule.append(day)
 
                 # Only create a heating period if the temperature isn't at the default set point
@@ -505,15 +506,16 @@ class GeniusZone(GeniusBase):
                     day.heating_periods.append(
                         HeatingPeriod(start_time, end_time, temperature)
                     )
-                    self._footprint_schedule[dayIndex] = day
+                    self._footprint_schedule[day_idx] = day
 
         except (AttributeError, LookupError, TypeError, ValueError):
             _LOGGER.exception("Failed to set Zone %s footprint schedule.", self.id)
 
     def update_override(self, json):
         """Parse the json and use it to populate the override data class."""
+        self._override = None
+
         try:
-            self._override = None
             iType = json["iType"]
             if iType in [
                 ZONE_TYPE.OnOffTimer,
@@ -522,8 +524,8 @@ class GeniusZone(GeniusBase):
             ]:
                 duration = json["iBoostTimeRemaining"]
                 if duration != 0:
-                    set_point = json["fBoostSP"]
-                    self._override = Override(duration, set_point)
+                    setpoint = json["fBoostSP"]
+                    self._override = Override(duration, setpoint)
 
         except (AttributeError, LookupError, TypeError, ValueError):
             _LOGGER.exception("Failed to set Zone %s override.", self.id)
@@ -533,6 +535,7 @@ class GeniusZone(GeniusBase):
         try:
             warmup = json["warmupDuration"]
             if warmup is not None:
+                self._warmup = WarmUp()
                 self._warmup.enabled = warmup["bEnable"]
                 self._warmup.calcs_enabled = warmup["bEnableCalcs"]
                 self._warmup.rise_rate = warmup["fRiseRate"]

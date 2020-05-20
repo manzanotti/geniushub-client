@@ -32,7 +32,7 @@ class GeniusZoneTriggerTests(unittest.TestCase):
         "fSP": 14.0,
         "iBoostTimeRemaining": 0,
         "iFlagExpectedKit": 517,
-        "iType": ZONE_TYPE.OnOffTimer,
+        "iType": ZONE_TYPE.ControlSP,
         "iMode": ZONE_MODE.Off,
         "objFootprint": {
             "bIsNight": 0,

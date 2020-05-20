@@ -20,7 +20,7 @@ class GeniusZoneIsOccupiedTests(unittest.TestCase):
     _device_id = "Device Id"
     _zone_name = "Zone Name"
     _override_duration = 100
-    _override_set_point = 21.0
+    _override_setpoint = 21.0
 
     raw_json = {
         "iID": _device_id,
@@ -28,13 +28,13 @@ class GeniusZoneIsOccupiedTests(unittest.TestCase):
         "bIsActive": 0,
         "bInHeatEnabled": 0,
         "bOutRequestHeat": 0,
-        "fBoostSP": _override_set_point,
+        "fBoostSP": _override_setpoint,
         "fPV": 21.0,
         "fPV_offset": 0.0,
         "fSP": 14.0,
         "iBoostTimeRemaining": _override_duration,
         "iFlagExpectedKit": 517,
-        "iType": ZONE_TYPE.OnOffTimer,
+        "iType": ZONE_TYPE.ControlSP,
         "iMode": ZONE_MODE.Off,
         "objFootprint": {
             "bIsNight": 0,

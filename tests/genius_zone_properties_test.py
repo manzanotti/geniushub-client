@@ -94,8 +94,8 @@ class GeniusZonePropertiesTests(unittest.TestCase):
         hub.api_version = 3
         self.hub = hub
 
-    def test_when_iType_set_then_properties_type_is_set_correctly(self):
-        "Check that the type is set on the properties object"
+    def test_when_iType_set_then_properties_zone_type_is_set_correctly(self):
+        "Check that the zone_type is set on the properties object"
 
         test_values = {
             ZONE_TYPE.Manager,
@@ -112,7 +112,7 @@ class GeniusZonePropertiesTests(unittest.TestCase):
                 self.raw_json["zoneSubType"] = 1
                 genius_zone = GeniusZone(self._device_id, self.raw_json, self.hub)
 
-                self.assertEqual(genius_zone.properties.type, zone_type)
+                self.assertEqual(genius_zone.properties.zone_type, zone_type)
 
     def test_when_iType_set_then_properties_type_name_is_set_correctly(self):
         "Check that the type_name is set on the properties object"
@@ -136,13 +136,13 @@ class GeniusZonePropertiesTests(unittest.TestCase):
                 self.assertEqual(genius_zone.properties.type_name, zone_type_text)
 
     def test_when_iType_TPI_and_subzonetype_zero_then_properties_type_set_to_wet_underfloor(self):  # noqa: E501
-        "Check that the type is set to ControlOnOffPID when zone type is TPI and zone subtype is 0"  # noqa: E501
+        "Check that the zone_type is set to ControlOnOffPID when zone type is TPI and zone subtype is 0"  # noqa: E501
 
         self.raw_json["iType"] = ZONE_TYPE.TPI
         self.raw_json["zoneSubType"] = 0
         genius_zone = GeniusZone(self._device_id, self.raw_json, self.hub)
 
-        self.assertEqual(genius_zone.properties.type, ZONE_TYPE.ControlOnOffPID)
+        self.assertEqual(genius_zone.properties.zone_type, ZONE_TYPE.ControlOnOffPID)
 
     def test_when_iType_TPI_and_subzonetype_zero_then_properties_type_name_set_to_wet_underfloor(self):  # noqa: E501
         "Check that the type_name is set to wet underfloor when zone type is TPI and zone subtype is 0"  # noqa: E501

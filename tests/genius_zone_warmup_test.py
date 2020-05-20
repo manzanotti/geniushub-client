@@ -35,7 +35,7 @@ class GeniusZoneWarmUpTests(unittest.TestCase):
         "fSP": 14.0,
         "iBoostTimeRemaining": 0,
         "iFlagExpectedKit": 517,
-        "iType": ZONE_TYPE.OnOffTimer,
+        "iType": ZONE_TYPE.ControlSP,
         "iMode": ZONE_MODE.Off,
         "objFootprint": {
             "bIsNight": 0,
@@ -95,6 +95,38 @@ class GeniusZoneWarmUpTests(unittest.TestCase):
         hub = Mock()
         hub.api_version = 3
         self.hub = hub
+
+    def test_when_iType_ControlSP_or_ControlOnOffPID_then_warmup_processed(self):
+        "Check that the warmup object is processed"
+
+        test_values = {
+            ZONE_TYPE.ControlSP,
+            ZONE_TYPE.ControlOnOffPID
+        }
+
+        for zone_type in test_values:
+            with self.subTest(zone_type=zone_type):
+                self.raw_json["iType"] = zone_type
+                genius_zone = GeniusZone(self._device_id, self.raw_json, self.hub)
+
+                self.assertIsNotNone(genius_zone.warmup)
+
+    def test_when_iType_not_ControlSP_or_ControlOnOffPID_then_properties_type_name_is_set_correctly(self):  # noqa: E501
+        "Check that the warmup object is not processed"
+
+        test_values = {
+            ZONE_TYPE.Manager,
+            ZONE_TYPE.OnOffTimer,
+            ZONE_TYPE.TPI,
+            ZONE_TYPE.Surrogate
+        }
+
+        for zone_type in test_values:
+            with self.subTest(zone_type=zone_type):
+                self.raw_json["iType"] = zone_type
+                genius_zone = GeniusZone(self._device_id, self.raw_json, self.hub)
+
+                self.assertIsNone(genius_zone.warmup)
 
     def test_warmup_enabled_set_to_true(self):
         "Check that warmup is enabled"

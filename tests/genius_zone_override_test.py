@@ -19,7 +19,7 @@ class GeniusZoneOverrideTests(unittest.TestCase):
     _device_id = "Device Id"
     _zone_name = "Zone Name"
     _override_duration = 100
-    _override_set_point = 21.0
+    _override_setpoint = 21.0
 
     raw_json = {
         "iID": _device_id,
@@ -27,7 +27,7 @@ class GeniusZoneOverrideTests(unittest.TestCase):
         "bIsActive": 0,
         "bInHeatEnabled": 0,
         "bOutRequestHeat": 0,
-        "fBoostSP": _override_set_point,
+        "fBoostSP": _override_setpoint,
         "fPV": 21.0,
         "fPV_offset": 0.0,
         "fSP": 14.0,
@@ -110,7 +110,7 @@ class GeniusZoneOverrideTests(unittest.TestCase):
 
                 self.assertIsNone(genius_zone.override)
 
-    def test_when_override_applicable_for_iType_set_and_set_point_is_zero_then_override_is_none(self):  # noqa: E501
+    def test_when_override_applicable_for_iType_set_and_setpoint_is_zero_then_override_is_none(self):  # noqa: E501
         "Check that the override property is not set to None"
 
         test_values = {
@@ -127,7 +127,7 @@ class GeniusZoneOverrideTests(unittest.TestCase):
 
                 self.assertIsNone(genius_zone.override)
 
-    def test_when_override_applicable_for_iType_set_and_set_point_is_not_zero_then_override_duration_is_set(self):  # noqa: E501
+    def test_when_override_applicable_for_iType_set_and_setpoint_is_not_zero_then_override_duration_is_set(self):  # noqa: E501
         "Check that the override property is not set to None"
 
         test_values = {
@@ -144,7 +144,7 @@ class GeniusZoneOverrideTests(unittest.TestCase):
 
                 self.assertEqual(genius_zone.override.duration, self._override_duration)
 
-    def test_when_override_applicable_for_iType_set_and_set_point_is_not_zero_then_override_set_point_is_set(self):  # noqa: E501
+    def test_when_override_applicable_for_iType_set_and_setpoint_is_not_zero_then_override_setpoint_is_set(self):  # noqa: E501
         "Check that the override property is not set to None"
 
         test_values = {
@@ -157,7 +157,7 @@ class GeniusZoneOverrideTests(unittest.TestCase):
             with self.subTest(zone_type=zone_type):
                 self.raw_json["iType"] = zone_type
                 self.raw_json["iBoostTimeRemaining"] = self._override_duration
-                self.raw_json["fBoostSP"] = self._override_set_point
+                self.raw_json["fBoostSP"] = self._override_setpoint
                 genius_zone = GeniusZone(self._device_id, self.raw_json, self.hub)
 
-                self.assertEqual(genius_zone.override.set_point, self._override_set_point)  # noqa: E501
+                self.assertEqual(genius_zone.override.setpoint, self._override_setpoint)  # noqa: E501
