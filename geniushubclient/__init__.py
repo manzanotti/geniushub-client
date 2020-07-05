@@ -9,8 +9,8 @@ __version__ = "0.7.0.b4"
 import asyncio
 import json
 import logging
-from datetime import datetime
-from typing import Dict, List  # Any, Optional, Set, Tuple
+from datetime import datetime as dt
+from typing import Dict, List, Tuple  # Any, Optional, Set
 
 from .const import HUB_SW_VERSIONS, ISSUE_DESCRIPTION, ISSUE_TEXT, ZONE_MODE
 from .session import GeniusService
@@ -51,7 +51,7 @@ class GeniusHubBase:
         self.zone_by_name = {}
         self.device_by_id = {}
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         return json.dumps(self.version)
 
     @staticmethod
@@ -93,10 +93,10 @@ class GeniusHubBase:
     @staticmethod
     def _version_via_v3_zones(raw_json) -> str:
         """Extract Version from /v3/zones JSON (a hack)."""
-        build_date = datetime.strptime(raw_json["data"][0]["strBuildDate"], "%b %d %Y")
+        build_date = dt.strptime(raw_json["data"][0]["strBuildDate"], "%b %d %Y")
 
         for date_time_idx in HUB_SW_VERSIONS:
-            if datetime.strptime(date_time_idx, "%b %d %Y") <= build_date:
+            if dt.strptime(date_time_idx, "%b %d %Y") <= build_date:
                 return HUB_SW_VERSIONS[date_time_idx]
 
     @property
@@ -136,20 +136,19 @@ class GeniusHubBase:
     def update(self):
         """Update the Hub with its latest state data."""
 
-        def populate_objects(obj_list, obj_key, obj_by_id, GeniusObject) -> List:
+        def populate_objects(
+            obj_list, obj_key, obj_by_id, GeniusObject
+        ) -> Tuple[List, Dict]:
             """Create the current list of GeniusHub objects (zones/devices)."""
             entities = []  # list of converted zones/devices
             key = "id" if self.api_version == 1 else obj_key
             for raw_json in obj_list:
-                try:  # does the hub already know about this zone/device?
-                    entity = obj_by_id[raw_json[key]]
-                except KeyError:  # this is a new zone/device
-                    entity = GeniusObject(raw_json[key], raw_json, self)
-                else:
-                    entity._data = None
-                    entity._raw = raw_json
+                entity = obj_by_id.get(
+                    raw_json[key], GeniusObject(raw_json[key], raw_json, self)
+                )
+                entity._data, entity._raw = None, raw_json
                 entities.append(entity)
-            return entities
+            return entities, {e.id: e for e in entities}
 
         def convert_issue(raw_json) -> Dict:
             """Convert a issues's v3 JSON to the v1 schema."""
@@ -181,20 +180,20 @@ class GeniusHubBase:
             self._sense_mode = bool(manager["lOptions"] & ZONE_MODE.Other)
 
         # TODO: this looks dodgy: replacing rather than updating entitys
-        zones = self.zone_objs = populate_objects(
+        self.zone_objs, self.zone_by_id = populate_objects(
             self._zones, "iID", self.zone_by_id, GeniusZone
         )
-        devices = self.device_objs = populate_objects(
+        self.zone_by_name = {z.name: z for z in self.zone_objs}
+
+        for zone in self.zone_objs:  # TODO: this need checking
+            zone.device_objs = [
+                d for d in self.device_objs if d.assigned_zone == zone.name
+            ]
+            zone.device_by_id = {d.id: d for d in zone.device_objs}
+
+        self.device_objs, self.device_by_id = populate_objects(
             self._devices, "addr", self.device_by_id, GeniusDevice
         )
-
-        self.zone_by_id = {z.id: z for z in self.zone_objs}
-        self.zone_by_name = {z.name: z for z in self.zone_objs}
-        self.device_by_id = {d.id: d for d in self.device_objs}
-
-        for zone in zones:  # TODO: this need checking
-            zone.device_objs = [d for d in devices if d.assigned_zone == zone.name]
-            zone.device_by_id = {d.id: d for d in zone.device_objs}
 
         old_issues = self.issues
         if self.api_version == 1:
@@ -233,20 +232,24 @@ class GeniusHub(GeniusHubBase):
     async def update(self) -> None:
         """Update the Hub with its latest state data."""
         if self.genius_service.use_v1_api:
-            get_list = ["zones", "devices", "issues", "version"]
             (
                 self._zones,
                 self._devices,
                 self._issues,
                 self._version,
             ) = await asyncio.gather(
-                *[self.genius_service.request("GET", g) for g in get_list]
+                *[
+                    self.genius_service.request("GET", g)
+                    for g in ("zones", "devices", "issues", "version")
+                ]
             )
 
         else:  # self.api_version == 3:
-            get_list = ["zones", "data_manager", "auth/release"]
             zones, data_manager, auth = await asyncio.gather(
-                *[self.genius_service.request("GET", g) for g in get_list]
+                *[
+                    self.genius_service.request("GET", g)
+                    for g in ("zones", "data_manager", "auth/release")
+                ]
             )
 
             self._zones = self._zones_via_v3_zones(zones)

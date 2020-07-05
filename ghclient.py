@@ -53,7 +53,7 @@ Examples:
   ghclient.py HUB_ID -z 12 -d 3600 -t 19.5
     Set the override temperature for Zone 12 to 19.5C for 1 hour.
 
-"""
+"""  # noqa
 
 # import ast
 import argparse

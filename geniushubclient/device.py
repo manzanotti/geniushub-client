@@ -22,7 +22,7 @@ class GeniusBase:
 
         self._data = {}
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         return json.dumps(
             {k: v for k, v in self.data.items() if k in self._attrs["summary_keys"]}
         )
@@ -95,7 +95,7 @@ class GeniusDevice(GeniusBase):
 
         try:
             result["_state"] = _state = {}
-            for val in ["lastComms", "setback"]:
+            for val in ("lastComms", "setback"):
                 if val in node:
                     _state[val] = node[val]["val"]
             if "WakeUp_Interval" in node:
@@ -104,7 +104,7 @@ class GeniusDevice(GeniusBase):
             node = self._raw["childNodes"]["_cfg"]["childValues"]
 
             result["_config"] = _config = {}
-            for val in ["max_sp", "min_sp", "sku"]:
+            for val in ("max_sp", "min_sp", "sku"):
                 if val in node:
                     _config[val] = node[val]["val"]
 
