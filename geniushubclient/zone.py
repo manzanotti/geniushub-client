@@ -281,8 +281,6 @@ class GeniusZone(GeniusBase):
 
             result["mode"] = IMODE_TO_MODE[raw_json["iMode"]]
 
-            self.update_properties(raw_json)
-
             if raw_json["iType"] in [ZONE_TYPE.ControlSP, ZONE_TYPE.TPI]:
                 # some zones have a fPV without raw_json["activeTemperatureDevices"]
                 result["temperature"] = raw_json["fPV"]
@@ -347,8 +345,6 @@ class GeniusZone(GeniusBase):
             keys = ["bIsActive", "bOutRequestHeat"]
             result["_state"] = {k: raw_json[k] for k in keys}
 
-            self.update_state(raw_json)
-
             if raw_json["iType"] in [ZONE_TYPE.ControlSP]:
                 key = "bInHeatEnabled"
                 result["_state"][key] = raw_json[key]
@@ -393,7 +389,7 @@ class GeniusZone(GeniusBase):
         footprint_json = json["objFootprint"]
         self._footprint.is_night = footprint_json["bIsNight"]
 
-        reactive_json = footprint_json["objReactive"]
+        reactive_json = json["zoneReactive"]
         self._footprint.reactive = Reactive(reactive_json["fActivityLevel"])
 
     def __update_trigger(self, json):
@@ -416,11 +412,14 @@ class GeniusZone(GeniusBase):
     def __update_timer_schedule(self, json):
         """Parse the json and use it to populate the timer_schedule data class."""
         try:
-            day_idx = -1
+            day_idx = 0
 
             setpoints = json["objTimer"]
             default_setpoint = json["fSP"]
             number_of_setpoints = len(setpoints)
+
+            day = DaySchedule(day_idx, default_setpoint)
+            self._timer_schedule.append(day)
 
             for idx, setpoint in enumerate(setpoints):
                 start_time = setpoint["iTm"]
@@ -457,7 +456,7 @@ class GeniusZone(GeniusBase):
     def __update_footprint_schedule(self, json):
         """Parse the json and use it to populate the footprint_schedule data class."""
         try:
-            day_idx = -1
+            day_idx = 0
 
             footprint_data = json["objFootprint"]
 
@@ -465,6 +464,9 @@ class GeniusZone(GeniusBase):
             footprint_tm_night_start = footprint_data["iFootprintTmNightStart"]
 
             setpoints = footprint_data["lstSP"]
+
+            day = DaySchedule(day_idx, default_setpoint)
+            self._footprint_schedule.append(day)
 
             for idx, setpoint in enumerate(setpoints):
                 start_time = setpoint["iTm"]

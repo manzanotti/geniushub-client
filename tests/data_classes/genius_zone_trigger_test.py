@@ -60,10 +60,7 @@ class GeniusZoneTriggerTests(unittest.TestCase):
                 "iDay": 0,
                 "iTm": 75600
             }
-            ],
-            "objReactive": {
-                "fActivityLevel": 0.0
-            }
+            ]
         },
         "objTimer": [{
             "fSP": 14.0,
@@ -81,6 +78,9 @@ class GeniusZoneTriggerTests(unittest.TestCase):
             "iLagTime": 2420,
             "iRiseTime": 300,
             "iTotalTime": 2720
+        },
+        "zoneReactive": {
+            "fActivityLevel": 0.0
         },
         "zoneSubType": 1
     }

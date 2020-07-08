@@ -60,10 +60,7 @@ class GeniusZoneFootprintTests(unittest.TestCase):
                 "iDay": 0,
                 "iTm": 75600
             }
-            ],
-            "objReactive": {
-                "fActivityLevel": _activity_level
-            }
+            ]
         },
         "objTimer": [{
             "fSP": 14.0,
@@ -81,6 +78,9 @@ class GeniusZoneFootprintTests(unittest.TestCase):
             "iLagTime": 2420,
             "iRiseTime": 300,
             "iTotalTime": 2720
+        },
+        "zoneReactive": {
+            "fActivityLevel": _activity_level
         },
         "zoneSubType": 1
     }

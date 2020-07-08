@@ -62,10 +62,7 @@ class GeniusZoneIsOccupiedTests(unittest.TestCase):
                 "iDay": 0,
                 "iTm": 75600
             }
-            ],
-            "objReactive": {
-                "fActivityLevel": 0.0
-            }
+            ]
         },
         "objTimer": [{
             "fSP": 14.0,
@@ -150,7 +147,7 @@ class GeniusZoneIsOccupiedTests(unittest.TestCase):
         self.raw_json["objFootprint"]["bIsNight"] = 0
         self.raw_json["trigger"]["reactive"] = 1
         self.raw_json["trigger"]["output"] = 1
-        self.raw_json["objFootprint"]["objReactive"]["fActivityLevel"] = 0.0
+        self.raw_json["zoneReactive"]["fActivityLevel"] = 0.0
 
         genius_zone = GeniusZone(self._device_id, self.raw_json, self.hub)
 
@@ -163,7 +160,7 @@ class GeniusZoneIsOccupiedTests(unittest.TestCase):
         self.raw_json["objFootprint"]["bIsNight"] = 0
         self.raw_json["trigger"]["reactive"] = 1
         self.raw_json["trigger"]["output"] = 1
-        self.raw_json["objFootprint"]["objReactive"]["fActivityLevel"] = 1.0
+        self.raw_json["zoneReactive"]["fActivityLevel"] = 1.0
 
         genius_zone = GeniusZone(self._device_id, self.raw_json, self.hub)
 

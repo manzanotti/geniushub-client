@@ -101,20 +101,20 @@ class GeniusZoneStateTests(unittest.TestCase):
         self.assertFalse(genius_zone.state.is_active)
 
     def test_when_bIsActive_is_true_then_state_is_active_true(self):
-        "Check that the is_active is correctly set to false"
+        "Check that the is_active is correctly set to true"
 
         self.raw_json["bIsActive"] = 1
         genius_zone = GeniusZone(self._device_id, self.raw_json, self.hub)
         self.assertTrue(genius_zone.state.is_active)
 
-    def test_when_bOutRequestHeat_is_false_then_state_is_requesting_heat_false(self):  # noqa: E501
+    def test_when_bOutRequestHeat_is_false_then_state_is_requesting_heat_false(self):
         "Check that the is_requesting_heat_out is correctly set to false"
 
         self.raw_json["bOutRequestHeat"] = 0
         genius_zone = GeniusZone(self._device_id, self.raw_json, self.hub)
         self.assertFalse(genius_zone.state.is_requesting_heat)
 
-    def test_when_bOutRequestHeat_is_true_then_state_is_requesting_heat_true(self):  # noqa: E501
+    def test_when_bOutRequestHeat_is_true_then_state_is_requesting_heat_true(self):
         "Check that the is_requesting_heat_out is correctly set to true"
 
         self.raw_json["bOutRequestHeat"] = 1
@@ -163,7 +163,7 @@ class GeniusZoneStateTests(unittest.TestCase):
 
         for zone_mode in test_values:
             zone_mode_text = IMODE_TO_MODE[zone_mode]
-            with self.subTest(zone_mode=zone_mode, zone_mode_text=zone_mode_text):  # noqa: E501
+            with self.subTest(zone_mode=zone_mode, zone_mode_text=zone_mode_text):
                 self.raw_json["iMode"] = zone_mode
                 self.raw_json["zoneSubType"] = 1
                 genius_zone = GeniusZone(self._device_id, self.raw_json, self.hub)
@@ -184,7 +184,7 @@ class GeniusZoneStateTests(unittest.TestCase):
         self.raw_json["fSP"] = setpoint
 
         for zone_type in test_values:
-            with self.subTest(zone_type=zone_type):  # noqa: E501
+            with self.subTest(zone_type=zone_type):
                 self.raw_json["iType"] = zone_type
                 genius_zone = GeniusZone(self._device_id, self.raw_json, self.hub)
 
@@ -204,7 +204,7 @@ class GeniusZoneStateTests(unittest.TestCase):
         self.raw_json["fSP"] = setpoint
 
         for zone_type in test_values:
-            with self.subTest(zone_type=zone_type):  # noqa: E501
+            with self.subTest(zone_type=zone_type):
                 self.raw_json["iType"] = zone_type
                 genius_zone = GeniusZone(self._device_id, self.raw_json, self.hub)
 
@@ -224,8 +224,8 @@ class GeniusZoneStateTests(unittest.TestCase):
 
         self.assertEqual(genius_zone.state.temperature, temperature)
 
-    def test_when_iType_Manager_state_setpoint_set_correctly(self):
-        "Check that the setpoint is set on the state when the iType is ControlSP"
+    def test_when_iType_Manager_state_setpoint_not_set(self):
+        "Check that the setpoint is not set on the state when the iType is Manager"
 
         temperature = 20.0
         setpoint = 21.0
@@ -239,7 +239,7 @@ class GeniusZoneStateTests(unittest.TestCase):
         self.assertEqual(genius_zone.state.setpoint, 0)
 
     def test_when_iType_OnOffTimer_state_temperature_not_set(self):
-        "Check that the temperature is set on the state when the iType is ControlSP"
+        "Check that the temperature is not set on the state when the iType is OnOffTimer"  # noqa: E501
 
         temperature = 20.0
         setpoint = 21.0
