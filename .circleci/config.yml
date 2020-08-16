@@ -154,7 +154,6 @@ jobs:
             pip install -r requirements-dev.txt
       - *save_cache
 
-
   test_issues:
     <<: *testbed_environment
     parallelism: 1
@@ -162,8 +161,8 @@ jobs:
       - get_v3_app:  {test_type: "issues"}
       - get_v1_curl: {test_type: "issues"}
       - diff_files:  {test_type: "issues", api_ver: "v3"}
-      # - get_v1_app:  {test_type: "issues"}
-      # - diff_files:  {test_type: "issues", api_ver: "v1"}
+      - get_v1_app:  {test_type: "issues"}
+      - diff_files:  {test_type: "issues", api_ver: "v1"}
 
   test_devices:
     <<: *testbed_environment
@@ -172,8 +171,8 @@ jobs:
       - get_v3_app:  {test_type: "devices"}
       - get_v1_curl: {test_type: "devices"}
       - diff_files:  {test_type: "devices", api_ver: "v3"}
-      # - get_v1_app:  {test_type: "devices"}
-      # - diff_files:  {test_type: "devices", api_ver: "v1"}
+      - get_v1_app:  {test_type: "devices"}
+      - diff_files:  {test_type: "devices", api_ver: "v1"}
 
   test_zones:
     <<: *testbed_environment
@@ -199,7 +198,6 @@ jobs:
 
 workflows:
   version: 2.1
-
 
   build-and-test:
     jobs:
@@ -243,23 +241,23 @@ workflows:
             - *store_artifacts
 
   # build-and-deploy:
-  #   jobs:
-  #     - build:
-  #         filters: # required since `deploy` has tag filters AND requires `build`
-  #           tags:
-  #             only: /.*/
-  #     - test:
-  #         requires:
-  #           - build
-  #         filters: # required since `deploy` has tag filters AND requires `build`
-  #           tags:
-  #             only: /.*/
-  #     - deploy:
-  #         requires:
-  #           - build
-  #           - test
-  #         filters:
-  #           tags:
-  #             only: /[0-9]+(\.[0-9]+)*/
-  #           branches:
-  #             ignore: /.*/
+    # jobs:
+    #   - build:
+    #       filters: # required since `deploy` has tag filters AND requires `build`
+    #         tags:
+    #           only: /.*/
+    #   - test:
+    #       requires:
+    #         - build
+    #       filters: # required since `deploy` has tag filters AND requires `build`
+    #         tags:
+    #           only: /.*/
+    #   - deploy:
+    #       requires:
+    #         - build
+    #         - test
+    #       filters:
+    #         tags:
+    #           only: /[0-9]+(\.[0-9]+)*/
+    #         branches:
+    #           ignore: /.*/
