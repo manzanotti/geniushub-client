@@ -45,7 +45,7 @@ aliases:
 
 commands:
   get_v1_curl:
-    description: "get v1 response via cURL"
+    description: "Get v1 JSON via cURL/official v1 API (from internet)"
     parameters:
       test_type:
         type: string
@@ -66,7 +66,7 @@ commands:
               tee ${TEST_RESULTS}/<< parameters.test_type >>/curl.json
 
   get_v1_app:
-    description: "get v1 response via app"
+    description: "Get v1 JSON via app/v1 API (direct from hub)"
     parameters:
       test_type:
         type: string
@@ -91,7 +91,7 @@ commands:
               tee ${TEST_RESULTS}/<< parameters.test_type >>/v1.json
 
   get_v3_app:
-    description: "get v3 response via app"
+    description: "Get v1 JSON via app/v3 API (direct from hub)"
     parameters:
       test_type:
         type: string
