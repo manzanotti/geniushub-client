@@ -154,6 +154,20 @@ jobs:
             pip install -r requirements-dev.txt
       - *save_cache
 
+  unit_tests:
+    <<: *testbed_environment
+    parallelism: 1
+    steps:
+      - run:
+        name: Run unit tests
+        command: |
+          pipenv run python -m unittest discover tests -p "*_test.py"
+      - store_test_results: # Upload test results for display in Test Summary: https://circleci.com/docs/2.0/collect-test-data/
+          path: test-results
+      - store_artifacts: # Upload test summary for display in Artifacts: https://circleci.com/docs/2.0/artifacts/
+          path: test-results
+          destination: tr1
+
   test_issues:
     <<: *testbed_environment
     parallelism: 1
@@ -231,6 +245,16 @@ workflows:
             - *store_artifacts
 
       - test_issues:
+          requires:
+            - make_testbed
+          pre-steps:
+            - *restore_cache
+            - *attach_workspace
+          post-steps:
+            - *persist_to_workspace
+            - *store_artifacts
+
+      - unit_tests:
           requires:
             - make_testbed
           pre-steps:
