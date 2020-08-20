@@ -159,13 +159,6 @@ jobs:
     parallelism: 1
     steps:
       - run:
-          name: Install Requirements
-          command: |
-            python3 -m venv venv
-            . venv/bin/activate
-            pip install --upgrade pip setuptools wheel
-            pip install -r requirements-dev.txt
-      - run:
           name: Run unit tests
           command: |
             pipenv run python -m unittest discover tests -p "*_test.py"
