@@ -164,11 +164,6 @@ jobs:
             pip install --upgrade pip
             pip install aiohttp
             python -m unittest discover tests -p "*_test.py"
-      # - store_test_results:
-      #     path: test-results
-      # - store_artifacts:
-      #     path: test-results
-      #     destination: tr1
 
   test_issues:
     <<: *testbed_environment
@@ -262,9 +257,9 @@ workflows:
           pre-steps:
             - *restore_cache
             - *attach_workspace
-          post-steps:
-            - *persist_to_workspace
-            - *store_artifacts
+          # post-steps:
+          #   - *persist_to_workspace
+          #   - *store_artifacts
 
   # build-and-deploy:
     # jobs:
