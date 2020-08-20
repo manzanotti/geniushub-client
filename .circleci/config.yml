@@ -161,7 +161,7 @@ jobs:
       - run:
           name: Run unit tests
           command: |
-            pipenv run python -m unittest discover tests -p "*_test.py"
+            python -m unittest discover tests -p "*_test.py"
       - store_test_results:
           path: test-results
       - store_artifacts:
