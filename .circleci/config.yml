@@ -158,7 +158,7 @@ jobs:
     <<: *testbed_environment
     parallelism: 1
     steps:
-     - run:
+      - run:
           name: Run Unit Tests
           command: |
             pip install aiohttp
