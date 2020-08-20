@@ -161,13 +161,14 @@ jobs:
       - run:
           name: Run Unit Tests
           command: |
+            pip install --upgrade pip
             pip install aiohttp
             python -m unittest discover tests -p "*_test.py"
-      - store_test_results:
-          path: test-results
-      - store_artifacts:
-          path: test-results
-          destination: tr1
+      # - store_test_results:
+      #     path: test-results
+      # - store_artifacts:
+      #     path: test-results
+      #     destination: tr1
 
   test_issues:
     <<: *testbed_environment
