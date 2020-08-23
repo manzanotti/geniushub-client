@@ -150,9 +150,21 @@ jobs:
           command: |
             python3 -m venv venv
             . venv/bin/activate
-            pip install --upgrade pip setuptools wheel
+            pip install --upgrade pip --disable-pip-version-check
+            pip install --upgrade setuptools wheel
             pip install -r requirements-dev.txt
       - *save_cache
+
+  unit_tests:
+    <<: *testbed_environment
+    parallelism: 1
+    steps:
+      - run:
+          name: Run Unit Tests
+          command: |
+            pip install --upgrade pip --disable-pip-version-check
+            pip install aiohttp
+            python -m unittest discover tests -p "*_test.py"
 
   test_issues:
     <<: *testbed_environment
@@ -239,6 +251,16 @@ workflows:
           post-steps:
             - *persist_to_workspace
             - *store_artifacts
+
+      - unit_tests:
+          requires:
+            - make_testbed
+          pre-steps:
+            - *restore_cache
+            - *attach_workspace
+          # post-steps:
+          #   - *persist_to_workspace
+          #   - *store_artifacts
 
   # build-and-deploy:
     # jobs:
