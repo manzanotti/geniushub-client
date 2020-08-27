@@ -117,6 +117,10 @@ print(hub.device_by_id["2-2"].data)
 await session.close()
 ```
 
+### Unit tests
+
+Please see the README.md file in the tests folder for more details on unit tests protocol.
+
 ### QA/CI via CircleCI
 QA includes comparing JSON from **cURL** with output from this app using **diff**, for example:
 ```bash
