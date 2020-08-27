@@ -7,7 +7,7 @@ then the actual call to the code is made, and finally the assertion is tested.
 
 For example:
 
-```
+```python
 def test_when_bIsActive_is_true_then_state_bIsActive_true(self):
     "Check that the bIsActive is correctly set to true"
 
@@ -25,7 +25,7 @@ The second line is acting, i.e. this is calling the code to test. In this exampl
 
 The third line is asserting whether the tested property contains the expected value.
 
-```
+```python
 def test_when_iType_OnOffTimer_fSP_not_zero_setpoint_state_setpoint_set_true(self):
     """Check that the setpoint is set to true when iType is OnOffTimer
 
@@ -42,7 +42,7 @@ In this example, the first two lines are setting up the data fields that are req
 it sets the iType of the zone for this specific test case, then the value of fSP that is parsed. Both these values
 are required to be able to test the desired code branch.
 
-```
+```python
 def test_when_iType_should_set_setpoint_state_setpoint_set_correctly(self):
     "Check that the setpoint is set for certain values of iType"
 
