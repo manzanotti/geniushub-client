@@ -214,7 +214,7 @@ class GeniusZoneDataTimerScheduleTests(unittest.TestCase):
         heating_periods = day["heatingPeriods"]
         self.assertEqual(len(heating_periods), 2)
 
-    def test_when_timer_schedule_updated_then_timer_schedule_first_day_first_heating_period_has_correct_setpoint(self):  # noqa: E501
+    def test_when_timer_schedule_parsed_then_timer_schedule_first_day_first_heating_period_has_correct_setpoint(self):  # noqa: E501
         """Check that the first heating period of the first day of the timer schedule
 
         has the correct set point set"""
@@ -225,7 +225,7 @@ class GeniusZoneDataTimerScheduleTests(unittest.TestCase):
         heating_period = day["heatingPeriods"][0]
         self.assertEqual(heating_period["setpoint"], self._heating_period_setpoint)
 
-    def test_when_timer_schedule_updated_then_timer_schedule_first_day_first_heating_period_has_correct_start(self):  # noqa: E501
+    def test_when_timer_schedule_parsed_then_timer_schedule_first_day_first_heating_period_has_correct_start(self):  # noqa: E501
         """Check that the first heating period of the first day of the timer schedule
 
         has the correct start time set"""
@@ -236,7 +236,7 @@ class GeniusZoneDataTimerScheduleTests(unittest.TestCase):
         heating_period = day["heatingPeriods"][0]
         self.assertEqual(heating_period["start"], self._heating_period_start)
 
-    def test_when_timer_schedule_updated_then_timer_schedule_first_day_first_heating_period_has_correct_end(self):  # noqa: E501
+    def test_when_timer_schedule_parsed_then_timer_schedule_first_day_first_heating_period_has_correct_end(self):  # noqa: E501
         """Check that the first heating period of the first day of the timer schedule
 
         has the correct end time set"""
