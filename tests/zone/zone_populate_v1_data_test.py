@@ -3,21 +3,23 @@
     """
 
 import unittest
-from unittest.mock import Mock
+from unittest.mock import (
+    Mock,
+    patch
+)
 from geniushubclient.const import (
-    ITYPE_TO_TYPE,
     ZONE_MODE,
     ZONE_TYPE
 )
 from geniushubclient.zone import GeniusZone
 
 
-class GeniusZoneDataPropertiesTests(unittest.TestCase):
+class GeniusZoneV1DataPopulateTests(unittest.TestCase):
     """
-        Test for the GeniusZone Class, properties data.
+        Test for the GeniusZone Class, dataproperty population.
         """
 
-    _device_id = "Device Id"
+    _device_id = 27
     _zone_name = "Zone Name"
 
     raw_json = {
@@ -31,7 +33,7 @@ class GeniusZoneDataPropertiesTests(unittest.TestCase):
         "fPV_offset": 0.0,
         "fSP": 14.0,
         "iBoostTimeRemaining": 0,
-        "iFlagExpectedKit": 517,
+        "iFlagExpectedKit": 2,
         "iType": ZONE_TYPE.OnOffTimer,
         "iMode": ZONE_MODE.Off,
         "objFootprint": {
@@ -89,28 +91,22 @@ class GeniusZoneDataPropertiesTests(unittest.TestCase):
     }
 
     def setUp(self):
-        hub = Mock()
-        hub.api_version = 3
-        self.hub = hub
+        self.hub = Mock()
+        self.hub.api_version = 3
 
-    def test_when_iType_set_then_data_type_is_set_correctly(self):
-        "Check that the type_name is set on the properties object"
+    def test_data_calls_properties_populate_method(self):
+        "Check that calling the data property calls the properties populate method"
 
-        for zone_type, zone_type_text in ITYPE_TO_TYPE.items():
-            with self.subTest(zone_type=zone_type, zone_type_text=zone_type_text):
-                self.raw_json["iType"] = zone_type
-                self.raw_json["zoneSubType"] = 1
-                genius_zone = GeniusZone(self._device_id, self.raw_json, self.hub)
-
-                self.assertEqual(genius_zone.data['type'], zone_type_text)
-
-    def test_when_iType_TPI_and_subzonetype_zero_then_properties_type_set_to_wet_underfloor(self):  # noqa: E501
-        """Check that the type_name is set to wet underfloor when zone type is TPI
-        and zone subtype is 0"""
-
-        self.raw_json["iType"] = ZONE_TYPE.TPI
-        self.raw_json["zoneSubType"] = 0
         genius_zone = GeniusZone(self._device_id, self.raw_json, self.hub)
 
-        zone_type_text = ITYPE_TO_TYPE[ZONE_TYPE.ControlOnOffPID]
-        self.assertEqual(genius_zone.data['type'], zone_type_text)
+        with patch.object(genius_zone, '_properties') as mock_properties:
+            properties = {}
+            properties['id'] = self._device_id
+            properties['name'] = self._zone_name
+            properties['type'] = ZONE_TYPE.OnOffTimer
+
+            mock_properties.return_value = properties
+
+            genius_zone.data
+
+            mock_properties.populate_v1_data.assert_called_once()
