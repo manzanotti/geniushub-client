@@ -17,6 +17,8 @@ from geniushubclient.const import (
 )
 from geniushubclient.device import GeniusBase
 from geniushubclient.zoneclasses.properties import Properties
+from geniushubclient.zoneclasses.state import State
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -39,6 +41,7 @@ class GeniusZone(GeniusBase):
         super().__init__(zone_id, raw_json, hub, ATTRS_ZONE)
 
         self._properties = Properties()
+        self._state = State()
 
         self.device_objs = []
         self.device_by_id = {}
@@ -49,6 +52,7 @@ class GeniusZone(GeniusBase):
     def update(self, json):
         """Parse the json for the zone data."""
         self._properties.update(json)
+        self._state.update(json, self._properties.zone_type)
 
     @property
     def data(self) -> Dict:
@@ -153,19 +157,7 @@ class GeniusZone(GeniusBase):
         try:  # convert zone (v1 attributes)
             result = self._properties.populate_v1_data(result)
 
-            result["mode"] = IMODE_TO_MODE[raw_json["iMode"]]
-
-            if raw_json["iType"] in [ZONE_TYPE.ControlSP, ZONE_TYPE.TPI]:
-                # some zones have a fPV without raw_json["activeTemperatureDevices"]
-                result["temperature"] = raw_json["fPV"]
-                result["setpoint"] = raw_json["fSP"]
-
-            if raw_json["iType"] == ZONE_TYPE.Manager:
-                if raw_json["fPV"]:
-                    result["temperature"] = raw_json["fPV"]
-
-            elif raw_json["iType"] == ZONE_TYPE.OnOffTimer:
-                result["setpoint"] = bool(raw_json["fSP"])
+            result = self._state.populate_v1_data(result)
 
             if self._has_pir:
                 if TYPE_TO_ITYPE[result["type"]] == ZONE_TYPE.ControlSP:
@@ -215,22 +207,17 @@ class GeniusZone(GeniusBase):
                 "Failed to convert Zone %s footprint schedule.", result["id"]
             )
 
-        try:  # convert extras (v3 attributes)
-            result["_state"] = {"bIsActive": raw_json["bIsActive"]}
-            result["output"] = int(raw_json["bOutRequestHeat"])
-
-            if raw_json["iType"] in [ZONE_TYPE.ControlSP]:
-                result["_state"]["bInHeatEnabled"] = raw_json["bInHeatEnabled"]
-
-        except (AttributeError, LookupError, TypeError, ValueError):
-            _LOGGER.exception("Failed to convert Zone %s extras.", result["id"])
-
         return self._data
 
     @property
     def properties(self) -> Properties:
         """Return the properties of the zone."""
         return self._properties
+
+    @property
+    def state(self) -> State:
+        """Return the current state of the zone."""
+        return self._state
 
     @property
     def _has_pir(self) -> bool:

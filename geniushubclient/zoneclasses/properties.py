@@ -24,8 +24,8 @@ class Properties:
     def update(self, json):
         """Parse the json and use it to populate the properties data class."""
 
-        self.id = json['iID']
-        self.name = json['strName']
+        self.id = json["iID"]
+        self.name = json["strName"]
         self.zone_type = iType = json["iType"]
         self.subtype = json["zoneSubType"]
         self.type_name = ITYPE_TO_TYPE[iType]
@@ -36,8 +36,8 @@ class Properties:
             self.zone_type = ZONE_TYPE.ControlOnOffPID
 
     def populate_v1_data(self, result):
-        result['id'] = self.id
-        result['name'] = self.name
-        result['type'] = self.type_name
+        result["id"] = self.id
+        result["name"] = self.name
+        result["type"] = self.type_name
 
         return result

@@ -7,13 +7,12 @@ from unittest.mock import Mock
 from geniushubclient.const import (
     ITYPE_TO_TYPE,
     ZONE_KIT,
-    ZONE_MODE,
     ZONE_TYPE
 )
 from geniushubclient.zoneclasses.properties import Properties
 
 
-class GeniusZonePropertiesTests(unittest.TestCase):
+class PropertiesTests(unittest.TestCase):
     """
         Test for the zone Properties Class.
         """
