@@ -122,7 +122,7 @@ IDAY_TO_DAY = {
 }
 
 ATTRS_ZONE = {
-    "summary_keys": ["id", "name"],
+    "summary_keys": ["id", "name", "output"],
     "detail_keys": [
         "type",
         "mode",

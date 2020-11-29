@@ -142,6 +142,8 @@ class GeniusZone(GeniusBase):
         raw_json = self._raw  # TODO: remove raw_json, use self._raw
 
         try:  # convert zone (v1 attributes)
+            result["output"] = int(bool(raw_json["fOutput"]))
+
             result["type"] = ITYPE_TO_TYPE[raw_json["iType"]]
             if raw_json["iType"] == ZONE_TYPE.TPI and raw_json["zoneSubType"] == 0:
                 result["type"] = ITYPE_TO_TYPE[ZONE_TYPE.ControlOnOffPID]
