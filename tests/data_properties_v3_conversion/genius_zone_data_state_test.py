@@ -111,23 +111,23 @@ class GeniusZoneDataStateTests(unittest.TestCase):
 
         self.assertTrue(genius_zone.data["_state"]["bIsActive"])
 
-    def test_when_bOutRequestHeat_is_false_then_state_bOutRequestHeat_false(self):
+    def test_when_bOutRequestHeat_is_false_then_output_false(self):
         "Check that the bOutRequestHeat is correctly set to false"
 
         self.raw_json["bOutRequestHeat"] = 0
 
         genius_zone = GeniusZone(self._device_id, self.raw_json, self.hub)
 
-        self.assertFalse(genius_zone.data["_state"]["bOutRequestHeat"])
+        self.assertEqual(genius_zone.data["output"], 0)
 
-    def test_when_bOutRequestHeat_is_true_then_state_bOutRequestHeat_true(self):
+    def test_when_bOutRequestHeat_is_true_then_output_true(self):
         "Check that the bOutRequestHeat is correctly set to true"
 
         self.raw_json["bOutRequestHeat"] = 1
 
         genius_zone = GeniusZone(self._device_id, self.raw_json, self.hub)
 
-        self.assertTrue(genius_zone.data["_state"]["bOutRequestHeat"])
+        self.assertEqual(genius_zone.data["output"], 1)
 
     def test_when_iMode_set_then_state_mode_is_set_correctly(self):
         "Check that the mode is set on the class"

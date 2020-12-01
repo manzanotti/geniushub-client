@@ -142,11 +142,6 @@ class GeniusZone(GeniusBase):
         raw_json = self._raw  # TODO: remove raw_json, use self._raw
 
         try:  # convert zone (v1 attributes)
-            if raw_json["iType"] == ZONE_TYPE.Manager:
-                result["output"] = 0
-            else:
-                result["output"] = int(bool(raw_json["fOutput"]))
-
             result["type"] = ITYPE_TO_TYPE[raw_json["iType"]]
             if raw_json["iType"] == ZONE_TYPE.TPI and raw_json["zoneSubType"] == 0:
                 result["type"] = ITYPE_TO_TYPE[ZONE_TYPE.ControlOnOffPID]
@@ -214,12 +209,11 @@ class GeniusZone(GeniusBase):
             )
 
         try:  # convert extras (v3 attributes)
-            keys = ["bIsActive", "bOutRequestHeat"]
-            result["_state"] = {k: raw_json[k] for k in keys}
+            result["_state"] = {"bIsActive": raw_json["bIsActive"]}
+            result["output"] = int(raw_json["bOutRequestHeat"])
 
             if raw_json["iType"] in [ZONE_TYPE.ControlSP]:
-                key = "bInHeatEnabled"
-                result["_state"][key] = raw_json[key]
+                result["_state"]["bInHeatEnabled"] = raw_json["bInHeatEnabled"]
 
         except (AttributeError, LookupError, TypeError, ValueError):
             _LOGGER.exception("Failed to convert Zone %s extras.", result["id"])
