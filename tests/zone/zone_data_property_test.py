@@ -3,18 +3,19 @@
     """
 
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from geniushubclient.const import ZONE_MODE, ZONE_TYPE
 from geniushubclient.zone import GeniusZone
+from geniushubclient.zoneclasses.properties import Properties
 
 
-class GeniusZoneDataTests(unittest.TestCase):
+class GeniusZoneGetV1DataTests(unittest.TestCase):
     """
-        Test for the GeniusZone Class, general data.
+        Test for the GeniusZone Class, dataproperty population.
         """
 
-    _device_id = "Device Id"
+    _device_id = 27
     _zone_name = "Zone Name"
 
     raw_json = {
@@ -28,7 +29,7 @@ class GeniusZoneDataTests(unittest.TestCase):
         "fPV_offset": 0.0,
         "fSP": 14.0,
         "iBoostTimeRemaining": 0,
-        "iFlagExpectedKit": 517,
+        "iFlagExpectedKit": 2,
         "iType": ZONE_TYPE.OnOffTimer,
         "iMode": ZONE_MODE.Off,
         "objFootprint": {
@@ -86,24 +87,51 @@ class GeniusZoneDataTests(unittest.TestCase):
     }
 
     def setUp(self):
-        hub = Mock()
-        hub.api_version = 3
-        self.hub = hub
+        self.hub = Mock()
+        self.hub.api_version = 3
 
-    def test_raw_json_is_stored(self):
-        "Check that the raw json is set on the class"
-
-        genius_zone = GeniusZone(self._device_id, self.raw_json, self.hub)
-        self.assertEqual(genius_zone._raw, self.raw_json)
-
-    def test_id_is_set_correctly_test(self):
-        "Check that the id is set on the data object"
+    def test_data_calls_properties_populate_method(self):
+        "Check that calling the data property calls the properties get_V1_data method"
 
         genius_zone = GeniusZone(self._device_id, self.raw_json, self.hub)
-        self.assertEqual(genius_zone.data['id'], self._device_id)
 
-    def test_name_is_set_correctly(self):
-        "Check that the name is set on the data object"
+        with patch.object(genius_zone, '_properties') as mock_properties:
+            properties = Properties()
+            mock_properties.return_value = properties
+
+            genius_zone.data
+
+            mock_properties._get_v1_data.assert_called_once()
+
+    def test_update_sets_id(self):
+        "Check that the data property has id set correctly"
 
         genius_zone = GeniusZone(self._device_id, self.raw_json, self.hub)
-        self.assertEqual(genius_zone.data['name'], self._zone_name)
+
+        with patch.object(genius_zone._properties, '_get_v1_data') as mock_properties:
+            mock_properties.return_value = {}
+
+            self.assertEqual(genius_zone.data["id"], self._device_id)
+
+    def test_update_sets_name(self):
+        "Check that the data property has name set correctly"
+
+        genius_zone = GeniusZone(self._device_id, self.raw_json, self.hub)
+
+        with patch.object(genius_zone._properties, '_get_v1_data') as mock_properties:
+            mock_properties.return_value = {
+                "name": self._zone_name}
+
+            self.assertEqual(genius_zone.data["name"], self._zone_name)
+
+    def test_update_sets_type(self):
+        "Check that the data property has type set correctly"
+
+        genius_zone = GeniusZone(self._device_id, self.raw_json, self.hub)
+
+        with patch.object(genius_zone._properties, '_get_v1_data') as mock_properties:
+            zone_type = "radiator"
+            mock_properties.return_value = {
+                "type": zone_type}
+
+            self.assertEqual(genius_zone.data["type"], zone_type)

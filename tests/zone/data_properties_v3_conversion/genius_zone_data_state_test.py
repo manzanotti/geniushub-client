@@ -109,7 +109,7 @@ class GeniusZoneDataStateTests(unittest.TestCase):
         self.assertTrue(genius_zone.data["_state"]["bIsActive"])
 
     def test_when_bOutRequestHeat_is_false_then_output_false(self):
-        "Check that the bOutRequestHeat is correctly set to false"
+        "Check that the output is correctly set to false"
 
         self.raw_json["bOutRequestHeat"] = 0
 
@@ -118,7 +118,7 @@ class GeniusZoneDataStateTests(unittest.TestCase):
         self.assertEqual(genius_zone.data["output"], 0)
 
     def test_when_bOutRequestHeat_is_true_then_output_true(self):
-        "Check that the bOutRequestHeat is correctly set to true"
+        "Check that the output is correctly set to true"
 
         self.raw_json["bOutRequestHeat"] = 1
 

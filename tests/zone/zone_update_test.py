@@ -3,18 +3,19 @@
     """
 
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
-from geniushubclient.const import ITYPE_TO_TYPE, ZONE_MODE, ZONE_TYPE
+from geniushubclient.const import ZONE_MODE, ZONE_TYPE
 from geniushubclient.zone import GeniusZone
+from geniushubclient.zoneclasses.properties import Properties
 
 
-class GeniusZoneDataPropertiesTests(unittest.TestCase):
+class GeniusZoneUpdateTests(unittest.TestCase):
     """
-        Test for the GeniusZone Class, properties data.
+        Test for the GeniusZone Class, update method.
         """
 
-    _device_id = "Device Id"
+    _device_id = 27
     _zone_name = "Zone Name"
 
     raw_json = {
@@ -86,28 +87,18 @@ class GeniusZoneDataPropertiesTests(unittest.TestCase):
     }
 
     def setUp(self):
-        hub = Mock()
-        hub.api_version = 3
-        self.hub = hub
+        self.hub = Mock()
+        self.hub.api_version = 3
 
-    def test_when_iType_set_then_data_type_is_set_correctly(self):
-        "Check that the type_name is set on the properties object"
+    def test_update_calls_properties_update_method_correctly(self):
+        "Check that calling the update method calls the properties update method"
 
-        for zone_type, zone_type_text in ITYPE_TO_TYPE.items():
-            with self.subTest(zone_type=zone_type, zone_type_text=zone_type_text):
-                self.raw_json["iType"] = zone_type
-                self.raw_json["zoneSubType"] = 1
-                genius_zone = GeniusZone(self._device_id, self.raw_json, self.hub)
-
-                self.assertEqual(genius_zone.data['type'], zone_type_text)
-
-    def test_when_iType_TPI_and_subzonetype_zero_then_properties_type_set_to_wet_underfloor(self):  # noqa: E501
-        """Check that the type_name is set to wet underfloor when zone type is TPI
-        and zone subtype is 0"""
-
-        self.raw_json["iType"] = ZONE_TYPE.TPI
-        self.raw_json["zoneSubType"] = 0
         genius_zone = GeniusZone(self._device_id, self.raw_json, self.hub)
 
-        zone_type_text = ITYPE_TO_TYPE[ZONE_TYPE.ControlOnOffPID]
-        self.assertEqual(genius_zone.data['type'], zone_type_text)
+        with patch.object(genius_zone, '_properties') as mock_properties:
+            mock_properties.return_value = Properties()
+
+            genius_zone._update(self.raw_json, self.hub.api_version)
+
+            mock_properties._update.assert_called_once_with(
+                self.raw_json, self.hub.api_version)
