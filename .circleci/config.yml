@@ -292,7 +292,7 @@ jobs:
 workflows:
   version: 2.1
 
-  build-and-test:
+  build-and-test_old:
     jobs:
       - make_testbed
 
@@ -332,6 +332,17 @@ workflows:
           post-steps:
             - *persist_to_workspace
             - *store_artifacts
+
+  build-and-test_new:
+    jobs:
+      - make_testbed
+
+      - check_build:
+          requires:
+            - make_testbed
+          pre-steps:
+            - *restore_cache
+            - *attach_workspace
 
       - unit_tests:
           requires:
