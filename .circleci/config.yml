@@ -17,11 +17,11 @@ aliases:
       - checkout
       - restore_cache:
           keys:
-            - v9-dependencies-{{ checksum "requirements-dev.txt" }}
+            - v1-dependencies-{{ checksum "requirements-dev.txt" }}
 
   - &save_cache
       save_cache:
-        key: v9-dependencies-{{ checksum "requirements-dev.txt" }}
+        key: v1-dependencies-{{ checksum "requirements-dev.txt" }}
         paths:
           - ./venv
 
@@ -32,7 +32,7 @@ aliases:
   - &persist_to_workspace
       persist_to_workspace:
         keys:
-          - v9-dependencies-{{ checksum "requirements-dev.txt" }}
+          - v1-dependencies-{{ checksum "requirements-dev.txt" }}
         root: /tmp/workspace
         paths:
           - test-results
@@ -152,6 +152,7 @@ jobs:
             . venv/bin/activate
             pip install --upgrade pip --disable-pip-version-check
             pip install --upgrade setuptools wheel
+            pip install -r requirements.txt
             pip install -r requirements-dev.txt
       - *save_cache
 
@@ -224,6 +225,7 @@ jobs:
           command: |
             mkdir test-results
             # pip install aiohttp
+
   check_lint:
     docker:
       - image: circleci/python:3.7.5
