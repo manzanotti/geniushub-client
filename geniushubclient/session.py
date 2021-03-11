@@ -1,8 +1,9 @@
 """Python client library for the Genius Hub API."""
 
-import aiohttp
-from hashlib import sha256
 import logging
+from hashlib import sha256
+
+import aiohttp
 
 from .const import DEFAULT_TIMEOUT_V1, DEFAULT_TIMEOUT_V3
 

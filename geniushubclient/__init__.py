@@ -1,10 +1,8 @@
 """Python client library for the Genius Hub API.
 
-    see: https://github.com/zxdavb/geniushub-client
-    see: https://my.geniushub.co.uk/docs
-    """
-
-__version__ = "0.7.0.b4"
+see: https://github.com/zxdavb/geniushub-client
+see: https://my.geniushub.co.uk/docs
+"""
 
 import asyncio
 import json
@@ -13,9 +11,11 @@ from datetime import datetime as dt
 from typing import Dict, List, Tuple  # Any, Optional, Set
 
 from .const import HUB_SW_VERSIONS, ISSUE_DESCRIPTION, ISSUE_TEXT, ZONE_MODE
+from .device import GeniusDevice
 from .session import GeniusService
 from .zone import GeniusZone, natural_sort
-from .device import GeniusDevice
+
+__version__ = "0.7.0.b4"
 
 logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.INFO)
 _LOGGER = logging.getLogger(__name__)
@@ -117,9 +117,9 @@ class GeniusHubBase:
     def zones(self) -> List:
         """Return a list of Zones known to the Hub.
 
-          v1/zones/summary: id, name
-          v1/zones:         id, name, type, mode, temperature, setpoint,
-          occupied, override, schedule
+        v1/zones/summary: id, name
+        v1/zones:         id, name, type, mode, temperature, setpoint,
+        occupied, override, schedule
         """
         return [z.info for z in self.zone_objs]
 
@@ -127,8 +127,8 @@ class GeniusHubBase:
     def devices(self) -> List:
         """Return a list of Devices known to the Hub.
 
-          v1/devices/summary: id, type
-          v1/devices:         id, type, assignedZones, state
+        v1/devices/summary: id, type
+        v1/devices:         id, type, assignedZones, state
         """
         key = "addr" if self.verbosity == 3 else "id"
         return natural_sort([d.info for d in self.device_objs], key)

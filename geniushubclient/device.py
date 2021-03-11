@@ -1,10 +1,9 @@
 """Python client library for the Genius Hub API."""
 
-import logging
-from typing import Dict, Optional  # Any, List, Set, Tuple
-from abc import abstractmethod
-
 import json
+import logging
+from abc import abstractmethod
+from typing import Dict, Optional  # Any, List, Set, Tuple
 
 from .const import ATTRS_DEVICE, DEVICE_HASH_TO_TYPE, STATE_ATTRS
 

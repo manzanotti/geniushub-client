@@ -4,11 +4,8 @@
 
 import unittest
 from unittest.mock import Mock
-from geniushubclient.const import (
-    IMODE_TO_MODE,
-    ZONE_MODE,
-    ZONE_TYPE
-)
+
+from geniushubclient.const import IMODE_TO_MODE, ZONE_MODE, ZONE_TYPE
 from geniushubclient.zone import GeniusZone
 
 

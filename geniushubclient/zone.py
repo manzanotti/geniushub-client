@@ -236,7 +236,7 @@ class GeniusZone(GeniusBase):
     def devices(self) -> List:
         """Return information for devices assigned to a zone.
 
-          This is a v1 API: GET /zones/{zoneId}devices
+        This is a v1 API: GET /zones/{zoneId}devices
         """
         key = "addr" if self._hub.verbosity == 3 else "id"
         return natural_sort([d.info for d in self.device_objs], key)
@@ -249,7 +249,7 @@ class GeniusZone(GeniusBase):
     async def set_mode(self, mode) -> None:
         """Set the mode of the zone.
 
-          mode is in {'off', 'timer', footprint', 'override'}
+        mode is in {'off', 'timer', footprint', 'override'}
         """
         allowed_modes = [ZONE_MODE.Off, ZONE_MODE.Override, ZONE_MODE.Timer]
 
@@ -283,8 +283,8 @@ class GeniusZone(GeniusBase):
     async def set_override(self, setpoint, duration=None) -> None:
         """Set the zone to override to a certain temperature.
 
-          duration is in seconds
-          setpoint is in degrees Celsius
+        duration is in seconds
+        setpoint is in degrees Celsius
         """
         setpoint = float(setpoint)
         duration = int(duration) if duration else 3600
