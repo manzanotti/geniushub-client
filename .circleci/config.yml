@@ -207,6 +207,23 @@ jobs:
             black --diff --check *.py
             black --diff --check geniushubclient
 
+  build: # runs not using Workflows must have a `build` job as entry point
+    # directory where steps are run
+    working_directory: ~/circleci
+    docker: # run the steps with Docker
+      # CircleCI Python images available at: https://hub.docker.com/r/circleci/python/
+      - image: circleci/python:3.7.5
+    steps: # steps that comprise the `build` job
+      - checkout # check out source code to working directory
+      - run: sudo chown -R circleci:circleci /usr/local/bin
+      - run: sudo chown -R circleci:circleci /usr/local/lib/python3.7/site-packages
+      - run:
+          command: |
+            sudo pip install nose coverage pylint
+      - run:
+          command: |
+            mkdir test-results
+            # pip install aiohttp
   check_lint:
     docker:
       - image: circleci/python:3.7.5
