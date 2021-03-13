@@ -320,9 +320,6 @@ workflows:
   build-and-test_json:
     jobs:
       - make_testbed
-          filters: # required
-            tags:
-              only: /.*/
 
       - check_build:
           filters: # required
