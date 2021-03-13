@@ -295,48 +295,7 @@ jobs:
 workflows:
   version: 2.1
 
-  build-and-test_old:
-    jobs:
-      - make_testbed
-
-      - check_build:
-          requires:
-            - make_testbed
-          pre-steps:
-            - *restore_cache
-            - *attach_workspace
-
-      - test_zones:
-          requires:
-            - make_testbed
-          pre-steps:
-            - *restore_cache
-            - *attach_workspace
-          post-steps:
-            - *persist_to_workspace
-            - *store_artifacts
-
-      - test_devices:
-          requires:
-            - make_testbed
-          pre-steps:
-            - *restore_cache
-            - *attach_workspace
-          post-steps:
-            - *persist_to_workspace
-            - *store_artifacts
-
-      - test_issues:
-          requires:
-            - make_testbed
-          pre-steps:
-            - *restore_cache
-            - *attach_workspace
-          post-steps:
-            - *persist_to_workspace
-            - *store_artifacts
-
-  build-and-test_new:
+  build-and-test:
     jobs:
       - make_testbed
 
@@ -356,6 +315,70 @@ workflows:
           # post-steps:
           #   - *persist_to_workspace
           #   - *store_artifacts
+
+
+  build-and-test_json:
+    jobs:
+      - make_testbed
+          filters: # required
+            tags:
+              only: /.*/
+
+      - check_build:
+          filters: # required
+            tags:
+              only: /.*/
+          requires:
+            - make_testbed
+          pre-steps:
+            - *restore_cache
+            - *attach_workspace
+
+      - test_zones:
+          filters:
+            tags:
+              only: /[0-9]+(\.[0-9]+)*/
+            branches:
+              ignore: /.*/
+          requires:
+            - make_testbed
+          pre-steps:
+            - *restore_cache
+            - *attach_workspace
+          post-steps:
+            - *persist_to_workspace
+            - *store_artifacts
+
+      - test_devices:
+          filters:
+            tags:
+              only: /[0-9]+(\.[0-9]+)*/
+            branches:
+              ignore: /.*/
+          requires:
+            - make_testbed
+          pre-steps:
+            - *restore_cache
+            - *attach_workspace
+          post-steps:
+            - *persist_to_workspace
+            - *store_artifacts
+
+      - test_issues:
+          filters:
+            tags:
+              only: /[0-9]+(\.[0-9]+)*/
+            branches:
+              ignore: /.*/
+          requires:
+            - make_testbed
+          pre-steps:
+            - *restore_cache
+            - *attach_workspace
+          post-steps:
+            - *persist_to_workspace
+            - *store_artifacts
+
 
   build-and-deploy:
     jobs:
