@@ -257,12 +257,15 @@ jobs:
     steps:
       - checkout
       - run:
-          command: sudo pip install twine
+          name: Install dependencies
+          command: |
+            pip install -r requirements.txt
+            sudo pip install twine
       - run:
           name: Verify git tag vs. package version
           command: python setup.py verify
       - run:
-          name: Build the  package
+          name: Build the package
           command: |
             python setup.py sdist        # create a source distribution
             python setup.py bdist_wheel  # create a wheel
