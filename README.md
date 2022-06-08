@@ -105,10 +105,10 @@ else:
 
 await hub.update()  # enumerate all zones, devices and issues
 
-client.verbosity = 0  # same as v1/zones/summary, v1/devices/summary
+hub.verbosity = 0  # same as v1/zones/summary, v1/devices/summary
 print(hub.zones)
 
-client.verbosity = 1  # default, same as v1/zones, v1/devices, v1/issues
+hub.verbosity = 1  # default, same as v1/zones, v1/devices, v1/issues
 print(hub.devices)
 
 print(hub.zone_by_id[3].data["temperature"])
