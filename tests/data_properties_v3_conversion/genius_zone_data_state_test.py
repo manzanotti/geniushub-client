@@ -11,8 +11,8 @@ from geniushubclient.zone import GeniusZone
 
 class GeniusZoneDataStateTests(unittest.TestCase):
     """
-        Test for the GeniusZone Class, state data.
-        """
+    Test for the GeniusZone Class, state data.
+    """
 
     _device_id = "Device Id"
     _zone_name = "Zone Name"
@@ -36,53 +36,27 @@ class GeniusZoneDataStateTests(unittest.TestCase):
             "fFootprintAwaySP": 14.0,
             "iFootprintTmNightStart": 75600,
             "iProfile": 1,
-            "lstSP": [{
-                "fSP": 16.0,
-                "iDay": 0,
-                "iTm": 0
-            }, {
-                "fSP": 14.0,
-                "iDay": 0,
-                "iTm": 23400
-            }, {
-                "fSP": 20.0,
-                "iDay": 0,
-                "iTm": 59700
-            }, {
-                "fSP": 14.0,
-                "iDay": 0,
-                "iTm": 75000
-            }, {
-                "fSP": 16.0,
-                "iDay": 0,
-                "iTm": 75600
-            }
+            "lstSP": [
+                {"fSP": 16.0, "iDay": 0, "iTm": 0},
+                {"fSP": 14.0, "iDay": 0, "iTm": 23400},
+                {"fSP": 20.0, "iDay": 0, "iTm": 59700},
+                {"fSP": 14.0, "iDay": 0, "iTm": 75000},
+                {"fSP": 16.0, "iDay": 0, "iTm": 75600},
             ],
-            "objReactive": {
-                "fActivityLevel": 0.0
-            }
+            "objReactive": {"fActivityLevel": 0.0},
         },
-        "objTimer": [{
-            "fSP": 14.0,
-            "iDay": 0,
-            "iTm": -1
-        }],
-        "trigger": {
-            "reactive": 0,
-            "output": 0
-        },
+        "objTimer": [{"fSP": 14.0, "iDay": 0, "iTm": -1}],
+        "trigger": {"reactive": 0, "output": 0},
         "warmupDuration": {
             "bEnable": "true",
             "bEnableCalcs": "true",
             "fRiseRate": 0.5,
             "iLagTime": 2420,
             "iRiseTime": 300,
-            "iTotalTime": 2720
+            "iTotalTime": 2720,
         },
-        "zoneReactive": {
-            "fActivityLevel": 0
-        },
-        "zoneSubType": 1
+        "zoneReactive": {"fActivityLevel": 0},
+        "zoneSubType": 1,
     }
 
     def setUp(self):
@@ -144,11 +118,7 @@ class GeniusZoneDataStateTests(unittest.TestCase):
         temperature = 20.0
         self.raw_json["fPV"] = temperature
 
-        test_values = (
-            ZONE_TYPE.ControlSP,
-            ZONE_TYPE.TPI,
-            ZONE_TYPE.Manager
-        )
+        test_values = (ZONE_TYPE.ControlSP, ZONE_TYPE.TPI, ZONE_TYPE.Manager)
 
         for zone_type in test_values:
             with self.subTest(zone_type=zone_type):
@@ -166,7 +136,7 @@ class GeniusZoneDataStateTests(unittest.TestCase):
         test_values = (
             ZONE_TYPE.OnOffTimer,
             ZONE_TYPE.ControlOnOffPID,
-            ZONE_TYPE.Surrogate
+            ZONE_TYPE.Surrogate,
         )
 
         for zone_type in test_values:
@@ -183,10 +153,7 @@ class GeniusZoneDataStateTests(unittest.TestCase):
         setpoint = 21.0
         self.raw_json["fSP"] = setpoint
 
-        test_values = (
-            ZONE_TYPE.ControlSP,
-            ZONE_TYPE.TPI
-        )
+        test_values = (ZONE_TYPE.ControlSP, ZONE_TYPE.TPI)
 
         for zone_type in test_values:
             with self.subTest(zone_type=zone_type):
@@ -204,7 +171,7 @@ class GeniusZoneDataStateTests(unittest.TestCase):
         test_values = (
             ZONE_TYPE.Manager,
             ZONE_TYPE.ControlOnOffPID,
-            ZONE_TYPE.Surrogate
+            ZONE_TYPE.Surrogate,
         )
 
         for zone_type in test_values:
