@@ -11,8 +11,8 @@ from geniushubclient.zone import GeniusZone
 
 class GeniusZoneDataPropertiesTests(unittest.TestCase):
     """
-        Test for the GeniusZone Class, properties data.
-        """
+    Test for the GeniusZone Class, properties data.
+    """
 
     _device_id = "Device Id"
     _zone_name = "Zone Name"
@@ -36,53 +36,27 @@ class GeniusZoneDataPropertiesTests(unittest.TestCase):
             "fFootprintAwaySP": 14.0,
             "iFootprintTmNightStart": 75600,
             "iProfile": 1,
-            "lstSP": [{
-                "fSP": 16.0,
-                "iDay": 0,
-                "iTm": 0
-            }, {
-                "fSP": 14.0,
-                "iDay": 0,
-                "iTm": 23400
-            }, {
-                "fSP": 20.0,
-                "iDay": 0,
-                "iTm": 59700
-            }, {
-                "fSP": 14.0,
-                "iDay": 0,
-                "iTm": 75000
-            }, {
-                "fSP": 16.0,
-                "iDay": 0,
-                "iTm": 75600
-            }
+            "lstSP": [
+                {"fSP": 16.0, "iDay": 0, "iTm": 0},
+                {"fSP": 14.0, "iDay": 0, "iTm": 23400},
+                {"fSP": 20.0, "iDay": 0, "iTm": 59700},
+                {"fSP": 14.0, "iDay": 0, "iTm": 75000},
+                {"fSP": 16.0, "iDay": 0, "iTm": 75600},
             ],
-            "objReactive": {
-                "fActivityLevel": 0.0
-            }
+            "objReactive": {"fActivityLevel": 0.0},
         },
-        "objTimer": [{
-            "fSP": 14.0,
-            "iDay": 0,
-            "iTm": -1
-        }],
-        "trigger": {
-            "reactive": 0,
-            "output": 0
-        },
+        "objTimer": [{"fSP": 14.0, "iDay": 0, "iTm": -1}],
+        "trigger": {"reactive": 0, "output": 0},
         "warmupDuration": {
             "bEnable": "true",
             "bEnableCalcs": "true",
             "fRiseRate": 0.5,
             "iLagTime": 2420,
             "iRiseTime": 300,
-            "iTotalTime": 2720
+            "iTotalTime": 2720,
         },
-        "zoneReactive": {
-            "fActivityLevel": 0
-        },
-        "zoneSubType": 1
+        "zoneReactive": {"fActivityLevel": 0},
+        "zoneSubType": 1,
     }
 
     def setUp(self):
@@ -99,9 +73,11 @@ class GeniusZoneDataPropertiesTests(unittest.TestCase):
                 self.raw_json["zoneSubType"] = 1
                 genius_zone = GeniusZone(self._device_id, self.raw_json, self.hub)
 
-                self.assertEqual(genius_zone.data['type'], zone_type_text)
+                self.assertEqual(genius_zone.data["type"], zone_type_text)
 
-    def test_when_iType_TPI_and_subzonetype_zero_then_properties_type_set_to_wet_underfloor(self):  # noqa: E501
+    def test_when_iType_TPI_and_subzonetype_zero_then_properties_type_set_to_wet_underfloor(
+        self,
+    ):  # noqa: E501
         """Check that the type_name is set to wet underfloor when zone type is TPI
         and zone subtype is 0"""
 
@@ -110,4 +86,4 @@ class GeniusZoneDataPropertiesTests(unittest.TestCase):
         genius_zone = GeniusZone(self._device_id, self.raw_json, self.hub)
 
         zone_type_text = ITYPE_TO_TYPE[ZONE_TYPE.ControlOnOffPID]
-        self.assertEqual(genius_zone.data['type'], zone_type_text)
+        self.assertEqual(genius_zone.data["type"], zone_type_text)
