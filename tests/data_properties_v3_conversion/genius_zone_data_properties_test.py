@@ -5,8 +5,8 @@
 import unittest
 from unittest.mock import Mock
 
-from geniushubclient.const import ITYPE_TO_TYPE, ZONE_MODE, ZONE_TYPE
-from geniushubclient.zone import GeniusZone
+from src.geniushubclient.const import ITYPE_TO_TYPE, ZONE_MODE, ZONE_TYPE
+from src.geniushubclient.zone import GeniusZone
 
 
 class GeniusZoneDataPropertiesTests(unittest.TestCase):
