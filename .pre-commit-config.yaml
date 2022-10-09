@@ -1,4 +1,4 @@
-# .pre-commit-config.yaml file for https://github.com/zxdavb
+# .pre-commit-config.yaml file for https://github.com/manzanotti/genuishub-client
 
 repos:
   - repo: https://github.com/psf/black

@@ -1,6 +1,6 @@
 """Python client library for the Genius Hub API.
 
-see: https://github.com/zxdavb/geniushub-client
+see: https://github.com/manzanotti/geniushub-client
 see: https://my.geniushub.co.uk/docs
 """
 
