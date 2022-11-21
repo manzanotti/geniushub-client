@@ -11,8 +11,8 @@ from geniushubclient.zone import GeniusZone
 
 class GeniusZoneDataIsOccupiedTests(unittest.TestCase):
     """
-        Test for the GeniusZone Class, occupied property data.
-        """
+    Test for the GeniusZone Class, occupied property data.
+    """
 
     _device_id = "Device Id"
     _zone_name = "Zone Name"
@@ -38,50 +38,26 @@ class GeniusZoneDataIsOccupiedTests(unittest.TestCase):
             "fFootprintAwaySP": 14.0,
             "iFootprintTmNightStart": 75600,
             "iProfile": 1,
-            "lstSP": [{
-                "fSP": 16.0,
-                "iDay": 0,
-                "iTm": 0
-            }, {
-                "fSP": 14.0,
-                "iDay": 0,
-                "iTm": 23400
-            }, {
-                "fSP": 20.0,
-                "iDay": 0,
-                "iTm": 59700
-            }, {
-                "fSP": 14.0,
-                "iDay": 0,
-                "iTm": 75000
-            }, {
-                "fSP": 16.0,
-                "iDay": 0,
-                "iTm": 75600
-            }
-            ]
+            "lstSP": [
+                {"fSP": 16.0, "iDay": 0, "iTm": 0},
+                {"fSP": 14.0, "iDay": 0, "iTm": 23400},
+                {"fSP": 20.0, "iDay": 0, "iTm": 59700},
+                {"fSP": 14.0, "iDay": 0, "iTm": 75000},
+                {"fSP": 16.0, "iDay": 0, "iTm": 75600},
+            ],
         },
-        "objTimer": [{
-            "fSP": 14.0,
-            "iDay": 0,
-            "iTm": -1
-        }],
-        "trigger": {
-            "reactive": 0,
-            "output": 0
-        },
+        "objTimer": [{"fSP": 14.0, "iDay": 0, "iTm": -1}],
+        "trigger": {"reactive": 0, "output": 0},
         "warmupDuration": {
             "bEnable": "true",
             "bEnableCalcs": "true",
             "fRiseRate": 0.5,
             "iLagTime": 2420,
             "iRiseTime": 300,
-            "iTotalTime": 2720
+            "iTotalTime": 2720,
         },
-        "zoneReactive": {
-            "fActivityLevel": 0.0
-        },
-        "zoneSubType": 1
+        "zoneReactive": {"fActivityLevel": 0.0},
+        "zoneSubType": 1,
     }
 
     def setUp(self):

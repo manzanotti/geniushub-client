@@ -1,8 +1,8 @@
-# .pre-commit-config.yaml file for https://github.com/zxdavb
+# .pre-commit-config.yaml file for https://github.com/manzanotti/genuishub-client
 
 repos:
   - repo: https://github.com/psf/black
-    rev: 20.8b1
+    rev: 22.8.0
     hooks:
       - id: black
         args:

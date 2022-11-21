@@ -15,7 +15,7 @@ with open("geniushubclient/__init__.py") as fh:
             VERSION = eval(line.split("=")[-1])
             break
 
-URL = "https://github.com/zxdavb/geniushub-client"
+URL = "https://github.com/manzanotti/geniushub-client"
 
 with open("README.md", "r") as fh:
     LONG_DESCRIPTION = fh.read()
@@ -35,8 +35,8 @@ setup(
     name="geniushub-client",
     description="A aiohttp-based client for Genius Hub systems",
     keywords=["genius", "geniushub", "heatgenius"],
-    author="David Bonnes",
-    author_email="zxdavb@gmail.com",
+    author="Paul Manzotti",
+    author_email="manzo@gorilla-tactics.com",
     url=URL,
     download_url=f"{URL}/archive/{VERSION}.tar.gz",
     install_requires=[list(val.strip() for val in open("requirements.txt"))],

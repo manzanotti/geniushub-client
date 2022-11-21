@@ -99,7 +99,7 @@ my_session = aiohttp.ClientSession()
 ...
 
 if not (username or password):
-    hub = GeniusHub(hub_id=hub_address, username, password, session=my_session)
+    hub = GeniusHub(hub_id=hub_address, username=username, password=password, session=my_session)
 else:
     hub = GeniusHub(hub_id=hub_token, session=my_session)
 
@@ -114,7 +114,7 @@ print(hub.devices)
 print(hub.zone_by_id[3].data["temperature"])
 print(hub.device_by_id["2-2"].data)
 
-await session.close()
+await my_session.close()
 ```
 
 ### Unit tests
