@@ -16,8 +16,11 @@ local = True
 
 debug = False
 
+zone_map = dict()
+
 async def run():
 
+    global zone_map
     my_session = aiohttp.ClientSession()
     if local:
         hub = GeniusHub(
@@ -44,14 +47,15 @@ async def run():
         print(json.dumps({"devices": hub_devices}, indent=4, sort_keys=True))
 
     await my_session.close()
-
-    zone_map = dict()
-
+    
     for zone in hub_zones:
         add_output(hub, zone['name'])
     for device in hub_devices:
-        if device['assignedZones'][0]['name'] is not None:
-            zone_map[device['id']] = device['assignedZones'][0]['name']
+        name = device['assignedZones'][0]['name'] or device['type']
+        if name is not None:
+            zone_map[device['id']] = name
+        else:
+            print(f"Null device name: {device}")
         if 'setTemperature' in device['state']:
             add_temp(hub, device['id'], "setTemperature", f"{device['assignedZones'][0]['name']} set temperature")
         if 'measuredTemperature' in device['state']:
@@ -65,24 +69,34 @@ async def run():
                 add_temp(hub, device['id'], "measuredTemperature", f"{zone_map[device['id']]} valve temperature")
             else:
                 print(json.dumps(device, indent=4, sort_keys=True))
+        if 'outputOnOff' in device['state']:
+            write_output(device['id'], device['state']['outputOnOff'])
 
+def write_output(device_id, output):
+    output=float(output)
+    try:
+        print(f'{zone_map[device_id]}: status={output}')
+    except KeyError:
+        pass
+        # print(f'{device_id} not found in zone_map : {zone_map}')
+    db = sqlite3.connect('genius.db')
+    qry = "insert into temp (device_id, temperature, timestamp) values (?,?,CURRENT_TIMESTAMP);"
+    try:
+        cur = db.cursor()
+        cur.execute(qry, (device_id, output))
+        db.commit()
+    except BaseException:
+        print(f"error in database insert: {qry}")
+        db.rollback()
+    db.close()
 
 def add_output(hub, room):
     try:
         output = hub.zone_by_name[room].info["output"]
         print(f'{room}: status={output}')
-        db = sqlite3.connect('genius.db')
-        qry = "insert into temp (device_id, temperature, timestamp) values (?,?,CURRENT_TIMESTAMP);"
-        try:
-            cur = db.cursor()
-            cur.execute(qry, (room, output))
-            db.commit()
-        except BaseException:
-            print(f"error in database insert: {qry}")
-            db.rollback()
-        db.close()
+        write_output(room, output)
     except KeyError:
-        print(f'{room} output status not available')
+        print(f'{room} output y status not available')
 
 def add_temp(hub, device, field, description):
     try:
@@ -118,7 +132,10 @@ def setup():
 
 if __name__ == "__main__":
     #db = sqlite3.connect('genius.db')
+    import sys
     import time
+    if '-d' in sys.argv or '--debug' in sys.argv:
+        debug = True
     while True:
         asyncio.run(run())
         time.sleep(300)
