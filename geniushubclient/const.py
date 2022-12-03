@@ -46,6 +46,7 @@ ITYPE_TO_TYPE = {  # ZONE_TYPE_MODEL
 TYPE_TO_ITYPE = {v: k for k, v in ITYPE_TO_TYPE.items()}
 
 ZONE_MODE = SimpleNamespace(
+    Unknown=0,
     Off=1,
     Timer=2,
     Footprint=4,
@@ -59,6 +60,7 @@ ZONE_MODE = SimpleNamespace(
 )  # from app.js, search for '.ZoneModes = {'
 
 IMODE_TO_MODE = {  # MODE_MODEL
+    ZONE_MODE.Unknown: "unknown",
     ZONE_MODE.Off: "off",
     ZONE_MODE.Timer: "timer",  # could also be 'sense' mode
     ZONE_MODE.Footprint: "footprint",
