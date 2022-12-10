@@ -15,8 +15,6 @@ from .device import GeniusDevice
 from .session import GeniusService
 from .zone import GeniusZone, natural_sort
 
-__version__ = "0.7.0.b4"
-
 logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.INFO)
 _LOGGER = logging.getLogger(__name__)
 

@@ -3,23 +3,19 @@
 #
 """The setup.py file."""
 
+import versioneer
 from setuptools import find_packages, setup
-
-with open("geniushubclient/__init__.py") as fh:
-    for line in fh:
-        if line.strip().startswith("__version__"):
-            VERSION = eval(line.split("=")[-1])
-            break
 
 URL = "https://github.com/manzanotti/geniushub-client"
 
 with open("README.md", "r") as fh:
     LONG_DESCRIPTION = fh.read()
 
+VERSION = versioneer.get_version()
 
 setup(
     name="geniushub-client",
-    description="A aiohttp-based client for Genius Hub systems",
+    description="An aiohttp-based client for Genius Hub systems",
     keywords=["genius", "geniushub", "heatgenius"],
     author="Paul Manzotti",
     author_email="manzo@gorilla-tactics.com",
@@ -40,7 +36,8 @@ setup(
         "Topic :: Home Automation",
     ],
     project_urls={  # Optional
-        "Bug Reports": "https://github.com/manzanotti/geniushub-client/issues",
-        "Source": "https://github.com/manzanotti/geniushub-client/",
+        "Bug Reports": "{URL}/issues",
+        "Source": "{URL}",
     },
+    cmdclass=versioneer.get_cmdclass(),
 )
