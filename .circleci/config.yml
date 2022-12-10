@@ -1,4 +1,4 @@
-# CircleCI 2.1 configuration file for https://github.com/zxdavb/geniushub-client
+# CircleCI 2.1 configuration file for https://github.com/manzanotti/geniushub-client
 # Check https://circleci.com/docs/2.0/language-python/ for more details
 
 version: 2.1
