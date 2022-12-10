@@ -6,5 +6,4 @@ include *.md
 prune .circleci
 prune .github
 prune tests
-exclude *.txt
-exclude .flake8 .pre-commit-config.yaml
+exclude .flake8 .pre-commit-config.yaml requirements-dev.txt
