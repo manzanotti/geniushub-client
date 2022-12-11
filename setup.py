@@ -36,7 +36,7 @@ setup(
         "Topic :: Home Automation",
     ],
     project_urls={  # Optional
-        "Bug Reports": "{URL}/issues",
-        "Source": "{URL}",
+        "Bug Reports": f"{URL}/issues",
+        "Source": f"{URL}",
     },
 )
