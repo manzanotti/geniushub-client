@@ -12,7 +12,7 @@ URL = "https://github.com/manzanotti/geniushub-client"
 with open("README.md", "r") as fh:
     LONG_DESCRIPTION = fh.read()
 
-VERSION = os.environ["github.ref_name"]
+VERSION = os.environ["GITHUB_REF_NAME"]
 
 setup(
     name="geniushub-client",
