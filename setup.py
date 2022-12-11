@@ -21,7 +21,6 @@ setup(
     author="Paul Manzotti",
     author_email="manzo@gorilla-tactics.com",
     url=URL,
-    download_url=f"{URL}/archive/{VERSION}.tar.gz",
     install_requires=["aiohttp"],
     long_description=LONG_DESCRIPTION,
     long_description_content_type="text/markdown",
