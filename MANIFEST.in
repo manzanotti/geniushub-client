@@ -4,5 +4,6 @@ include LICENSE
 include *.md
 
 prune .circleci
-exclude *.txt
-exclude .flake8 .pre-commit-config.yaml
+prune .github
+prune tests
+exclude .flake8 .pre-commit-config.yaml requirements-dev.txt

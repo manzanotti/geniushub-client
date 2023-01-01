@@ -1,4 +1,4 @@
-[![CircleCI](https://circleci.com/gh/zxdavb/geniushub-client.svg?style=svg)](https://circleci.com/gh/zxdavb/geniushub-client) [![Join the chat at https://gitter.im/geniushub-client/community](https://badges.gitter.im/geniushub-client/community.svg)](https://gitter.im/geniushub-client/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/geniushub-client)
+[![CircleCI](https://circleci.com/gh/manzanotti/geniushub-client.svg?style=svg)](https://circleci.com/gh/manzanotti/geniushub-client) [![Join the chat at https://gitter.im/geniushub-client/community](https://badges.gitter.im/geniushub-client/community.svg)](https://gitter.im/geniushub-client/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/geniushub-client)
 
 # geniushub-client
 This is a Python library to provide access to a **Genius Hub** by abstracting its [RESTful API](https://my.geniushub.co.uk/docs). It uses **aiohttp** and is therefore async-friendly.
@@ -9,7 +9,7 @@ If you use the v3 API, you can interrogate the hub directly, rather than via Hea
 
 It is a WIP, and may be missing some functionality. In addition, there are some other limitations (see below).
 
-It is based upon work by [@GeoffAtHome](https://github.com/zxdavb/geniushub-client/commits?author=GeoffAtHome) - thanks!
+It is based upon work by [@GeoffAtHome](https://github.com/manzanotti/geniushub-client/commits?author=GeoffAtHome) and [@zxdavb]](https://github.com/manzanotti/geniushub-client/commits?author=zxdavb) - thanks!
 
 ## Current limitations
 Current limitations & to-dos include:
