@@ -77,7 +77,7 @@ class GeniusHubBase:
         return result
 
     @staticmethod
-    def _issues_via_v3_zones(raw_json) -> List[Dict]:
+    def _issues_via_v3_zones(raw_json, devices) -> List[Dict]:
         """Extract Issues from /v3/zones JSON."""
         result = []
         for zone in raw_json["data"]:
@@ -85,7 +85,11 @@ class GeniusHubBase:
                 if "data" not in issue:
                     issue["data"] = {}
                 issue["data"]["location"] = zone["strName"]
-                result.append(issue)
+                # check if device exists
+                device_id = issue["data"]["nodeID"]
+                for this_device in devices:
+                    if this_device["addr"] == device_id:
+                        result.append(issue)
         return result
 
     @staticmethod
@@ -252,7 +256,7 @@ class GeniusHub(GeniusHubBase):
 
             self._zones = self._zones_via_v3_zones(zones)
             self._devices = self._devices_via_v3_data_mgr(data_manager)
-            self._issues = self._issues_via_v3_zones(zones)
+            self._issues = self._issues_via_v3_zones(zones, self._devices)
             self._version = auth["data"]["release"]
 
             self.uid = auth["data"]["UID"]
@@ -274,7 +278,7 @@ class GeniusTestHub(GeniusHubBase):
         """Update the Hub with its latest state data."""
         self._zones = self._test_json["zones"]
         self._devices = self._test_json["devices"]
-        self._issues = self._issues_via_v3_zones({"data": self._zones})
+        self._issues = self._issues_via_v3_zones({"data": self._zones}, self._devices)
         self._version = self._version_via_v3_zones({"data": self._zones})  # a hack
 
         super().update()  # now parse all the JSON
