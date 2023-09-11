@@ -153,6 +153,15 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
+# Pycharm project settings
+.idea/
+
 # static files generated from Django application using `collectstatic`
 media
 static
+
+# credentials
+config.py
+
+# local data store
+genius.db
