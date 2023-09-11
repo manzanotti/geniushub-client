@@ -38,7 +38,7 @@ def test_when_iType_OnOffTimer_fSP_not_zero_setpoint_state_setpoint_set_true(sel
 
     self.assertTrue(genius_zone.data["setpoint"])
 ```
-In this example, the first two lines are setting up the data fields that are required for the test. Specifically,
+In this example, the first two lines are setting up the data fields that are required for the test. Specifically, 
 it sets the iType of the zone for this specific test case, then the value of fSP that is parsed. Both these values
 are required to be able to test the desired code branch.
 
@@ -74,7 +74,7 @@ To manually run the tests from the command line, use this command:
 python -m unittest discover -p "*_test.py"
 ```
 
-Where the code to be tested contains other classes, make use of the Mock module to mock up
+Where the code to be tested contains other classes, make use of the Mock module to mock up 
 these classes and any behaviours that you require for your tests.
 
 The idea is to test as little as possible in each test. To this aim, do not use multiple

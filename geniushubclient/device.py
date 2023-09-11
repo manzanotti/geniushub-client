@@ -73,9 +73,14 @@ class GeniusDevice(GeniusBase):
                 dev_type = DEVICE_HASH_TO_TYPE.get(node["hash"]["val"])
                 if dev_type:
                     result["type"] = dev_type
-            elif "SwitchBinary" in node and node["SwitchBinary"]["path"].count("/") == 3:
+            elif (
+                "SwitchBinary" in node and node["SwitchBinary"]["path"].count("/") == 3
+            ):
                 result["type"] = f"Dual Channel Receiver - Channel {result['id'][-1]}"
-            elif "ThermostatMode" in node and node["ThermostatMode"]["path"].count("/") == 3:
+            elif (
+                "ThermostatMode" in node
+                and node["ThermostatMode"]["path"].count("/") == 3
+            ):
                 result["type"] = f"Powered Room Thermostat - Channel {result['id'][-1]}"
             elif "TEMPERATURE" in node and node["TEMPERATURE"]["path"].count("/") == 3:
                 result["type"] = f"Powered Room Thermostat - Channel {result['id'][-1]}"
@@ -93,8 +98,7 @@ class GeniusDevice(GeniusBase):
             if "outputOnOff" in state:  # this one should be a bool
                 state["outputOnOff"] = bool(state["outputOnOff"])
 
-        except (AttributeError, LookupError, TypeError, ValueError) as e:
-            print(str(e))
+        except (AttributeError, LookupError, TypeError, ValueError):
             _LOGGER.exception("Failed to convert Device %s.", result["id"])
 
         try:
