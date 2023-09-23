@@ -146,25 +146,6 @@ def _parse_args():
 async def main(loop):
     """Return the JSON as requested."""
 
-    args = _parse_args()
-    # print(args)
-    if args is None:
-        return
-
-    if args.debug_mode > 0:
-        import ptvsd
-
-        print(f"Debugging is enabled, listening on: {DEBUG_ADDR}:{DEBUG_PORT}.")
-        ptvsd.enable_attach(address=(DEBUG_ADDR, DEBUG_PORT))
-
-    if args.debug_mode > 1:
-        print("Waiting for debugger to attach...")
-        ptvsd.wait_for_attach()
-        print("Debugger is attached!")
-
-    if args.debug_mode > 2:
-        breakpoint()
-
     # Option of providing test data (as list of Dicts), or leave both as None
     if FILE_MODE:
         with open("raw_zones.json", mode="r") as fh:
@@ -177,6 +158,25 @@ async def main(loop):
         session = None
         hub = GeniusTestHub(zones_json=z, device_json=d, debug=True)
     else:
+        args = _parse_args()
+        # print(args)
+        if args is None:
+            return
+
+        if args.debug_mode > 0:
+            import ptvsd
+
+            print(f"Debugging is enabled, listening on: {DEBUG_ADDR}:{DEBUG_PORT}.")
+            ptvsd.enable_attach(address=(DEBUG_ADDR, DEBUG_PORT))
+
+        if args.debug_mode > 1:
+            print("Waiting for debugger to attach...")
+            ptvsd.wait_for_attach()
+            print("Debugger is attached!")
+
+        if args.debug_mode > 2:
+            breakpoint()
+
         session = aiohttp.ClientSession()
         hub = GeniusHub(
             hub_id=args.hub_id,
@@ -186,7 +186,7 @@ async def main(loop):
             debug=args.debug_mode,
         )
 
-    hub.verbosity = args.verbosity
+        hub.verbosity = args.verbosity
 
     await hub.update()  # initialise: enumerate all zones, devices & issues
     # ait hub.update()  # for testing, do twice in a row to check for no duplicates

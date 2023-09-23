@@ -88,31 +88,6 @@ ZONE_FLAG = SimpleNamespace(
     TPI=2048,
 )  # from app.js, search for '.ZoneFlags = {'
 
-ISSUE_TEXT = {0: "information", 1: "warning", 2: "error"}
-ISSUE_DESCRIPTION = {
-    "manager:no_boiler_controller": "The hub does not have a boiler controller assigned",
-    "manager:no_boiler_comms": "The hub has lost communication with the boiler controller",
-    "manager:no_temp": "The hub does not have a valid temperature",
-    "manager:weather": "Unable to fetch the weather data",  # correct
-    "manager:weather_data": "Weather data -",
-    "zone:using_weather_temp": "{zone_name} is currently using the outside temperature",  # correct
-    "zone:using_assumed_temp": "{zone_name} is currently using the assumed temperature",
-    "zone:tpi_no_temp": "{zone_name} currently has no valid temperature",  # correct
-    "node:no_comms": "The {device_type} has lost communication with the Hub",
-    "node:not_seen": "The {device_type} in {zone_name} can not been found by the Hub",  # correct
-    "node:low_battery": "The battery for the {device_type} in {zone_name} is dead and needs to be replaced",  # correct
-    "node:warn_battery": "The battery for the {device_type} is low",
-    "node:assignment_limit_exceeded": "{device_type} has been assigned to too many zones",  # for DCR channels
-}  # from app.js, search for: "node:, "zone:, "manager:
-
-# Example errors
-# {'id': 'node:low_battery',        'level': 2, 'data': {'location': 'Room 2.2',
-#        'nodeHash': '0x00000002A0107FFF', 'nodeID': '27', 'batteryLevel': 255}}
-# {'id': 'node:not_seen',           'level': 2, 'data': {'location': 'Kitchen',
-#         'nodeHash': '0x0000000000000000', 'nodeID':  '4'}}
-# {'id': 'zone:tpi_no_temp',        'level': 2, 'data': {'location': 'Temp'}}
-# {'id': 'zone:using_weather_temp', 'level': 1, 'data': {'location': 'Test Rad'}}
-
 IDAY_TO_DAY = {
     0: "sunday",
     1: "monday",
