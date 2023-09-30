@@ -10,8 +10,9 @@ import logging
 from datetime import datetime as dt
 from typing import Dict, List, Tuple  # Any, Optional, Set
 
-from .const import HUB_SW_VERSIONS, ISSUE_DESCRIPTION, ISSUE_TEXT, ZONE_MODE
+from .const import HUB_SW_VERSIONS, ZONE_MODE
 from .device import GeniusDevice
+from .issue import GeniusIssue
 from .session import GeniusService
 from .zone import GeniusZone, natural_sort
 
@@ -148,36 +149,13 @@ class GeniusHubBase:
                 entities.append(entity)
             return entities, {e.id: e for e in entities}
 
-        def convert_issue(raw_json) -> Dict:
-            """Convert a issues's v3 JSON to the v1 schema."""
-            description = ISSUE_DESCRIPTION.get(raw_json["id"], raw_json["id"])
-            level = ISSUE_TEXT.get(raw_json["level"], str(raw_json["level"]))
-
-            if "{zone_name}" in description:
-                zone_name = raw_json["data"]["location"]
-            if "{device_type}" in description:
-                # don't use nodeHash, it won't pick up (e.g. DCR - Channel 1)
-                # vice_type = DEVICE_HASH_TO_TYPE[raw_json["data"]["nodeHash"]]
-                device_type = self.device_by_id[raw_json["data"]["nodeID"]].data["type"]
-
-            if "{zone_name}" in description and "{device_type}" in description:
-                description = description.format(
-                    zone_name=zone_name, device_type=device_type
-                )
-            elif "{zone_name}" in description:
-                description = description.format(zone_name=zone_name)
-            elif "{device_type}" in description:
-                description = description.format(device_type=device_type)
-
-            return {"description": description, "level": level}
-
         if self.api_version == 1:
             self._sense_mode = None  # currently, no way to tell
         else:  # self.api_version == 3:
             manager = [z for z in self._zones if z["iID"] == 0][0]
             self._sense_mode = bool(manager["lOptions"] & ZONE_MODE.Other)
 
-        # TODO: this looks dodgy: replacing rather than updating entitys
+        # TODO: this looks dodgy: replacing rather than updating entities
         self.zone_objs, self.zone_by_id = populate_objects(
             self._zones, "iID", self.zone_by_id, GeniusZone
         )
@@ -198,7 +176,10 @@ class GeniusHubBase:
             self.issues = self._issues
             self.version = self._version
         else:  # self.api_version == 3:
-            self.issues = [convert_issue(raw_json) for raw_json in self._issues]
+            self.issues = [
+                GeniusIssue(raw_json, self.device_by_id).data
+                for raw_json in self._issues
+            ]
             self.version = {
                 "hubSoftwareVersion": self._version,
                 "earliestCompatibleAPI": "https://my.geniushub.co.uk/v1",
