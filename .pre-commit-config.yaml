@@ -8,7 +8,7 @@ repos:
         args:
           - --safe
           - --quiet
-        files: ^(genius.*/.+)?[^/]+\.py$
+        files: ^genius.*/.+\.py$|^genius.*/tests\.py$
 
   - repo: https://gitlab.com/pycqa/flake8
     rev: 3.8.4
@@ -17,8 +17,7 @@ repos:
         additional_dependencies:
           - flake8-docstrings==1.5.0
           - pydocstyle==5.1.1
-        files: ^genius.*/.+\.py$
-        exclude: ^genius.*/tests\.py$
+        files: ^genius.*/.+\.py$|^genius.*/tests\.py$
 
   - repo: https://github.com/pycqa/isort
     rev: 5.7.0
