@@ -14,7 +14,6 @@ class GeniusService:
     """Handle all communication to the Genius Hub."""
 
     def __init__(self, hub_id, username=None, password=None, session=None) -> None:
-
         self._session = session if session else aiohttp.ClientSession()
 
         if username or password:  # use the v3 Api

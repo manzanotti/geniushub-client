@@ -114,7 +114,6 @@ class GeniusZoneDataTimerScheduleTests(unittest.TestCase):
 
         for day_int, day_text in IDAY_TO_DAY.items():
             with self.subTest(day_int=day_int, day_text=day_text):
-
                 genius_zone = GeniusZone(self._device_id, self.raw_json, self.hub)
 
                 days = genius_zone.data["schedule"]["timer"]["weekly"]
