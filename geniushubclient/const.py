@@ -136,6 +136,13 @@ DEVICES_MODEL = [
         "deviceString": "wrv",
     },
     {
+        "hash": "DXJI0RG/eTW6FJWG",
+        "sku": "da-wrv-e",
+        "description": "Wireless Radiator Valve",
+        "assignableZoneTypeIds": [3, 5],
+        "deviceString": "wrv",
+    },
+    {
         "hash": "Genius Concepts/PH-PLG-E",
         "sku": "ph-plg-e",
         "description": "Smart Plug",
