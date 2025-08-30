@@ -121,6 +121,27 @@ ATTRS_ISSUE = {"summary_keys": ["description", "level"], "detail_keys": []}
 #
 DEVICES_MODEL = [
     {"hash": "VIRTUAL", "sku": "virtual node", "description": "Virtual Node"},
+    {
+        "hash": "Danfoss/eTRV0100",
+        "sku": "da-wrv-e",
+        "description": "Wireless Radiator Valve",
+        "assignableZoneTypeIds": [3, 5],
+        "deviceString": "wrv",
+    },
+    {
+        "hash": "Danfoss/eTRV0103",
+        "sku": "da-wrv-e",
+        "description": "Wireless Radiator Valve",
+        "assignableZoneTypeIds": [3, 5],
+        "deviceString": "wrv",
+    },
+    {
+        "hash": "Genius Concepts/PH-PLG-E",
+        "sku": "ph-plg-e",
+        "description": "Smart Plug",
+        "assignableZoneTypeIds": [1, 2, 3, 5, 6],
+        "deviceString": "plg",
+    },
     {"hash": "0x0000000000000000", "sku": "n/a", "description": "Unrecognised Device"},
     {
         "assignableZoneTypeIds": [3, 5],
@@ -191,6 +212,20 @@ DEVICES_MODEL = [
         "deviceString": "esw",
         "hash": "0x0000005900020010",
         "sku": "ho-esw-d",
+    },
+    {
+        "assignableZoneTypeIds": [1, 2, 3, 5, 6],
+        "description": "Electric Switch",
+        "deviceString": "esw",
+        "hash": "0x0000005900030010",
+        "sku": "ho-esw-e",
+    },
+    {
+        "assignableZoneTypeIds": [1, 2, 3, 5, 6],
+        "description": "Electric Switch w/temp",
+        "deviceString": "esw",
+        "hash": "0x0000005900040010",
+        "sku": "ho-esw-e",
     },
     {
         "assignableZoneTypeIds": [1, 3, 5],
@@ -277,6 +312,20 @@ DEVICES_MODEL = [
         "sku": "ph-plg-c",
     },
     {
+        "assignableZoneTypeIds": [1, 2, 3, 5, 6],
+        "description": "Smart Plug",
+        "deviceString": "plg",
+        "hash": "0x0000013C00290001",
+        "sku": "ph-plg-d",
+    },
+    {
+        "assignableZoneTypeIds": [1, 2, 3, 5, 6],
+        "description": "Smart Plug",
+        "deviceString": "plg",
+        "hash": "0x0000013C00950001",
+        "sku": "ph-plg-e",
+    },
+    {
         "assignableZoneTypeIds": [3, 5],
         "description": "Room Sensor",
         "deviceString": "wrs",
@@ -298,6 +347,13 @@ DEVICES_MODEL = [
         "sku": "ph-wrs-b",
     },
     {
+        "assignableZoneTypeIds": [3, 5],
+        "description": "Motion Sensor",
+        "deviceString": "wms",
+        "hash": "0x0000013C00500002",
+        "sku": "ph-wms-b",
+    },
+    {
         "assignableZoneTypeIds": [1, 2, 3, 5, 6],
         "description": "Electric Switch",
         "deviceString": "esw",
@@ -306,10 +362,10 @@ DEVICES_MODEL = [
     },
     {
         "assignableZoneTypeIds": [1, 2, 3, 5, 6],
-        "description": "Electric Switch",
-        "deviceString": "esw",
+        "description": "Electric Relay",
+        "deviceString": "ers",
         "hash": "0x0000013C00100001",
-        "sku": "ph-esw-a",
+        "sku": "ph-ers-a",
     },
     {
         "assignableZoneTypeIds": [1, 2, 3, 5, 6],
@@ -332,7 +388,35 @@ DEVICES_MODEL = [
         "hash": "0x0000015400011100",
         "sku": "po-plg-b",
     },
-]  # from bower.js, search for: 'Model: [{'
+    {
+        "assignableZoneTypeIds": [1, 2, 3, 5, 6],
+        "description": "HeatIt Relay",
+        "deviceString": "esw",
+        "hash": "0x0000019B02080003",
+        "sku": "hi-esw-e",
+    },
+    {
+        "assignableZoneTypeIds": [1, 2, 3, 5, 6],
+        "description": "Powered Room Thermostat",
+        "deviceString": "prt",
+        "hash": "0x0000019B02030003",
+        "sku": "hi-prt-a",
+    },
+    {
+        "assignableZoneTypeIds": [1, 2, 3, 5, 6],
+        "description": "Wireless Room Thermostat",
+        "deviceString": "wrt",
+        "hash": "0x0000019B02040004",
+        "sku": "hi-wrt-d",
+    },
+    {
+        "assignableZoneTypeIds": [3, 5],
+        "description": "Wireless Radiator Valve (beta)",
+        "deviceString": "wrv",
+        "hash": "0x0000006000010015",
+        "sku": "ev-wrv-a",
+    },
+]  # from bower.js, search for: 'devicesModel: ['
 
 DEVICE_HASH_TO_TYPE = {d["hash"]: d["description"] for d in DEVICES_MODEL}
 
