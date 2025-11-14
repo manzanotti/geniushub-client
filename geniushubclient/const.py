@@ -33,7 +33,7 @@ FOOTPRINT_MODES = {1: "super-eco", 2: "eco", 3: "comfort"}
 # the following is from the vendor's javascript
 
 ZONE_TYPE = SimpleNamespace(
-    Manager=1, OnOffTimer=2, ControlSP=3, ControlOnOffPID=4, TPI=5, Surrogate=6
+    Manager=1, OnOffTimer=2, ControlSP=3, ControlOnOffPID=4, TPI=5, Surrogate=6, OpenTherm=7
 )  # from app.js, search for '.Type = {'
 
 ITYPE_TO_TYPE = {  # ZONE_TYPE_MODEL
@@ -43,6 +43,7 @@ ITYPE_TO_TYPE = {  # ZONE_TYPE_MODEL
     ZONE_TYPE.ControlOnOffPID: "wet underfloor",  # "control on / off PID"
     ZONE_TYPE.TPI: "hot water temperature",  # "TPI"
     ZONE_TYPE.Surrogate: "group",  # "group"
+    ZONE_TYPE.OpenTherm: "opentherm",  # "opentherm boiler controller add-on"
 }
 TYPE_TO_ITYPE = {v: k for k, v in ITYPE_TO_TYPE.items()}
 
