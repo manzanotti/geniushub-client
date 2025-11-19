@@ -9,6 +9,7 @@
 
 .vscode/*
 .secrets/*
+.DS_Store
 
 ### github's default .gitignore file for Python (13/03/2020)
 # https://raw.githubusercontent.com/github/gitignore/master/Python.gitignore
@@ -155,4 +156,4 @@ cython_debug/
 
 # static files generated from Django application using `collectstatic`
 media
-static
+static.env
