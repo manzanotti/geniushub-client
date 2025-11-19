@@ -5,7 +5,7 @@ import logging
 from abc import abstractmethod
 from typing import Dict, Optional  # Any, List, Set, Tuple
 
-from .const import ATTRS_DEVICE, DEVICE_HASH_TO_TYPE, STATE_ATTRS
+from .const import ATTRS_DEVICE, DEVICE_HASH_TO_TYPE, SKU_BY_HASH, STATE_ATTRS
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -109,15 +109,57 @@ class GeniusDevice(GeniusBase):
             if "WakeUp_Interval" in node:
                 _state["wakeupInterval"] = node["WakeUp_Interval"]["val"]
 
-            node = self._raw["childNodes"]["_cfg"]["childValues"]
+            node_cfg = self._raw["childNodes"]["_cfg"]["childValues"]
 
             result["_config"] = _config = {}
             for val in ("max_sp", "min_sp", "sku"):
-                if val in node:
-                    _config[val] = node[val]["val"]
+                if val in node_cfg:
+                    _config[val] = node_cfg[val]["val"]
 
         except (AttributeError, LookupError, TypeError, ValueError):
             _LOGGER.exception("Failed to convert Device %s extras.", result["id"])
+
+        try:
+            result["_diagnostics"] = _diagnostics = {}
+            node = self._raw["childValues"]
+
+            # Device model/SKU from hash
+            if "hash" in node:
+                device_hash = node["hash"]["val"]
+                sku = SKU_BY_HASH.get(device_hash)
+                if sku:
+                    _diagnostics["sku"] = sku.upper()  # Match app format (DA-WRV-B)
+                _diagnostics["hash"] = device_hash
+
+            # Firmware and protocol information
+            for val in ("ApplicationVersion", "ProtocolVersion", "LibraryType"):
+                if val in node:
+                    _diagnostics[val] = node[val]["val"]
+
+            # Device health and manufacturer
+            for val in ("health", "manfID"):
+                if val in node:
+                    _diagnostics[val] = node[val]["val"]
+
+            # Wake-up target node
+            if "WakeUp_TargetNode" in node:
+                _diagnostics["wakeupTargetNode"] = node["WakeUp_TargetNode"]["val"]
+
+            # Protection state (for radiator valves)
+            if "ProtectionState" in node:
+                _diagnostics["protectionState"] = node["ProtectionState"]["val"]
+
+            # Clock information (for devices that have it)
+            if "ClockHour" in node and "ClockMinute" in node:
+                _diagnostics["clockTime"] = {
+                    "hour": node["ClockHour"]["val"],
+                    "minute": node["ClockMinute"]["val"]
+                }
+                if "ClockWeekday" in node:
+                    _diagnostics["clockTime"]["weekday"] = node["ClockWeekday"]["val"]
+
+        except (AttributeError, LookupError, TypeError, ValueError):
+            _LOGGER.exception("Failed to convert Device %s diagnostics.", result["id"])
 
         return self._data
 
@@ -132,4 +174,84 @@ class GeniusDevice(GeniusBase):
         try:
             return self._hub.zone_by_name[self.data["assignedZones"][0]["name"]]
         except KeyError:
+            return None
+
+    @property
+    def battery_level(self) -> Optional[int]:
+        """Return the battery level percentage, if available."""
+        try:
+            return self.data["state"].get("batteryLevel")
+        except (KeyError, TypeError):
+            return None
+
+    @property
+    def last_communication(self) -> Optional[int]:
+        """Return the last communication timestamp (Unix epoch), if available."""
+        try:
+            return self.data["_state"].get("lastComms")
+        except (KeyError, TypeError):
+            return None
+
+    @property
+    def measured_temperature(self) -> Optional[float]:
+        """Return the measured temperature in Celsius, if available."""
+        try:
+            return self.data["state"].get("measuredTemperature")
+        except (KeyError, TypeError):
+            return None
+
+    @property
+    def setpoint(self) -> Optional[float]:
+        """Return the setpoint temperature in Celsius, if available."""
+        try:
+            return self.data["state"].get("setTemperature")
+        except (KeyError, TypeError):
+            return None
+
+    @property
+    def valve_offset(self) -> Optional[float]:
+        """Return the valve hidden offset (setback), if available."""
+        try:
+            return self.data["_state"].get("setback")
+        except (KeyError, TypeError):
+            return None
+
+    @property
+    def wakeup_interval(self) -> Optional[int]:
+        """Return the wake-up interval in seconds, if available."""
+        try:
+            return self.data["_state"].get("wakeupInterval")
+        except (KeyError, TypeError):
+            return None
+
+    @property
+    def protocol_version(self) -> Optional[str]:
+        """Return the protocol version, if available."""
+        try:
+            return self.data["_diagnostics"].get("ProtocolVersion")
+        except (KeyError, TypeError):
+            return None
+
+    @property
+    def application_version(self) -> Optional[str]:
+        """Return the application/firmware version, if available."""
+        try:
+            return self.data["_diagnostics"].get("ApplicationVersion")
+        except (KeyError, TypeError):
+            return None
+
+    @property
+    def location(self) -> Optional[str]:
+        """Return the device location/zone name."""
+        try:
+            return self.data["assignedZones"][0]["name"]
+        except (KeyError, TypeError, IndexError):
+            return None
+
+    @property
+    def device_model(self) -> Optional[str]:
+        """Return the device model/SKU (e.g., 'DA-WRV-B', 'HO-WRT-B')."""
+        try:
+            return self.data["_diagnostics"].get("sku")
+        except (KeyError, TypeError):
             return None

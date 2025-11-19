@@ -132,6 +132,25 @@ class GeniusHubBase:
         key = "addr" if self.verbosity == 3 else "id"
         return natural_sort([d.info for d in self.device_objs], key)
 
+    def get_devices(self) -> List:
+        """Return a list of GeniusDevice objects.
+
+        This provides access to the device objects themselves, not just their info dicts.
+        Use this when you need access to device properties like battery_level, last_communication, etc.
+        """
+        return self.device_objs
+
+    def get_device(self, device_id: str):
+        """Return a specific GeniusDevice object by ID.
+
+        Args:
+            device_id: The device ID (address) as a string
+
+        Returns:
+            GeniusDevice object if found, None otherwise
+        """
+        return self.device_by_id.get(device_id)
+
     def update(self):
         """Update the Hub with its latest state data."""
 
