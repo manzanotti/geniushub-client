@@ -1,6 +1,6 @@
 """
-    Tests for the GeniusZone class
-    """
+Tests for the GeniusZone class
+"""
 
 import unittest
 from unittest.mock import Mock
