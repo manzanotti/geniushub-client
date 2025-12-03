@@ -160,6 +160,15 @@ class GeniusZone(GeniusBase):
             elif raw_json["iType"] == ZONE_TYPE.OnOffTimer:
                 result["setpoint"] = bool(raw_json["fSP"])
 
+            elif raw_json["iType"] == ZONE_TYPE.OpenTherm:
+                # OpenTherm zones: temperature = boiler flow temp, setpoint = control setpoint
+                result["temperature"] = raw_json["fPV"]
+                result["setpoint"] = raw_json["fSP"]
+
+                # Expose OpenTherm-specific data for Home Assistant entities
+                if "opentherm" in raw_json:
+                    result["_opentherm"] = raw_json["opentherm"]
+
             if self._has_pir:
                 if TYPE_TO_ITYPE[result["type"]] == ZONE_TYPE.ControlSP:
                     result["occupied"] = is_occupied(raw_json)
@@ -187,7 +196,8 @@ class GeniusZone(GeniusBase):
             if raw_json["iType"] not in [
                 ZONE_TYPE.Manager,
                 ZONE_TYPE.Surrogate,
-            ]:  # timer = {} if: Manager, Group
+                ZONE_TYPE.OpenTherm,
+            ]:  # timer = {} if: Manager, Group, OpenTherm
                 result["schedule"]["timer"] = timer_schedule(raw_json)
 
         except (AttributeError, LookupError, TypeError, ValueError):
