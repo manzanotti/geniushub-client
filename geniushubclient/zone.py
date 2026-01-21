@@ -167,7 +167,7 @@ class GeniusZone(GeniusBase):
 
                 # Expose OpenTherm-specific data for Home Assistant entities
                 if "opentherm" in raw_json:
-                    result["_opentherm"] = raw_json["opentherm"]
+                    result["opentherm"] = raw_json["opentherm"]
 
             if self._has_pir:
                 if TYPE_TO_ITYPE[result["type"]] == ZONE_TYPE.ControlSP:

@@ -9,9 +9,9 @@
 ### 1. Python Package (geniushub-client)
 - ✅ Added OpenTherm zone type (iType 7) to `const.py`
 - ✅ Updated `zone.py` to handle OpenTherm zones (no objTimer)
-- ✅ Exposed `_opentherm` field with 45+ boiler metrics
+- ✅ Exposed `opentherm` field with 45+ boiler metrics
 - ✅ Fixed `setup.py` to handle missing GITHUB_REF_NAME
-- ✅ Created test script: `test_opentherm.py`
+- ✅ Created unit tests for OpenTherm zone parsing
 - ✅ Submitted PR #93 to upstream
 
 **Branch:** `add-opentherm-support`
@@ -137,7 +137,7 @@ None - only adds new functionality for OpenTherm users
 ### Current Working Files
 - **Custom Integration:** `/homeassistant/custom_components/geniushub/` on HA instance (192.168.10.3)
 - **Python Package:** `/Users/andrew/geniushub-debug/geniushub-client/`
-- **Test Script:** `/Users/andrew/geniushub-debug/geniushub-client/test_opentherm.py`
+- **Unit Tests:** `tests/data_properties_v3_conversion/genius_zone_data_opentherm_test.py`
 
 ### SSH Access
 ```bash
@@ -160,7 +160,7 @@ ssh hassio@192.168.10.3
 ### Important Implementation Details:
 - Uses `self._unique_id` (not `self._attr_unique_id`) for compatibility with base `GeniusEntity` class
 - Device identifiers: `("geniushub", f"zone_{zone.id}")`
-- Sensors only created if field exists in `_opentherm.childValues`
+- Sensors only created if field exists in `opentherm.childValues`
 
 ## Issues to Consider for PR
 
@@ -172,7 +172,7 @@ ssh hassio@192.168.10.3
 - Document that OpenTherm users may want faster polling
 
 ### 2. Additional OpenTherm Fields
-Currently exposing 9 key fields. Full list of 45+ available fields in `_opentherm.childValues`:
+Currently exposing 9 key fields. Full list of 45+ available fields in `opentherm.childValues`:
 - Consider adding more sensors (exhaust_temp, room_temp, etc.)
 - Or document how users can access via attributes
 
@@ -202,11 +202,10 @@ gh pr view 93 --repo manzanotti/geniushub-client
 scp hassio@192.168.10.3:/homeassistant/custom_components/geniushub/sensor.py ~/geniushub-debug/sensor_opentherm.py
 ```
 
-### Test with Local Package
+### Run Unit Tests
 ```bash
 cd ~/geniushub-debug/geniushub-client
-GITHUB_REF_NAME="0.0.0-dev" pip install -e .
-python test_opentherm.py
+python -m unittest discover -p "*_test.py"
 ```
 
 ## Timeline
