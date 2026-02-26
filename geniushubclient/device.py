@@ -153,7 +153,7 @@ class GeniusDevice(GeniusBase):
             if "ClockHour" in node and "ClockMinute" in node:
                 _diagnostics["clockTime"] = {
                     "hour": node["ClockHour"]["val"],
-                    "minute": node["ClockMinute"]["val"]
+                    "minute": node["ClockMinute"]["val"],
                 }
                 if "ClockWeekday" in node:
                     _diagnostics["clockTime"]["weekday"] = node["ClockWeekday"]["val"]

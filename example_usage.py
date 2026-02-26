@@ -21,11 +21,11 @@ import aiohttp
 
 # Load credentials from .env file
 try:
-    with open('.env', 'r') as f:
+    with open(".env", "r") as f:
         for line in f:
             line = line.strip()
-            if line and not line.startswith('#'):
-                key, value = line.split('=', 1)
+            if line and not line.startswith("#"):
+                key, value = line.split("=", 1)
                 os.environ[key] = value
 except FileNotFoundError:
     print("ERROR: .env file not found.")
@@ -43,14 +43,14 @@ async def main():
 
     # Initialize the hub connection
     # Replace with your hub's IP address or hostname
-    hub_ip = os.environ.get('GENIUS_HUB_IP', '192.168.1.100')  # Change to your hub IP
+    hub_ip = os.environ.get("GENIUS_HUB_IP", "192.168.1.100")  # Change to your hub IP
 
     async with aiohttp.ClientSession() as session:
         hub = GeniusHub(
             hub_id=hub_ip,
-            username=os.environ.get('GENIUS_USER'),
-            password=os.environ.get('GENIUS_PASS'),
-            session=session
+            username=os.environ.get("GENIUS_USER"),
+            password=os.environ.get("GENIUS_PASS"),
+            session=session,
         )
 
         # Fetch latest data
