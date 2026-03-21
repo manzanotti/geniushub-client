@@ -65,9 +65,9 @@ class GeniusDevice(GeniusBase):
             return self._data
 
         self._data = result = {"id": self._raw["addr"]}
+        node = self._raw.get("childValues", {})
 
         try:
-            node = self._raw["childValues"]
 
             if "hash" in node:
                 dev_type = DEVICE_HASH_TO_TYPE.get(node["hash"]["val"])
@@ -121,7 +121,6 @@ class GeniusDevice(GeniusBase):
 
         try:
             result["_diagnostics"] = _diagnostics = {}
-            node = self._raw["childValues"]
 
             # Device model/SKU from hash
             if "hash" in node:

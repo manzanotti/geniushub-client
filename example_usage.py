@@ -10,7 +10,7 @@ Requirements:
         GENIUS_USER=your_username
         GENIUS_PASS=your_password
         GENIUS_HUB_IP=your_hub_ip  (optional, defaults to 192.168.1.100)
-    - Install: pip install aiohttp geniushubclient
+    - Install: pip install aiohttp geniushub-client
 """
 
 import asyncio

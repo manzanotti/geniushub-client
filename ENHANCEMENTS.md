@@ -61,7 +61,7 @@ from geniushubclient import GeniusHub
 async def main():
     async with aiohttp.ClientSession() as session:
         hub = GeniusHub(
-            hub_id="192.168.20.3",
+            hub_id="192.168.x.x",
             username="your_username",
             password="your_password",
             session=session
@@ -150,7 +150,7 @@ All changes are fully backward compatible:
 
 ## Testing
 
-Tested successfully with a real Genius Hub at 192.168.20.3:
+Tested successfully with a real Genius Hub at 192.168.x.x:
 - 10 devices detected (Room Thermostats, Radiator Valves, Smart Plugs)
 - All diagnostic fields extracted correctly
 - All property accessors working as expected
