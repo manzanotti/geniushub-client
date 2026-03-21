@@ -68,7 +68,7 @@ async def main():
             if device.battery_level is not None:
                 print(f"  Battery: {device.battery_level}%")
 
-            if device.last_communication:
+            if device.last_communication is not None:
                 last_seen = datetime.fromtimestamp(device.last_communication)
                 print(f"  Last seen: {last_seen}")
 
