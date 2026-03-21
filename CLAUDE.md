@@ -107,16 +107,16 @@ The custom HA integration lives on the HA instance at `/config/custom_components
 
 ### Deploy Changes to HA
 ```bash
-# Files are deployed via SSH to hassio@192.168.10.3
+# Files are deployed via SSH to <SSH_USER>@<HA_HOST>
 # Use cat piping (scp doesn't work on this system):
 
-cat local_file.py | ssh hassio@192.168.10.3 "cat > /config/custom_components/geniushub_enhanced/file.py"
+cat local_file.py | ssh <SSH_USER>@<HA_HOST> "cat > /config/custom_components/geniushub_enhanced/file.py"
 
 # Restart Home Assistant via API
 curl -X POST \
-  -H "Authorization: Bearer $(cat ~/.config/claude-code/ha_token)" \
+  -H "Authorization: Bearer $(cat <TOKEN_PATH>)" \
   -H "Content-Type: application/json" \
-  http://192.168.10.3:8123/api/services/homeassistant/restart
+  http://<HA_HOST>:8123/api/services/homeassistant/restart
 ```
 
 ### HA Integration Files
