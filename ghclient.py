@@ -143,9 +143,8 @@ def _parse_args():
     return argparse.Namespace(**vars(args[0]), **vars(args_cmd))
 
 
-async def main(loop):
+async def main():
     """Return the JSON as requested."""
-
     # Option of providing test data (as list of Dicts), or leave both as None
     if FILE_MODE:
         with open("raw_zones.json", mode="r") as fh:
@@ -253,11 +252,8 @@ async def main(loop):
             if hub.api_version == 3:
                 print(f"XXX =", {"weatherData": hub.zone_by_id[0]._raw["weatherData"]})
 
-    if session:
-        await session.close()
+    await hub.close()
 
 
 if __name__ == "__main__":  # called from CLI?
-    LOOP = asyncio.get_event_loop()
-    LOOP.run_until_complete(main(LOOP))
-    LOOP.close()
+    asyncio.run(main())

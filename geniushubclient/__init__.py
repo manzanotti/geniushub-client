@@ -159,10 +159,11 @@ class GeniusHubBase:
         ) -> Tuple[List, Dict]:
             """Create the current list of GeniusHub objects (zones/devices)."""
             entities = []  # list of converted zones/devices
-            key = "id" if self.api_version == 1 else obj_key
             for raw_json in obj_list:
+                key = "id" if self.api_version == 1 else obj_key
+                entity_id = raw_json[key]
                 entity = obj_by_id.get(
-                    raw_json[key], GeniusObject(raw_json[key], raw_json, self)
+                    entity_id, GeniusObject(entity_id, raw_json, self)
                 )
                 entity._data, entity._raw = None, raw_json
                 entities.append(entity)
@@ -209,6 +210,9 @@ class GeniusHubBase:
             _LOGGER.warning("An Issue has been found: %s", issue)
         for issue in [i for i in old_issues if i not in self.issues]:
             _LOGGER.info("An Issue is now resolved: %s", issue)
+
+    async def close(self) -> None:
+        """Close the hub connection."""
 
     async def reboot(self) -> None:
         """Reboot the hub."""
@@ -258,6 +262,11 @@ class GeniusHub(GeniusHubBase):
             self.uid = auth["data"]["UID"]
 
         super().update()  # now parse all the JSON
+
+    async def close(self) -> None:
+        """Close the hub connection."""
+        if self.genius_service:
+            await self.genius_service.close()
 
 
 class GeniusTestHub(GeniusHubBase):

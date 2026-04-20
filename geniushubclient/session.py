@@ -67,6 +67,11 @@ class GeniusService:
             _LOGGER.debug("request(): response=%s", response)
         return response
 
+    async def close(self) -> None:
+        """Close the underlying session."""
+        if self._session:
+            await self._session.close()
+
     @property
     def use_v1_api(self) -> bool:
         """Return True is using the v1 API."""
