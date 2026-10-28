@@ -58,7 +58,7 @@ class GeniusIssue:
             if "{device_type}" in description:
                 # don't use nodeHash, it won't pick up (e.g. DCR - Channel 1)
                 # vice_type = DEVICE_HASH_TO_TYPE[raw_json["data"]["nodeHash"]]
-                device_id = raw_json["data"]["nodeID"]
+                device_id = raw_json["data"].get("nodeID")
                 if device_id in self._device_by_id.keys():
                     device = self._device_by_id[device_id]
                     device_type = device.data["type"]

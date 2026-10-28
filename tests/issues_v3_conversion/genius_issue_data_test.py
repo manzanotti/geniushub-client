@@ -169,6 +169,27 @@ class GeniusIssueTests(unittest.TestCase):
                     error_message.format(device_type="Unknown device"),
                 )
 
+    def test_when_device_error_without_node_id_then_issue_message_correct(
+        self,
+    ):  # noqa: E501
+        "Check that device errors without a nodeID are handled"
+
+        device_by_id = {self._device_id: self.zone}
+
+        for error_id, error_message in self._device_errors.items():
+            with self.subTest(error_id=error_id, error_message=error_message):
+                raw_json = {
+                    "data": {"location": self._zone_name},
+                    "id": error_id,
+                    "level": 2,
+                }
+                genius_issue = GeniusIssue(raw_json, device_by_id)
+
+                self.assertEqual(
+                    genius_issue.data["description"],
+                    error_message.format(device_type="Unknown device"),
+                )
+
     def test_when_zone_and_device_error_for_known_device_then_issue_message_correct(
         self,
     ):  # noqa: E501
