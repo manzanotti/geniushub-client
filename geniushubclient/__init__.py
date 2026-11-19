@@ -191,6 +191,15 @@ class GeniusHubBase:
             self._devices, "addr", self.device_by_id, GeniusDevice
         )
 
+        # Genius Hub v1 API does not return 'type' for Electric Switch
+        if self.api_version == 1:
+            for device in self._devices:
+                if (
+                    device.get("type") is None
+                    and device["state"].get("outputOnOff") is not None
+                ):
+                    device["type"] = "Electric Switch"
+                    
         old_issues = self.issues
         if self.api_version == 1:
             self.issues = self._issues
