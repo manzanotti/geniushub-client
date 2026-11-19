@@ -198,7 +198,10 @@ class GeniusHubBase:
                     device.get("type") is None
                     and device["state"].get("outputOnOff") is not None
                 ):
-                    device["type"] = "Electric Switch"
+                    if device["state"].get("measuredTemperature") is not None:
+                        device["type"] = "Electric Switch w/temp"
+                    else:
+                        device["type"] = "Electric Switch"
                     
         old_issues = self.issues
         if self.api_version == 1:
